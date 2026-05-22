@@ -1,0 +1,57 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <idea-version since-build="243" until-build="999.*"/>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>com.secui.secui_version_checker</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Secui_version_checker</name>
+    <version>1.0</version>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="jungmin87.kim@secui.com" url="https://www.secui.com">Secui</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+        Secui Version Checker는 IntelliJ 기반 IDE용 플러그인으로, 프로젝트의 node_modules/@secui 하위 모듈들의 버전을 자동으로 확인합니다.
+        이 플러그인은 Nexus 서버의 최신 버전과 로컬 모듈의 버전을 비교하여, 사용자에게 업데이트가 필요한 모듈을 알려줍니다.
+        프로젝트가 열릴 때 자동으로 버전 검사를 수행하며, 사용자는 설정 창에서 Nexus 서버 경로를 수정할 수 있습니다.
+        @secui는 Secui 공통 모듈을 의미하며, 이 플러그인은 개발자들이 최신 버전의 모듈을 사용할 수 있도록 합니다.
+        설정을 통해 Nexus 서버 경로를 유연하게 관리할 수 있어, 다양한 환경에서 사용 가능합니다.
+
+        주요 기능:
+        - 프로젝트 열림 시 자동 버전 확인
+        - 설정 창을 통해 Nexus 서버 URL 사용자 지정 가능
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <!-- 프로젝트 리스너 등록 -->
+    <projectListeners>
+        <listener class="SecuiProjectListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
+
+    <!-- 설정 창 등록 -->
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable groupId="tools" displayName="Secui Version Checker"
+                             id="SecuiSettingsConfigurable"
+                             instance="SecuiSettingsConfigurable"/>
+        <projectService serviceImplementation="SecuiSettingsState"/>
+        <notificationGroup id="secui.version.check" displayType="BALLOON" isLogByDefault="true"/>
+    </extensions>
+
+    <actions>
+        <action id="version-check" class="VersionCheckAction" text="Secui Version Check">
+            <add-to-group group-id="ToolsMenu" anchor="first" />
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first" />
+        </action>
+    </actions>
+</idea-plugin>
