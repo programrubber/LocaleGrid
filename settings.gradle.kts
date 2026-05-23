@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "secui_version_checker"
+rootProject.name = "LocaleGrid"

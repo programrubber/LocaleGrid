@@ -4,44 +4,42 @@ plugins {
     id("org.jetbrains.intellij") version "1.15.0"
 }
 
-group = "com.secui"
-version = "0.11"
+group = "com.localegrid"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
 }
 
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
     version.set("2023.3.5")
-    type.set("PY") // Target IDE Platform (PY for PyCharm Professional Edition, or PC for PyCharm Community Edition.)
-
-    plugins.set(listOf(/* Plugin Dependencies */))
+    type.set("PY")
+    plugins.set(listOf())
 }
 
 dependencies {
-    implementation("org.json:json:20210307");
-//    implementation("com.jetbrains.intellij.platform:platform-api:2023.1.1") // 최신 API
-//    compileOnly("com.jetbrains.intellij.platform:platform-api:2021.3") // 구버전도 지원
+    implementation("org.json:json:20210307")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
 
 tasks {
-    // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "17"
         targetCompatibility = "17"
+        options.encoding = "UTF-8"
     }
+
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions.jvmTarget = "17"
     }
 
-    withType<JavaCompile> {
-        options.encoding = "UTF-8"
+    test {
+        useJUnitPlatform()
     }
 
     patchPluginXml {
-        sinceBuild.set("222")
+        sinceBuild.set("233")
         untilBuild.set("999.*")
     }
 
@@ -55,5 +53,3 @@ tasks {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
 }
-
-
