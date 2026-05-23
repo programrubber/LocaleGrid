@@ -28,7 +28,7 @@ public class TranslationTableSaver {
         }
 
         LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
-        WriteCommandAction.runWriteCommandAction(project, "Save LocaleGrid", null, () -> {
+        WriteCommandAction.runWriteCommandAction(project, "LocaleGrid 저장", null, () -> {
             for (String locale : table.getLocales()) {
                 File file = table.getFilesByLocale().get(locale);
                 if (file == null) {

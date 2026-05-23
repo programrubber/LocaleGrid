@@ -57,10 +57,11 @@ build/distributions
 ## 구현 주의사항
 
 - 기본 대상 구조는 `locales/{locale}/{category}.json`이다.
-- JSON 파일을 열었을 때 기본 에디터 옆 `Locale Grid` 커스텀 에디터 탭으로 동작해야 한다.
+- JSON 파일을 열었을 때 `JSON` 원본 탭과 `다국어 에디터` 커스텀 에디터 탭으로 동작해야 한다.
 - MVP에서는 문자열 value만 편집 가능하게 처리한다.
 - number, boolean, array, object leaf는 readonly 또는 unsupported로 표시한다.
 - 빈 value는 warning이며 저장 차단 사유가 아니다.
 - 중복 key와 dot path 충돌은 error이며 저장을 차단한다.
 - 저장 전에는 메모리에서 JSON을 재생성하고 검증한다.
 - JSON 저장 포맷은 기본 2-space indent를 사용한다.
+- 사용자가 보는 버튼, 라벨, 메시지, 문서 문구는 가급적 한국어로 작성한다.

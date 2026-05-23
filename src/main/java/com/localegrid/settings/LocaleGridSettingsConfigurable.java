@@ -38,10 +38,10 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         commentKeysField = new JTextField(state.commentKeys, 32);
         indentSpinner = new JSpinner(new SpinnerNumberModel(state.jsonIndent, 2, 8, 1));
 
-        addRow(panel, c, 0, "Locales root", localesRootField);
-        addRow(panel, c, 1, "Manual locales", manualLocalesField);
-        addRow(panel, c, 2, "Comment keys", commentKeysField);
-        addRow(panel, c, 3, "JSON indent", indentSpinner);
+        addRow(panel, c, 0, "locale 루트 경로", localesRootField);
+        addRow(panel, c, 1, "수동 locale 목록", manualLocalesField);
+        addRow(panel, c, 2, "구역 표시 key", commentKeysField);
+        addRow(panel, c, 3, "JSON 들여쓰기", indentSpinner);
         return panel;
     }
 

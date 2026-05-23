@@ -8,14 +8,14 @@ public final class DotPath {
 
     public static String validate(String key) {
         if (key == null || key.isEmpty()) {
-            return "Key is empty.";
+            return "key가 비어 있습니다.";
         }
         if (key.startsWith(".") || key.endsWith(".") || key.contains("..")) {
-            return "Key has an invalid dot path.";
+            return "dot path 형식이 올바르지 않습니다.";
         }
         for (String segment : key.split("\\.")) {
             if (segment.trim().isEmpty()) {
-                return "Key contains an empty segment.";
+                return "dot path에 빈 segment가 있습니다.";
             }
         }
         return null;

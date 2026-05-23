@@ -36,7 +36,7 @@ public final class TableValidator {
             boolean missing = false;
             for (String locale : table.getLocales()) {
                 LocaleValue value = row.getValue(locale);
-                if (!value.isPresent() || value.getDisplayText().isEmpty()) {
+                if (value.getDisplayText().isEmpty()) {
                     missing = true;
                 }
                 if (value.isPresent() && !value.isEditable()) {

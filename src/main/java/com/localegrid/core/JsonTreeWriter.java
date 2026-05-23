@@ -1,6 +1,8 @@
 package com.localegrid.core;
 
 import com.localegrid.model.Diagnostic;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,45 +31,48 @@ public final class JsonTreeWriter {
     private static void insert(Node node, String[] parts, int index, Object value, List<Diagnostic> diagnostics, String key) {
         String part = parts[index];
         if (index == parts.length - 1) {
-            if (node.children.containsKey(part)) {
+            Entry existing = node.entries.get(part);
+            if (existing != null && existing.child != null) {
                 diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, "Dot path conflicts with existing object: " + key, key));
                 return;
             }
-            node.values.put(part, value);
+            if (existing != null) {
+                diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, "Duplicated dot path: " + key, key));
+                return;
+            }
+            node.entries.put(part, Entry.value(value));
             return;
         }
-        if (node.values.containsKey(part)) {
+        Entry existing = node.entries.get(part);
+        if (existing != null && existing.child == null) {
             diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, "Dot path conflicts with existing leaf: " + key, key));
             return;
         }
-        Node child = node.children.computeIfAbsent(part, ignored -> new Node());
-        insert(child, parts, index + 1, value, diagnostics, key);
+        if (existing == null) {
+            existing = Entry.child(new Node());
+            node.entries.put(part, existing);
+        }
+        insert(existing.child, parts, index + 1, value, diagnostics, key);
     }
 
     private static void appendNode(StringBuilder out, Node node, int level, int indent) {
         out.append('{');
-        int count = node.children.size() + node.values.size();
+        int count = node.entries.size();
         if (count == 0) {
             out.append('}');
             return;
         }
         out.append('\n');
         int index = 0;
-        for (Map.Entry<String, Node> child : node.children.entrySet()) {
+        for (Map.Entry<String, Entry> entry : node.entries.entrySet()) {
             appendIndent(out, level + 1, indent);
-            appendQuoted(out, child.getKey());
+            appendQuoted(out, entry.getKey());
             out.append(": ");
-            appendNode(out, child.getValue(), level + 1, indent);
-            if (++index < count) {
-                out.append(',');
+            if (entry.getValue().child != null) {
+                appendNode(out, entry.getValue().child, level + 1, indent);
+            } else {
+                appendValue(out, entry.getValue().value, level + 1, indent);
             }
-            out.append('\n');
-        }
-        for (Map.Entry<String, Object> value : node.values.entrySet()) {
-            appendIndent(out, level + 1, indent);
-            appendQuoted(out, value.getKey());
-            out.append(": ");
-            appendValue(out, value.getValue());
             if (++index < count) {
                 out.append(',');
             }
@@ -77,20 +82,83 @@ public final class JsonTreeWriter {
         out.append('}');
     }
 
-    private static void appendValue(StringBuilder out, Object value) {
+    private static void appendValue(StringBuilder out, Object value, int level, int indent) {
         if (value == null) {
             out.append("\"\"");
+            return;
+        }
+        if (value == JSONObject.NULL) {
+            out.append("null");
+            return;
+        }
+        if (value instanceof Map) {
+            appendMapValue(out, asObject(value), level, indent);
+            return;
+        }
+        if (value instanceof List) {
+            appendListValue(out, asList(value), level, indent);
             return;
         }
         if (value instanceof Number || value instanceof Boolean) {
             out.append(value);
             return;
         }
-        if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray) {
+        if (value instanceof JSONObject || value instanceof JSONArray) {
             out.append(value);
             return;
         }
         appendQuoted(out, String.valueOf(value));
+    }
+
+    private static void appendMapValue(StringBuilder out, Map<String, Object> value, int level, int indent) {
+        out.append('{');
+        if (value.isEmpty()) {
+            out.append('}');
+            return;
+        }
+        out.append('\n');
+        int index = 0;
+        for (Map.Entry<String, Object> entry : value.entrySet()) {
+            appendIndent(out, level + 1, indent);
+            appendQuoted(out, entry.getKey());
+            out.append(": ");
+            appendValue(out, entry.getValue(), level + 1, indent);
+            if (++index < value.size()) {
+                out.append(',');
+            }
+            out.append('\n');
+        }
+        appendIndent(out, level, indent);
+        out.append('}');
+    }
+
+    private static void appendListValue(StringBuilder out, List<Object> value, int level, int indent) {
+        out.append('[');
+        if (value.isEmpty()) {
+            out.append(']');
+            return;
+        }
+        out.append('\n');
+        for (int i = 0; i < value.size(); i++) {
+            appendIndent(out, level + 1, indent);
+            appendValue(out, value.get(i), level + 1, indent);
+            if (i + 1 < value.size()) {
+                out.append(',');
+            }
+            out.append('\n');
+        }
+        appendIndent(out, level, indent);
+        out.append(']');
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asObject(Object value) {
+        return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> asList(Object value) {
+        return (List<Object>) value;
     }
 
     private static void appendQuoted(StringBuilder out, String value) {
@@ -125,7 +193,24 @@ public final class JsonTreeWriter {
     }
 
     private static final class Node {
-        private final Map<String, Node> children = new LinkedHashMap<>();
-        private final Map<String, Object> values = new LinkedHashMap<>();
+        private final Map<String, Entry> entries = new LinkedHashMap<>();
+    }
+
+    private static final class Entry {
+        private final Node child;
+        private final Object value;
+
+        private Entry(Node child, Object value) {
+            this.child = child;
+            this.value = value;
+        }
+
+        private static Entry child(Node child) {
+            return new Entry(child, null);
+        }
+
+        private static Entry value(Object value) {
+            return new Entry(null, value);
+        }
     }
 }

@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +20,12 @@ public final class FlattenedJson {
         Map<String, LocaleValue> values = new LinkedHashMap<>();
         String json = content == null || content.trim().isEmpty() ? "{}" : content;
         try {
-            Object parsed = new JSONTokener(json).nextValue();
-            if (!(parsed instanceof JSONObject)) {
+            Object parsed = OrderedParser.parse(json);
+            if (!(parsed instanceof Map)) {
                 diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, locale + " JSON root must be an object.", null));
                 return values;
             }
-            flattenObject("", (JSONObject) parsed, values, diagnostics, locale);
+            flattenObject("", asObject(parsed), values, diagnostics, locale);
         } catch (JSONException ex) {
             diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, locale + " JSON parse failed: " + ex.getMessage(), null));
         }
@@ -33,25 +34,117 @@ public final class FlattenedJson {
 
     private static void flattenObject(
         String prefix,
-        JSONObject object,
+        Map<String, Object> object,
         Map<String, LocaleValue> values,
         List<Diagnostic> diagnostics,
         String locale
     ) {
-        for (String name : object.keySet()) {
-            Object value = object.opt(name);
+        for (Map.Entry<String, Object> entry : object.entrySet()) {
+            String name = entry.getKey();
+            Object value = entry.getValue();
             String key = prefix.isEmpty() ? name : prefix + "." + name;
-            if (value instanceof JSONObject) {
-                flattenObject(key, (JSONObject) value, values, diagnostics, locale);
+            if (value instanceof Map) {
+                flattenObject(key, asObject(value), values, diagnostics, locale);
             } else {
                 if (values.containsKey(key)) {
                     diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, locale + " has duplicated dot path: " + key, key));
                 }
                 boolean editable = value instanceof String || value == JSONObject.NULL || value == null;
-                if (value instanceof JSONArray) {
+                if (value instanceof List || value instanceof JSONArray) {
                     editable = false;
                 }
                 values.put(key, new LocaleValue(value == JSONObject.NULL ? "" : value, true, editable));
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asObject(Object value) {
+        return (Map<String, Object>) value;
+    }
+
+    private static final class OrderedParser {
+        private OrderedParser() {
+        }
+
+        private static Object parse(String json) {
+            JSONTokener tokener = new JSONTokener(json);
+            Object value = nextValue(tokener);
+            if (tokener.nextClean() != 0) {
+                throw tokener.syntaxError("Unexpected trailing content");
+            }
+            return value;
+        }
+
+        private static Object nextValue(JSONTokener tokener) {
+            char c = tokener.nextClean();
+            switch (c) {
+                case '"':
+                case '\'':
+                    return tokener.nextString(c);
+                case '{':
+                    return nextObject(tokener);
+                case '[':
+                    return nextArray(tokener);
+                default:
+                    tokener.back();
+                    return tokener.nextValue();
+            }
+        }
+
+        private static Map<String, Object> nextObject(JSONTokener tokener) {
+            Map<String, Object> object = new LinkedHashMap<>();
+            char c = tokener.nextClean();
+            if (c == '}') {
+                return object;
+            }
+            tokener.back();
+
+            while (true) {
+                String key = nextKey(tokener);
+                c = tokener.nextClean();
+                if (c != ':') {
+                    throw tokener.syntaxError("Expected ':' after key");
+                }
+                object.put(key, nextValue(tokener));
+
+                c = tokener.nextClean();
+                if (c == '}') {
+                    return object;
+                }
+                if (c != ',') {
+                    throw tokener.syntaxError("Expected ',' or '}'");
+                }
+            }
+        }
+
+        private static String nextKey(JSONTokener tokener) {
+            char c = tokener.nextClean();
+            if (c == '"' || c == '\'') {
+                return tokener.nextString(c);
+            }
+            tokener.back();
+            Object key = tokener.nextValue();
+            return String.valueOf(key);
+        }
+
+        private static List<Object> nextArray(JSONTokener tokener) {
+            List<Object> array = new ArrayList<>();
+            char c = tokener.nextClean();
+            if (c == ']') {
+                return array;
+            }
+            tokener.back();
+
+            while (true) {
+                array.add(nextValue(tokener));
+                c = tokener.nextClean();
+                if (c == ']') {
+                    return array;
+                }
+                if (c != ',') {
+                    throw tokener.syntaxError("Expected ',' or ']'");
+                }
             }
         }
     }

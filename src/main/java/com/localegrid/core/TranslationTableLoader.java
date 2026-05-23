@@ -1,6 +1,9 @@
 package com.localegrid.core;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.localegrid.model.Diagnostic;
 import com.localegrid.model.LocaleGridRow;
@@ -13,6 +16,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -73,6 +77,13 @@ public class TranslationTableLoader {
 
     private static String readFile(File file, List<Diagnostic> diagnostics, String locale) {
         try {
+            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByIoFile(file);
+            if (virtualFile != null) {
+                Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+                if (document != null) {
+                    return document.getText();
+                }
+            }
             return Files.readString(file.toPath(), StandardCharsets.UTF_8);
         } catch (IOException ex) {
             diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, locale + " file read failed: " + ex.getMessage(), null));
@@ -98,6 +109,17 @@ public class TranslationTableLoader {
             }
         }
         discovered.add(openedLocale);
-        return new ArrayList<>(discovered);
+        return sortLocales(discovered);
+    }
+
+    private static List<String> sortLocales(Set<String> discovered) {
+        List<String> result = new ArrayList<>();
+        for (String locale : Arrays.asList("ko", "en", "jp", "vi")) {
+            if (discovered.remove(locale)) {
+                result.add(locale);
+            }
+        }
+        result.addAll(discovered.stream().sorted().toList());
+        return result;
     }
 }

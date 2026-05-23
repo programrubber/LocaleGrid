@@ -28,7 +28,7 @@ public class LocaleValue {
     }
 
     public String getDisplayText() {
-        if (!present) {
+        if (!present && !modified) {
             return "";
         }
         if (value == null || value == JSONObject.NULL) {

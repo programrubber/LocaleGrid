@@ -27,7 +27,8 @@ class LocaleGridTableModel extends AbstractTableModel {
             visibleLocales.addAll(table.getLocales());
         }
         bundleVisible = false;
-        applyFilter("", false, false, false, false);
+        rebuildVisibleRows("", false, false, false, false);
+        fireTableStructureChanged();
     }
 
     void setVisibleLocales(Collection<String> locales) {
@@ -59,9 +60,13 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     void applyFilter(String search, boolean missingOnly, boolean modifiedOnly, boolean deletedOnly, boolean issueOnly) {
+        rebuildVisibleRows(search, missingOnly, modifiedOnly, deletedOnly, issueOnly);
+        fireTableDataChanged();
+    }
+
+    private void rebuildVisibleRows(String search, boolean missingOnly, boolean modifiedOnly, boolean deletedOnly, boolean issueOnly) {
         visibleRows.clear();
         if (table == null) {
-            fireTableDataChanged();
             return;
         }
 
@@ -84,7 +89,6 @@ class LocaleGridTableModel extends AbstractTableModel {
             }
             visibleRows.add(row);
         }
-        fireTableDataChanged();
     }
 
     TranslationTable getTranslationTable() {
@@ -109,6 +113,10 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     boolean isKeyColumn(int column) {
+        return column == 1;
+    }
+
+    boolean isStatusColumn(int column) {
         return column == 0;
     }
 
@@ -117,10 +125,10 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     String getLocaleForColumn(int column) {
-        if (column <= 0 || column > visibleLocales.size()) {
+        if (column <= 1 || column > visibleLocales.size() + 1) {
             return null;
         }
-        return visibleLocales.get(column - 1);
+        return visibleLocales.get(column - 2);
     }
 
     String getBundleText(LocaleGridRow row) {
@@ -166,24 +174,30 @@ class LocaleGridTableModel extends AbstractTableModel {
         if (table == null) {
             return 1;
         }
-        return 1 + visibleLocales.size() + (bundleVisible ? 1 : 0);
+        return 2 + visibleLocales.size() + (bundleVisible ? 1 : 0);
     }
 
     @Override
     public String getColumnName(int column) {
         if (column == 0) {
+            return "상태";
+        }
+        if (column == 1) {
             return "key";
         }
         if (isBundleColumn(column)) {
             return BUNDLE_COLUMN_NAME;
         }
-        return visibleLocales.get(column - 1);
+        return visibleLocales.get(column - 2);
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         LocaleGridRow row = visibleRows.get(rowIndex);
         if (columnIndex == 0) {
+            return getStatusCode(row);
+        }
+        if (columnIndex == 1) {
             return row.getKey();
         }
         if (isBundleColumn(columnIndex)) {
@@ -202,7 +216,7 @@ class LocaleGridTableModel extends AbstractTableModel {
         if (row.isComment()) {
             return false;
         }
-        return row.getValues().values().stream().anyMatch(value -> !value.isPresent() || value.getDisplayText().isEmpty());
+        return row.getValues().values().stream().anyMatch(value -> value.getDisplayText().isEmpty());
     }
 
     boolean hasIssue(LocaleGridRow row) {
@@ -226,7 +240,7 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     boolean isReadonlyCell(LocaleGridRow row, int column) {
-        if (column == 0 || isBundleColumn(column)) {
+        if (column == 0 || column == 1 || isBundleColumn(column)) {
             return false;
         }
         String locale = getLocaleForColumn(column);

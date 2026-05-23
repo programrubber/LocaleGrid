@@ -249,7 +249,7 @@
       <section id="goal">
         <h2>목표</h2>
         <p><code>PLAN.md</code>의 MVP를 실제 동작 가능한 PyCharm 플러그인으로 완성한다.</p>
-        <p>핵심 목표는 <code>locales/{locale}/{category}.json</code> 구조의 JSON 파일을 열었을 때, 기본 JSON 에디터 옆 <code>Locale Grid</code> 탭에서 다국어 값을 비교, 수정, 검증, 저장할 수 있게 만드는 것이다.</p>
+        <p>핵심 목표는 <code>locales/{locale}/{category}.json</code> 구조의 JSON 파일을 열었을 때, <code>JSON</code> 원본 탭 옆 <code>다국어 에디터</code> 탭에서 다국어 값을 비교, 수정, 검증, 저장할 수 있게 만드는 것이다.</p>
       </section>
 
       <section id="current">
@@ -290,7 +290,7 @@
         <div class="callout warn">
           한국어, 영어, 일본어, 베트남어를 모두 한 줄에 컬럼으로 표시하면 한 행이 과도하게 길어지고 가독성이 떨어진다.
         </div>
-        <p><strong>권장 결정:</strong> 기본 화면은 <code>key + 언어별 컬럼</code> 중심으로 표시한다. <code>번역 묶음</code>은 마지막 컬럼으로 두되 기본 숨김 처리하고, 테이블 위 체크박스로 <code>번역 묶음</code>과 각 언어 컬럼을 show/hide 할 수 있게 한다. 상태는 별도 컬럼 대신 key 안의 고정폭 배지로 표시하고, 정상 행은 배지를 표시하지 않는다.</p>
+        <p><strong>권장 결정:</strong> 기본 화면은 <code>상태 + key + 언어별 컬럼</code> 중심으로 표시한다. <code>번역 묶음</code>은 마지막 컬럼으로 두되 기본 숨김 처리하고, 테이블 위 체크박스로 <code>번역 묶음</code>과 각 언어 컬럼을 show/hide 할 수 있게 한다. 상태는 key 왼쪽의 별도 고정폭 컬럼에 배지로 표시하고, 정상 행은 배지를 표시하지 않는다.</p>
       </section>
 
       <section id="ui-alternative">
@@ -300,30 +300,39 @@
           <p>
             <label><input type="checkbox" checked disabled> ko</label>
             <label><input type="checkbox" checked disabled> en</label>
-            <label><input type="checkbox" disabled> jp</label>
-            <label><input type="checkbox" disabled> vi</label>
+            <label><input type="checkbox" checked disabled> jp</label>
+            <label><input type="checkbox" checked disabled> vi</label>
             <label><input type="checkbox" disabled> 번역 묶음</label>
           </p>
           <table>
             <thead>
               <tr>
+                <th>상태</th>
                 <th>key</th>
                 <th>ko</th>
                 <th>en</th>
+                <th>jp</th>
+                <th>vi</th>
                 <th>번역 묶음 hidden</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><span class="tag warn">WARN</span> <code>login.title</code></td>
+                <td><span class="tag warn">WARN</span></td>
+                <td><code>login.title</code></td>
                 <td>로그인</td>
                 <td>Login</td>
+                <td>ログイン</td>
+                <td>Đăng nhập</td>
                 <td>ko: 로그인<br>en: Login<br>jp: ログイン<br>vi: Đăng nhập</td>
               </tr>
               <tr>
+                <td></td>
                 <td><code>login.button.submit</code></td>
                 <td>로그인하기</td>
                 <td>Sign in</td>
+                <td>ログインする</td>
+                <td>Đăng nhập</td>
                 <td>ko: 로그인하기<br>en: Sign in<br>jp: ログインする<br>vi: Đăng nhập</td>
               </tr>
             </tbody>
@@ -362,7 +371,7 @@
           </li>
           <li>
             <strong>그리드 UI 개선</strong>
-            <p>기본 그리드는 key와 언어별 컬럼으로 구성한다. 번역 묶음은 마지막 컬럼이지만 기본 hide다. 상태는 key 안의 고정폭 배지로 표시하고, 번역 묶음과 언어별 컬럼은 체크박스로 show/hide 한다. 모든 locale 값은 상세 패널에서 세로로 표시하고 바로 수정한다.</p>
+            <p>기본 그리드는 상태, key, 언어별 컬럼으로 구성한다. 자동 locale 순서는 ko, en, jp, vi를 우선한다. 번역 묶음은 마지막 컬럼이지만 기본 hide다. 상태는 key 왼쪽의 고정폭 컬럼에 표시하고, 번역 묶음과 언어별 컬럼은 체크박스로 show/hide 한다. 모든 locale 값은 상세 패널에서 세로로 표시하고 바로 수정한다.</p>
           </li>
           <li>
             <strong>key 편집 기능 완성</strong>
@@ -400,7 +409,7 @@
           <li><code>TranslationTable</code>, <code>LocaleGridRow</code>, <code>LocaleValue</code> 모델 보강</li>
           <li><code>Diagnostic</code> 구조 확장</li>
           <li>저장 전 메모리 검증 강화</li>
-          <li>그리드 UI를 key 상태 배지 + 언어별 컬럼 + 번역 묶음 마지막 컬럼 기본 hide + 상세 패널 구조로 개선</li>
+          <li>그리드 UI를 상태 배지 컬럼 + key + 언어별 컬럼 + 번역 묶음 마지막 컬럼 기본 hide + 상세 패널 구조로 개선</li>
           <li>Add/Rename/Delete 저장 반영 완성</li>
           <li>단위 테스트 추가</li>
           <li>샌드박스 프로젝트 수동 검증</li>
@@ -410,7 +419,7 @@
       <section id="done">
         <h2>최종 MVP 완료 기준</h2>
         <ul>
-          <li>JSON 파일을 열면 <code>Locale Grid</code> 탭이 표시된다.</li>
+          <li>JSON 파일을 열면 <code>JSON</code> / <code>다국어 에디터</code> 탭이 표시된다.</li>
           <li>같은 category의 locale JSON 파일들이 하나의 테이블로 병합된다.</li>
           <li>다국어 value를 한 화면에서 비교하고 수정할 수 있다.</li>
           <li>긴 다국어 문장이 한 줄에 과밀하게 표시되지 않는다.</li>

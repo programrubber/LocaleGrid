@@ -15,22 +15,16 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
     private static final Color READONLY_BG = new Color(245, 245, 245);
     private static final Color MISSING_BG = new Color(255, 250, 230);
 
-    private final JLabel badge = new JLabel("", SwingConstants.CENTER);
     private final JTextArea text = new JTextArea();
 
     LocaleGridCellRenderer() {
         super(new BorderLayout(6, 0));
-        badge.setOpaque(true);
-        badge.setFont(new Font(Font.MONOSPACED, Font.BOLD, 11));
-        badge.setPreferredSize(new Dimension(42, 20));
-        badge.setBorder(BorderFactory.createEmptyBorder(1, 4, 1, 4));
-
+        setOpaque(true);
         text.setOpaque(false);
         text.setEditable(false);
         text.setLineWrap(false);
         text.setWrapStyleWord(false);
         text.setBorder(BorderFactory.createEmptyBorder(3, 4, 3, 4));
-        add(badge, BorderLayout.WEST);
         add(text, BorderLayout.CENTER);
     }
 
@@ -55,10 +49,8 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         text.setForeground(foreground);
 
         if (keyColumn) {
-            configureBadge(model.getStatusCode(gridRow), isSelected);
             text.setText(gridRow.getKey());
         } else {
-            badge.setVisible(false);
             text.setText(value == null ? "" : String.valueOf(value));
         }
         return this;
@@ -90,7 +82,7 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         if (!model.isKeyColumn(column) && !model.isBundleColumn(column)) {
             String locale = model.getLocaleForColumn(column);
             LocaleValue cellValue = locale == null ? null : row.getValue(locale);
-            if (cellValue != null && (!cellValue.isPresent() || cellValue.getDisplayText().isEmpty())) {
+            if (cellValue != null && cellValue.getDisplayText().isEmpty()) {
                 return MISSING_BG;
             }
             if (model.isReadonlyCell(row, column)) {
@@ -100,32 +92,4 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         return viewRow % 2 == 0 ? Color.WHITE : new Color(250, 251, 252);
     }
 
-    private void configureBadge(String code, boolean isSelected) {
-        if (code == null || code.isEmpty()) {
-            badge.setVisible(false);
-            return;
-        }
-        badge.setVisible(true);
-        badge.setText(code);
-        badge.setForeground(isSelected ? Color.WHITE : Color.DARK_GRAY);
-        switch (code) {
-            case "ERR!":
-                badge.setBackground(new Color(255, 184, 184));
-                break;
-            case "WARN":
-                badge.setBackground(new Color(255, 228, 140));
-                break;
-            case "DEL!":
-                badge.setBackground(new Color(210, 210, 210));
-                break;
-            case "READ":
-                badge.setBackground(new Color(194, 215, 255));
-                break;
-            case "MOD*":
-                badge.setBackground(new Color(205, 236, 255));
-                break;
-            default:
-                badge.setBackground(new Color(230, 230, 230));
-        }
-    }
 }
