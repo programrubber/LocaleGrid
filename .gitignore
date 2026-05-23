@@ -46,3 +46,4 @@ bin/
 
 .aider.conf.yml
 .aider*
+.aider.tags.cache.v4/
