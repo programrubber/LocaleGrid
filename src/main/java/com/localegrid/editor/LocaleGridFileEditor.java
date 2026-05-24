@@ -625,7 +625,10 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private void updateModifiedState() {
         boolean nextModifiedState = isModified();
         if (lastModifiedState != nextModifiedState) {
+            String oldName = lastModifiedState ? EDITING_EDITOR_NAME : EDITOR_NAME;
+            String newName = nextModifiedState ? EDITING_EDITOR_NAME : EDITOR_NAME;
             changeSupport.firePropertyChange(FileEditor.PROP_MODIFIED, lastModifiedState, nextModifiedState);
+            changeSupport.firePropertyChange("name", oldName, newName);
             lastModifiedState = nextModifiedState;
         }
         FileEditorManager.getInstance(project).updateFilePresentation(file);
