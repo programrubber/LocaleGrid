@@ -50,4 +50,41 @@ class FlattenedJsonTest {
         assertTrue(diagnostics.isEmpty(), diagnostics.toString());
         assertEquals(List.of("login.title", "login.button.submit", "login.message", "help"), keys);
     }
+
+    @Test
+    void reportsDuplicatedJsonKeysBeforeKeepingLastValue() {
+        String json = """
+            {
+              "title": "First",
+              "title": "Second"
+            }
+            """;
+        List<Diagnostic> diagnostics = new ArrayList<>();
+
+        assertEquals("Second", FlattenedJson.flatten(json, diagnostics, "en").get("title").getValue());
+
+        assertEquals(1, diagnostics.size());
+        assertEquals(Diagnostic.Severity.ERROR, diagnostics.get(0).getSeverity());
+        assertEquals("title", diagnostics.get(0).getKey());
+        assertTrue(diagnostics.get(0).getMessage().contains("duplicated JSON key"));
+    }
+
+    @Test
+    void reportsDuplicatedNestedJsonKeysWithDotPath() {
+        String json = """
+            {
+              "login": {
+                "title": "First",
+                "title": "Second"
+              }
+            }
+            """;
+        List<Diagnostic> diagnostics = new ArrayList<>();
+
+        FlattenedJson.flatten(json, diagnostics, "en");
+
+        assertEquals(1, diagnostics.size());
+        assertEquals(Diagnostic.Severity.ERROR, diagnostics.get(0).getSeverity());
+        assertEquals("login.title", diagnostics.get(0).getKey());
+    }
 }

@@ -93,17 +93,19 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
         return row % 2 == 0 ? new Color(60, 64, 65) : new Color(56, 60, 61);
     }
 
-    private static Color badgeColor(String code) {
+    static Color badgeColor(String code) {
         switch (code) {
-            case "ERR!":
+            case "에러":
                 return new Color(197, 61, 61);
-            case "WARN":
+            case "추가":
+                return new Color(50, 130, 89);
+            case "경고":
                 return new Color(184, 119, 0);
-            case "DEL!":
+            case "삭제":
                 return new Color(104, 104, 104);
-            case "READ":
+            case "읽기":
                 return new Color(76, 131, 214);
-            case "MOD*":
+            case "편집":
                 return new Color(31, 132, 181);
             default:
                 return new Color(96, 96, 96);
@@ -119,16 +121,18 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
 
     static String tooltipText(String code) {
         switch (code) {
-            case "ERR!":
-                return "ERR! - 오류: 중복 key 또는 dot path 충돌로 저장이 차단됩니다.";
-            case "WARN":
-                return "WARN - 경고: 빈 값 또는 누락된 번역이 있어 확인이 필요합니다.";
-            case "DEL!":
-                return "DEL! - 삭제 후보: 저장 시 제거될 행입니다.";
-            case "READ":
-                return "READ - 읽기 전용: 주석 또는 편집할 수 없는 행입니다.";
-            case "MOD*":
-                return "MOD* - 수정됨: 저장되지 않은 변경이 있습니다.";
+            case "에러":
+                return "에러 - 중복 key 또는 dot path 충돌로 적용이 차단됩니다.";
+            case "추가":
+                return "추가 - 적용 시 새로 추가될 Row입니다.";
+            case "경고":
+                return "경고 - 빈 값 또는 누락된 번역이 있어 확인이 필요합니다.";
+            case "삭제":
+                return "삭제 - 적용 시 제거될 Row입니다.";
+            case "읽기":
+                return "읽기 - 주석 또는 편집할 수 없는 Row입니다.";
+            case "편집":
+                return "편집 - 적용되지 않은 변경 사항이 있습니다.";
             default:
                 return null;
         }

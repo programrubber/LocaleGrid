@@ -36,6 +36,10 @@ $env:PATH="$env:JAVA_HOME\bin;$env:PATH"
 .\gradlew.bat runIde --console=plain
 ```
 
+- 개발 실행을 다시 요청받으면 먼저 기존 `runIde`/IDE 관련 `java`, `gradle`, `idea`, `pycharm` 프로세스를 확인한다.
+- 이미 개발 IDE가 켜져 있으면 기존 실행 프로세스를 종료한 뒤 새로 실행한다.
+- 종료 대상은 LocaleGrid 개발 실행으로 판단되는 프로세스로 제한하고, 가능한 경우 PID를 확인한 뒤 종료한다.
+
 - 빌드:
 
 ```powershell

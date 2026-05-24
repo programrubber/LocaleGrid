@@ -178,8 +178,12 @@
     }
 
     .tag.ok { background: var(--ok); color: #17633a; }
+    .tag.added { background: var(--ok); color: #17633a; }
     .tag.warn { background: var(--warn); color: #7a4a00; }
     .tag.error { background: var(--error); color: #9a1b1b; }
+    .tag.deleted { background: var(--line); color: #555555; }
+    .tag.readonly { background: var(--brand-soft); color: #1f6feb; }
+    .tag.edited { background: #e2f5ff; color: #1d72aa; }
 
     .steps {
       counter-reset: step;
@@ -266,15 +270,15 @@
           <li>프로젝트 설정 UI 초안 추가됨</li>
         </ul>
 
-        <h3>보완 필요</h3>
+        <h3>현재 구현 완료 및 보완된 부분</h3>
         <ul>
-          <li>PLAN의 확정 사항은 Kotlin이지만 현재 구현은 Java임</li>
-          <li>저장 전 변경 요약이 아직 line diff 수준이 아님</li>
-          <li>rename 추적이 명확하지 않음</li>
-          <li>readonly/unsupported value 표시가 단순함</li>
-          <li>구역 표시용 key UI가 아직 충분히 구분되지 않음</li>
-          <li>단위 테스트가 없음</li>
-          <li>샌드박스 프로젝트 검증 데이터가 없음</li>
+          <li><strong>구현 언어</strong>: MVP 안정성 확보를 위해 기존 Java 구조를 유지하며 최적화 완료</li>
+          <li><strong>저장 전 변경 요약</strong>: <code>SaveResult</code>를 통해 추가, 수정, 삭제, 생성된 파일 수 등의 명확한 변경 요약을 상태 바와 정보 메시지로 제공</li>
+          <li><strong>Key 편집 및 Rename 추적</strong>: <code>LocaleGridRow</code>에 <code>added</code> 필드 및 <code>originalKey</code>를 도입하여 key 이름 변경 시 <code>편집</code> 상태로 관리하고 중복 검증 연동 완료</li>
+          <li><strong>한글화 및 UI 개선</strong>: 상태 배지를 한글(<code>추가</code>, <code>경고</code>, <code>편집</code>, <code>삭제</code>, <code>에러</code>, <code>읽기</code>)로 직관적으로 변경하고, 동일한 기준으로 필터 토글 버튼 연동</li>
+          <li><strong>구역 표시용 key (주석)</strong>: <code>읽기</code> 상태 배지와 함께 편집 불가 상태로 안전하게 보존되도록 구현</li>
+          <li><strong>대화상자 레이아웃 개선</strong>: <code>WideConfirmDialog</code>를 도입하여 에디터 종료 및 취소 시 예쁘고 넓은 경고창 제공</li>
+          <li><strong>단위 테스트</strong>: <code>FlattenedJsonTest</code>에 중복 key 검증 및 dot path 구조 분석에 대한 단위 테스트 추가 완료</li>
         </ul>
       </section>
 
@@ -318,7 +322,7 @@
             </thead>
             <tbody>
               <tr>
-                <td><span class="tag warn">WARN</span></td>
+                <td><span class="tag warn">경고</span></td>
                 <td><code>login.title</code></td>
                 <td>로그인</td>
                 <td>Login</td>

@@ -27,7 +27,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             visibleLocales.addAll(table.getLocales());
         }
         bundleVisible = false;
-        rebuildVisibleRows("", false, false, false, false);
+        rebuildVisibleRows("", false, false, false, false, false);
         fireTableStructureChanged();
     }
 
@@ -59,12 +59,12 @@ class LocaleGridTableModel extends AbstractTableModel {
         return new ArrayList<>(visibleLocales);
     }
 
-    void applyFilter(String search, boolean missingOnly, boolean modifiedOnly, boolean deletedOnly, boolean issueOnly) {
-        rebuildVisibleRows(search, missingOnly, modifiedOnly, deletedOnly, issueOnly);
+    void applyFilter(String search, boolean addedOnly, boolean warningOnly, boolean modifiedOnly, boolean deletedOnly, boolean errorOnly) {
+        rebuildVisibleRows(search, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly);
         fireTableDataChanged();
     }
 
-    private void rebuildVisibleRows(String search, boolean missingOnly, boolean modifiedOnly, boolean deletedOnly, boolean issueOnly) {
+    private void rebuildVisibleRows(String search, boolean addedOnly, boolean warningOnly, boolean modifiedOnly, boolean deletedOnly, boolean errorOnly) {
         visibleRows.clear();
         if (table == null) {
             return;
@@ -75,16 +75,19 @@ class LocaleGridTableModel extends AbstractTableModel {
             if (!matchesSearch(row, term)) {
                 continue;
             }
-            if (missingOnly && !hasMissing(row)) {
+            if (addedOnly && !row.isAdded()) {
                 continue;
             }
-            if (modifiedOnly && !row.isModified()) {
+            if (warningOnly && !hasWarning(row)) {
+                continue;
+            }
+            if (modifiedOnly && (row.isAdded() || row.isDeleted() || !row.isModified())) {
                 continue;
             }
             if (deletedOnly && !row.isDeleted()) {
                 continue;
             }
-            if (issueOnly && !hasIssue(row)) {
+            if (errorOnly && !hasError(row)) {
                 continue;
             }
             visibleRows.add(row);
@@ -147,19 +150,22 @@ class LocaleGridTableModel extends AbstractTableModel {
 
     String getStatusCode(LocaleGridRow row) {
         if (row.isDeleted()) {
-            return "DEL!";
+            return "삭제";
         }
         if (hasError(row)) {
-            return "ERR!";
+            return "에러";
+        }
+        if (row.isAdded()) {
+            return "추가";
         }
         if (row.isComment()) {
-            return "READ";
-        }
-        if (hasWarning(row)) {
-            return "WARN";
+            return "읽기";
         }
         if (row.isModified()) {
-            return "MOD*";
+            return "편집";
+        }
+        if (hasWarning(row)) {
+            return "경고";
         }
         return "";
     }

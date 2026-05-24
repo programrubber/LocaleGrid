@@ -21,6 +21,7 @@ public class TranslationTableSaver {
     public SaveResult save(Project project, TranslationTable table, boolean createMissingFiles) {
         SaveResult result = new SaveResult();
         table.getDiagnostics().clear();
+        table.getDiagnostics().addAll(table.getSourceDiagnostics());
         TableValidator.validate(table);
         result.getDiagnostics().addAll(table.getDiagnostics());
         if (table.hasErrors()) {

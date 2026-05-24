@@ -50,7 +50,7 @@ public class TranslationTableLoader {
                 continue;
             }
 
-            Map<String, LocaleValue> flattened = FlattenedJson.flatten(readFile(file, table.getDiagnostics(), locale), table.getDiagnostics(), locale);
+            Map<String, LocaleValue> flattened = FlattenedJson.flatten(readFile(file, table.getSourceDiagnostics(), locale), table.getSourceDiagnostics(), locale);
             valuesByLocale.put(locale, flattened);
             if (locale.equals(localeFile.getLocale())) {
                 keyOrder.addAll(flattened.keySet());
@@ -71,6 +71,7 @@ public class TranslationTableLoader {
             table.getRows().add(row);
         }
 
+        table.getDiagnostics().addAll(table.getSourceDiagnostics());
         TableValidator.validate(table);
         return table;
     }

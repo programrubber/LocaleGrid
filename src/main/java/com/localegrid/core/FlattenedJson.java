@@ -20,7 +20,7 @@ public final class FlattenedJson {
         Map<String, LocaleValue> values = new LinkedHashMap<>();
         String json = content == null || content.trim().isEmpty() ? "{}" : content;
         try {
-            Object parsed = OrderedParser.parse(json);
+            Object parsed = OrderedParser.parse(json, diagnostics, locale);
             if (!(parsed instanceof Map)) {
                 diagnostics.add(new Diagnostic(Diagnostic.Severity.ERROR, locale + " JSON root must be an object.", null));
                 return values;
@@ -67,32 +67,32 @@ public final class FlattenedJson {
         private OrderedParser() {
         }
 
-        private static Object parse(String json) {
+        private static Object parse(String json, List<Diagnostic> diagnostics, String locale) {
             JSONTokener tokener = new JSONTokener(json);
-            Object value = nextValue(tokener);
+            Object value = nextValue(tokener, diagnostics, locale, "");
             if (tokener.nextClean() != 0) {
                 throw tokener.syntaxError("Unexpected trailing content");
             }
             return value;
         }
 
-        private static Object nextValue(JSONTokener tokener) {
+        private static Object nextValue(JSONTokener tokener, List<Diagnostic> diagnostics, String locale, String path) {
             char c = tokener.nextClean();
             switch (c) {
                 case '"':
                 case '\'':
                     return tokener.nextString(c);
                 case '{':
-                    return nextObject(tokener);
+                    return nextObject(tokener, diagnostics, locale, path);
                 case '[':
-                    return nextArray(tokener);
+                    return nextArray(tokener, diagnostics, locale, path);
                 default:
                     tokener.back();
                     return tokener.nextValue();
             }
         }
 
-        private static Map<String, Object> nextObject(JSONTokener tokener) {
+        private static Map<String, Object> nextObject(JSONTokener tokener, List<Diagnostic> diagnostics, String locale, String path) {
             Map<String, Object> object = new LinkedHashMap<>();
             char c = tokener.nextClean();
             if (c == '}') {
@@ -106,7 +106,15 @@ public final class FlattenedJson {
                 if (c != ':') {
                     throw tokener.syntaxError("Expected ':' after key");
                 }
-                object.put(key, nextValue(tokener));
+                String childPath = path.isEmpty() ? key : path + "." + key;
+                if (object.containsKey(key)) {
+                    diagnostics.add(new Diagnostic(
+                        Diagnostic.Severity.ERROR,
+                        locale + " has duplicated JSON key: " + childPath,
+                        childPath
+                    ));
+                }
+                object.put(key, nextValue(tokener, diagnostics, locale, childPath));
 
                 c = tokener.nextClean();
                 if (c == '}') {
@@ -128,7 +136,7 @@ public final class FlattenedJson {
             return String.valueOf(key);
         }
 
-        private static List<Object> nextArray(JSONTokener tokener) {
+        private static List<Object> nextArray(JSONTokener tokener, List<Diagnostic> diagnostics, String locale, String path) {
             List<Object> array = new ArrayList<>();
             char c = tokener.nextClean();
             if (c == ']') {
@@ -137,7 +145,7 @@ public final class FlattenedJson {
             tokener.back();
 
             while (true) {
-                array.add(nextValue(tokener));
+                array.add(nextValue(tokener, diagnostics, locale, path));
                 c = tokener.nextClean();
                 if (c == ']') {
                     return array;

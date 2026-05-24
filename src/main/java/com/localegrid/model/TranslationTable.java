@@ -14,6 +14,7 @@ public class TranslationTable {
     private final List<LocaleGridRow> rows;
     private final Map<String, File> filesByLocale;
     private final List<Diagnostic> diagnostics;
+    private final List<Diagnostic> sourceDiagnostics;
 
     public TranslationTable(String category, String openedLocale, File localesRoot, List<String> locales) {
         this.category = category;
@@ -23,6 +24,7 @@ public class TranslationTable {
         this.rows = new ArrayList<>();
         this.filesByLocale = new LinkedHashMap<>();
         this.diagnostics = new ArrayList<>();
+        this.sourceDiagnostics = new ArrayList<>();
     }
 
     public String getCategory() {
@@ -51,6 +53,10 @@ public class TranslationTable {
 
     public List<Diagnostic> getDiagnostics() {
         return diagnostics;
+    }
+
+    public List<Diagnostic> getSourceDiagnostics() {
+        return sourceDiagnostics;
     }
 
     public boolean hasErrors() {

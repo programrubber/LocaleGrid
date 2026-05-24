@@ -4,12 +4,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class LocaleGridRow {
+    private final String originalKey;
     private String key;
     private final Map<String, LocaleValue> values = new LinkedHashMap<>();
     private final boolean comment;
+    private boolean added;
     private boolean deleted;
 
     public LocaleGridRow(String key, boolean comment) {
+        this.originalKey = key;
         this.key = key;
         this.comment = comment;
     }
@@ -46,7 +49,18 @@ public class LocaleGridRow {
         this.deleted = deleted;
     }
 
+    public void markAdded() {
+        this.added = true;
+    }
+
+    public boolean isAdded() {
+        return added;
+    }
+
     public boolean isModified() {
+        if (added || !originalKey.equals(key)) {
+            return true;
+        }
         if (deleted) {
             return true;
         }
