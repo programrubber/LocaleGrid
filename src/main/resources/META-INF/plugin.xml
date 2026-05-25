@@ -5,7 +5,17 @@
     <vendor>LocaleGrid</vendor>
 
     <description><![CDATA[
-        Edit locale JSON files under locales/{locale}/{category}.json as a grid.
+        <h3>LocaleGrid - 다국어 JSON 그리드 에디터</h3>
+        <p><b>LocaleGrid</b>는 PyCharm/IntelliJ 기반 IDE에서 다국어 번역 JSON 파일들을 하나의 표(그리드) 형태로 직관적으로 비교하고 편집할 수 있도록 돕는 플러그인입니다.</p>
+        
+        <h4>주요 기능:</h4>
+        <ul>
+            <li><b>그리드 기반 통합 비교/편집</b>: <code>locales/{locale}/{category}.json</code> 구조의 여러 JSON 파일을 한 화면에 펼쳐놓고 표 형식으로 번역 값을 편집할 수 있습니다.</li>
+            <li><b>실시간 유효성 검증(Validate)</b>: 번역 키 중복, dot path 구조 충돌 등 오류를 실시간으로 탐지하여 저장 전에 미리 문제를 예방합니다.</li>
+            <li><b>예외 키 지원</b>: 번역에서 제외해야 하는 주석이나 구역 표시용 특수 키(기본값: <code>__section__</code>)를 필터링하고 위치를 안전하게 유지하여 보존합니다.</li>
+            <li><b>직관적인 편집 상태 관리</b>: 추가, 편집, 경고, 삭제, 에러 등의 번역 행 상태를 색상 배지로 시각화하고 필터링할 수 있습니다.</li>
+            <li><b>설정 화면 고도화</b>: 기본/고급 설정을 나누어 제공하며, 2칸/4칸 JSON 들여쓰기 옵션을 손쉽게 선택하여 포맷을 유지할 수 있습니다.</li>
+        </ul>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

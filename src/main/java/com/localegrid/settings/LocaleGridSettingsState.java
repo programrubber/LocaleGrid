@@ -9,14 +9,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 @State(name = "LocaleGridSettings", storages = @Storage("localeGrid.xml"))
 public class LocaleGridSettingsState implements PersistentStateComponent<LocaleGridSettingsState> {
     public String localesRoot = "locales";
     public String manualLocales = "";
-    public String commentKeys = "__comment__,__commant__";
+    public String exceptionKeys = "__section__";
     public int jsonIndent = 2;
 
     public static LocaleGridSettingsState getInstance(Project project) {
@@ -38,15 +38,24 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
         return splitCsv(manualLocales);
     }
 
-    public List<String> getCommentKeyList() {
-        List<String> keys = splitCsv(commentKeys);
-        return keys.isEmpty() ? Arrays.asList("__comment__", "__commant__") : keys;
+    public List<String> getExceptionKeyList() {
+        List<String> keys = splitCsv(exceptionKeys);
+        return keys.isEmpty() ? List.of("__section__") : keys;
+    }
+
+    public boolean isExceptionKey(String key) {
+        return getExceptionKeyList().contains(key);
+    }
+
+    public void setExceptionKeysFromCsv(String value) {
+        List<String> keys = splitCsv(value);
+        exceptionKeys = keys.isEmpty() ? "__section__" : String.join(",", keys);
     }
 
     private static List<String> splitCsv(String value) {
-        List<String> result = new ArrayList<>();
+        LinkedHashSet<String> result = new LinkedHashSet<>();
         if (value == null || value.trim().isEmpty()) {
-            return result;
+            return new ArrayList<>();
         }
         for (String item : value.split(",")) {
             String trimmed = item.trim();
@@ -54,6 +63,6 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
                 result.add(trimmed);
             }
         }
-        return result;
+        return new ArrayList<>(result);
     }
 }

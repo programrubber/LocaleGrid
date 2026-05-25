@@ -23,7 +23,7 @@
 - 검색은 텍스트 입력, 상태 필터는 체크박스로 제공한다.
 - key 추가, rename, value 편집, 삭제를 모두 지원한다.
 - key rename은 셀 직접 편집이 아니라 Rename 팝업으로만 수행한다.
-- 구역 표시용 key는 사용자가 패턴을 설정할 수 있고, MVP에서는 readonly로 표시/보존한다.
+- 예외키는 사용자가 설정할 수 있고, 원본 root-level 예외키는 hidden marker로 보존한다.
 - 빈 value는 허용하고, key 셀 배경 표시와 저장 시 warning으로만 알린다.
 - 중복 번역 key와 dot path 충돌은 error로 취급하고 저장을 차단한다.
 - 저장 전 line diff 대신 변경 요약 팝업을 제공한다.
@@ -119,7 +119,7 @@ login.title   로그인
 login.button  로그인하기
 ```
 
-저장할 때는 dot path를 다시 중첩 JSON 구조로 복원한다. 기존 key 순서는 최대한 보존하고, 새 key는 사용자가 추가한 위치에 반영한다. formatting은 2-space indent 기준의 표준 JSON으로 다시 쓴다.
+저장할 때는 dot path를 다시 중첩 JSON 구조로 복원한다. 기존 key 순서는 최대한 보존하고, 새 key는 사용자가 추가한 위치에 반영한다. formatting은 설정된 들여쓰기(2-space 또는 4-space indent) 기준의 표준 JSON으로 다시 쓴다.
 
 dot path 문법은 구조만 엄격히 검증하고 segment 문자 종류는 넓게 허용한다.
 
@@ -170,18 +170,19 @@ MVP에서 셀 편집을 지원하는 value 타입은 문자열로 제한한다.
 
 중첩 object는 dot path로 펼치되, 최종 leaf value가 문자열일 때만 편집 가능하다.
 
-## 구역 표시용 key
+## 예외키
 
-기존 JSON에 `__comment__` 또는 `__commant__`처럼 구역을 나누기 위한 특수 key가 있을 수 있다. 이 key들은 일반 번역 key와 구분해서 다룬다.
+기존 JSON에 `__section__`처럼 구분 또는 설명을 위한 특수 key가 있을 수 있다. 이 key들은 일반 번역 key와 구분해서 다룬다.
 
-- 구역 표시용 key 패턴은 사용자가 프로젝트 설정에서 지정한다.
-- 기본값은 `__comment__`, `__commant__` 같은 명시적 key 목록으로 시작한다.
-- 그리드에서는 구역 표시 행처럼 보이게 한다.
-- MVP에서는 readonly로 표시한다.
-- Add Row로 새 구역 표시용 key를 추가하지 않는다.
+- 예외키 목록은 `Settings > Tools > LocaleGrid` 또는 다국어 에디터 상단의 `예외키 설정`에서 프로젝트별로 지정한다.
+- 기본값은 `__section__`이다.
+- 예외키는 중복될 수 있으며 각 Locale 파일별 위치를 기준으로 저장한다.
+- 원본 JSON에서 읽은 root-level 예외키는 테이블에 표시하지 않고 위치와 값을 보존한다.
+- Add Row 또는 Rename으로 예외키를 입력하면 visible 예외키 row로 표시하고 편집, 삭제, 이동을 지원한다.
+- visible 예외키 row의 상태 컬럼은 비워 둔다.
 - 빈 value warning 대상에서 제외한다.
 - dot path 변환 대상이 아니라 원래 key 형태를 유지한다.
-- 저장 시 기존 위치와 값을 최대한 보존한다.
+- 저장 시 hidden 예외키는 원래 최상위 그룹 앞/뒤 anchor 위치에 다시 포함한다.
 
 ## 그리드 UI
 
@@ -206,11 +207,11 @@ MVP에서 셀 편집을 지원하는 value 타입은 문자열로 제한한다.
 
 상태 표시:
 
-- `상태` 컬럼에 한글 배지(`추가`, `경고`, `편집`, `삭제`, `에러`, `읽기`)로 표시한다.
+- `상태` 컬럼에 한글 배지(`추가`, `경고`, `편집`, `삭제`, `에러`)로 표시한다.
 - 빈 value가 있거나 누락된 번역이 있는 행은 `경고` 배지로 표시하고, 마우스 오버 시 상세 툴팁을 제공한다.
 - 중복 key나 dot path 충돌은 `에러` 배지로 표시하여 저장을 차단한다.
 - 적용되지 않은 변경 사항이 있는 행은 `편집` 배지로 표시한다.
-- 구역 표시용 key(주석)는 `읽기` 배지로 표시하고 편집을 비활성화한다.
+- 예외키 row는 상태 배지를 표시하지 않고, 일반 row처럼 key/value 편집을 지원한다.
 
 ## 검색/필터
 
@@ -245,7 +246,7 @@ Rename:
 - 팝업에는 기존 key, 새 key 입력칸, 영향받는 locale 파일 목록, 충돌 검증 결과를 보여준다.
 - 새 key가 비어 있거나 이미 존재하면 불가하다.
 - 새 key가 기존 dot path 구조와 충돌하면 불가하다.
-- 새 key가 구역 표시용 key 패턴과 충돌하면 불가하다.
+- 새 key가 예외키와 일치하면 예외키 row로 처리한다.
 - 일부 locale 파일에 기존 key가 없으면 해당 파일은 무시한다.
 
 삭제:
@@ -271,7 +272,7 @@ Rename:
 - 중복 번역 key가 있으면 key 셀 배경을 오류 색으로 표시한다.
 - Validate 실행 시 중복 key를 error로 보여준다.
 - Save 실행 시 중복 key가 남아 있으면 저장하지 않는다.
-- 구역 표시용 key는 사용자가 설정한 규칙에 따라 일반 번역 key 검증에서 제외하거나 별도 처리한다.
+- 예외키 row는 일반 번역 key 중복과 dot path 검증에서 제외한다.
 
 ## 누락 locale 파일 처리
 
@@ -295,7 +296,7 @@ locales/vi/login.json  없음
 - 중복 key, dot path 충돌, JSON 직렬화 실패가 있으면 저장하지 않는다.
 - 빈 value warning과 누락 locale 파일 생성은 사용자 확인 후 저장할 수 있다.
 - 기존 key 순서는 최대한 보존한다.
-- formatting은 2-space indent 기준의 표준 JSON으로 다시 쓴다.
+- formatting은 설정된 들여쓰기(2-space 또는 4-space indent) 기준의 표준 JSON으로 다시 쓴다.
 - 플러그인 자체 rollback/backup은 제공하지 않는다.
 - 파일 복구는 SVN diff/revert에 맡긴다.
 
@@ -323,8 +324,8 @@ MVP의 설정은 프로젝트 단위로 저장한다.
 
 - locales root 경로: 기본값 `locales`
 - locale 목록/순서: 기본값 자동 탐지
-- 구역 표시용 key 목록 또는 패턴
-- JSON formatting: 기본값 2-space indent
+- 예외키 목록
+- JSON formatting: 기본값 2-space indent (2 또는 4 선택 가능)
 
 ## 데이터 모델 초안
 
@@ -359,7 +360,7 @@ MVP에서는 핵심 로직 단위 테스트를 작성하고, UI 자동화 테스
 - dot path 충돌 검증
 - locale 자동 탐지
 - category 추론
-- 구역 표시용 key 판별
+- 예외키 판별
 - add/rename/delete 반영
 - 저장용 JSON 생성
 

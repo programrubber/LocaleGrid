@@ -1,12 +1,15 @@
 package com.localegrid.core;
 
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.localegrid.model.Diagnostic;
 import com.localegrid.model.LocaleGridRow;
 import com.localegrid.model.LocaleValue;
+import com.localegrid.model.ExceptionKeyMarker;
 import com.localegrid.model.TranslationTable;
 import com.localegrid.settings.LocaleGridSettingsState;
 
@@ -14,14 +17,19 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class TranslationTableSaver {
     public SaveResult save(Project project, TranslationTable table, boolean createMissingFiles) {
         SaveResult result = new SaveResult();
+        result.setOrderChanged(table.isOrderChanged());
         table.getDiagnostics().clear();
-        table.getDiagnostics().addAll(table.getSourceDiagnostics());
+        table.getDiagnostics().addAll(table.getActiveSourceDiagnostics());
         TableValidator.validate(table);
         result.getDiagnostics().addAll(table.getDiagnostics());
         if (table.hasErrors()) {
@@ -46,59 +54,169 @@ public class TranslationTableSaver {
                     continue;
                 }
 
-                Map<String, Object> flatValues = buildFlatValues(table, locale, result);
-                String json = JsonTreeWriter.write(flatValues, settings.jsonIndent, result.getDiagnostics());
+                List<JsonRootEntry> rootEntries = buildRootEntries(table, locale, result.getDiagnostics());
+                String json = JsonTreeWriter.writeRootEntries(rootEntries, settings.jsonIndent, result.getDiagnostics());
                 if (result.hasErrors()) {
                     continue;
                 }
-                writeFile(file, json, result);
+                writeFile(project, file, json, result);
             }
-            ApplicationManager.getApplication().invokeLater(() ->
-                LocalFileSystem.getInstance().refreshIoFiles(table.getFilesByLocale().values())
-            );
+            LocalFileSystem.getInstance().refreshIoFiles(table.getFilesByLocale().values(), false, false, null);
         });
+
+        if (!result.hasErrors()) {
+            int added = 0;
+            int modified = 0;
+            int deleted = 0;
+            for (LocaleGridRow row : table.getRows()) {
+                if (row.isDeleted()) {
+                    boolean wasPresent = false;
+                    for (String locale : table.getLocales()) {
+                        if (row.getValue(locale).isPresent()) {
+                            wasPresent = true;
+                            break;
+                        }
+                    }
+                    if (wasPresent) {
+                        deleted++;
+                    }
+                } else if (row.isAdded()) {
+                    added++;
+                } else if (row.isModified()) {
+                    modified++;
+                }
+            }
+            for (int i = 0; i < added; i++) result.incrementAddedKeys();
+            for (int i = 0; i < modified; i++) result.incrementModifiedKeys();
+            for (int i = 0; i < deleted; i++) result.incrementDeletedKeys();
+        }
+
         return result;
     }
 
-    private static Map<String, Object> buildFlatValues(TranslationTable table, String locale, SaveResult result) {
-        Map<String, Object> values = new LinkedHashMap<>();
+    private static List<JsonRootEntry> buildRootEntries(TranslationTable table, String locale, List<Diagnostic> diagnostics) {
+        List<JsonRootEntry> visibleEntries = new ArrayList<>();
+        Set<String> emittedTranslationRoots = new HashSet<>();
         for (LocaleGridRow row : table.getRows()) {
-            LocaleValue value = row.getValue(locale);
             if (row.isDeleted()) {
-                if (value.isPresent()) {
-                    result.incrementDeletedKeys();
+                continue;
+            }
+            if (row.isExceptionKey()) {
+                LocaleValue value = row.getValue(locale);
+                if (isWritableValue(value)) {
+                    visibleEntries.add(new JsonRootEntry(row.getKey(), value.getValue()));
                 }
                 continue;
             }
+
+            String rootKey = topLevelGroup(row.getKey());
+            if (!emittedTranslationRoots.add(rootKey)) {
+                continue;
+            }
+            visibleEntries.addAll(buildTranslationRootEntries(table, locale, rootKey, diagnostics));
+        }
+        return injectHiddenExceptionKeyMarkers(visibleEntries, table.getExceptionKeyMarkers(locale));
+    }
+
+    private static List<JsonRootEntry> buildTranslationRootEntries(
+        TranslationTable table,
+        String locale,
+        String rootKey,
+        List<Diagnostic> diagnostics
+    ) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (LocaleGridRow row : table.getRows()) {
+            if (row.isDeleted() || row.isExceptionKey() || !rootKey.equals(topLevelGroup(row.getKey()))) {
+                continue;
+            }
+            LocaleValue value = row.getValue(locale);
             if (!value.isPresent() && value.getDisplayText().isEmpty()) {
                 continue;
             }
             values.put(row.getKey(), value.getValue());
-            if (!value.isPresent()) {
-                result.incrementAddedKeys();
-            } else if (value.isModified()) {
-                result.incrementModifiedKeys();
-            }
         }
-        return values;
+        return JsonTreeWriter.toRootEntries(values, diagnostics);
+    }
+
+    private static List<JsonRootEntry> injectHiddenExceptionKeyMarkers(List<JsonRootEntry> visibleEntries, List<ExceptionKeyMarker> markers) {
+        if (markers.isEmpty()) {
+            return visibleEntries;
+        }
+
+        Set<String> visibleRootKeys = new HashSet<>();
+        for (JsonRootEntry entry : visibleEntries) {
+            visibleRootKeys.add(entry.getKey());
+        }
+
+        Map<String, List<ExceptionKeyMarker>> before = new LinkedHashMap<>();
+        Map<String, List<ExceptionKeyMarker>> after = new LinkedHashMap<>();
+        for (ExceptionKeyMarker marker : markers) {
+            if (!visibleRootKeys.contains(marker.getAnchorRootKey())) {
+                continue;
+            }
+            Map<String, List<ExceptionKeyMarker>> target = marker.getPosition() == ExceptionKeyMarker.Position.BEFORE ? before : after;
+            target.computeIfAbsent(marker.getAnchorRootKey(), ignored -> new ArrayList<>()).add(marker);
+        }
+
+        List<JsonRootEntry> result = new ArrayList<>();
+        for (JsonRootEntry entry : visibleEntries) {
+            appendMarkers(result, before.get(entry.getKey()));
+            result.add(entry);
+            appendMarkers(result, after.get(entry.getKey()));
+        }
+        return result;
+    }
+
+    private static void appendMarkers(List<JsonRootEntry> entries, List<ExceptionKeyMarker> markers) {
+        if (markers == null) {
+            return;
+        }
+        for (ExceptionKeyMarker marker : markers) {
+            entries.add(new JsonRootEntry(marker.getKey(), marker.getValue()));
+        }
     }
 
     private static boolean hasWritableValues(TranslationTable table, String locale) {
         for (LocaleGridRow row : table.getRows()) {
-            if (!row.isDeleted() && !row.getValue(locale).getDisplayText().isEmpty()) {
+            if (!row.isDeleted() && isWritableValue(row.getValue(locale))) {
                 return true;
             }
         }
         return false;
     }
 
-    private static void writeFile(File file, String json, SaveResult result) {
+    private static boolean isWritableValue(LocaleValue value) {
+        return value.isPresent() || !value.getDisplayText().isEmpty();
+    }
+
+    private static String topLevelGroup(String key) {
+        int dot = key.indexOf('.');
+        return dot < 0 ? key : key.substring(0, dot);
+    }
+
+    private static void writeFile(Project project, File file, String json, SaveResult result) {
         try {
             File parent = file.getParentFile();
-            if (parent != null) {
+            if (parent != null && !parent.exists()) {
                 Files.createDirectories(parent.toPath());
             }
-            Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
+            if (!file.exists()) {
+                Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
+            }
+
+            VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
+            if (virtualFile != null) {
+                FileDocumentManager documentManager = FileDocumentManager.getInstance();
+                Document document = documentManager.getDocument(virtualFile);
+                if (document != null) {
+                    document.setText(json);
+                    documentManager.saveDocument(document);
+                } else {
+                    virtualFile.setBinaryContent(json.getBytes(StandardCharsets.UTF_8));
+                }
+            } else {
+                Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
+            }
             result.getWrittenFiles().add(file.getPath());
         } catch (IOException ex) {
             result.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.ERROR, "Write failed: " + ex.getMessage(), null));

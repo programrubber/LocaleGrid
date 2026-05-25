@@ -41,6 +41,7 @@ public class TranslationTableLoader {
 
         Map<String, Map<String, LocaleValue>> valuesByLocale = new LinkedHashMap<>();
         LinkedHashSet<String> keyOrder = new LinkedHashSet<>();
+        Set<String> exceptionKeys = new LinkedHashSet<>(settings.getExceptionKeyList());
         for (String locale : locales) {
             File file = new File(new File(localeFile.getLocalesRoot(), locale), localeFile.getCategory() + ".json");
             table.getFilesByLocale().put(locale, file);
@@ -50,7 +51,14 @@ public class TranslationTableLoader {
                 continue;
             }
 
-            Map<String, LocaleValue> flattened = FlattenedJson.flatten(readFile(file, table.getSourceDiagnostics(), locale), table.getSourceDiagnostics(), locale);
+            FlattenedJson.Result parsed = FlattenedJson.flattenWithExceptionKeys(
+                readFile(file, table.getSourceDiagnostics(), locale),
+                table.getSourceDiagnostics(),
+                locale,
+                exceptionKeys
+            );
+            Map<String, LocaleValue> flattened = parsed.getValues();
+            table.getExceptionKeyMarkersByLocale().put(locale, parsed.getExceptionKeyMarkers());
             valuesByLocale.put(locale, flattened);
             if (locale.equals(localeFile.getLocale())) {
                 keyOrder.addAll(flattened.keySet());
@@ -61,9 +69,8 @@ public class TranslationTableLoader {
             keyOrder.addAll(values.keySet());
         }
 
-        List<String> commentKeys = settings.getCommentKeyList();
         for (String key : keyOrder) {
-            LocaleGridRow row = new LocaleGridRow(key, commentKeys.contains(key));
+            LocaleGridRow row = new LocaleGridRow(key, LocaleGridRow.RowType.TRANSLATION);
             for (String locale : locales) {
                 LocaleValue value = valuesByLocale.getOrDefault(locale, Map.of()).get(key);
                 row.putValue(locale, value == null ? LocaleValue.missing() : value);

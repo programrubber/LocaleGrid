@@ -11,7 +11,7 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
     private static final Color ERROR_BG = new Color(255, 226, 226);
     private static final Color WARNING_BG = new Color(255, 247, 214);
     private static final Color DELETED_BG = new Color(240, 240, 240);
-    private static final Color COMMENT_BG = new Color(235, 242, 255);
+    private static final Color EXCEPTION_KEY_BG = new Color(235, 242, 255);
     private static final Color READONLY_BG = new Color(245, 245, 245);
     private static final Color MISSING_BG = new Color(255, 250, 230);
 
@@ -73,8 +73,8 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         if (model.hasError(row)) {
             return ERROR_BG;
         }
-        if (row.isComment()) {
-            return COMMENT_BG;
+        if (row.isExceptionKey()) {
+            return EXCEPTION_KEY_BG;
         }
         if (model.hasWarning(row)) {
             return WARNING_BG;

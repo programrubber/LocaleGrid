@@ -15,6 +15,11 @@ import java.util.Set;
 class LocaleGridTableModel extends AbstractTableModel {
     static final String BUNDLE_COLUMN_NAME = "번역 묶음";
 
+    static final int HANDLE_COLUMN = 0;
+    static final int STATUS_COLUMN = 1;
+    static final int KEY_COLUMN = 2;
+    private static final int LOCALE_COLUMN_OFFSET = 3;
+
     private TranslationTable table;
     private final List<LocaleGridRow> visibleRows = new ArrayList<>();
     private final List<String> visibleLocales = new ArrayList<>();
@@ -116,11 +121,15 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     boolean isKeyColumn(int column) {
-        return column == 1;
+        return column == KEY_COLUMN;
     }
 
     boolean isStatusColumn(int column) {
-        return column == 0;
+        return column == STATUS_COLUMN;
+    }
+
+    boolean isHandleColumn(int column) {
+        return column == HANDLE_COLUMN;
     }
 
     boolean isBundleColumn(int column) {
@@ -128,10 +137,10 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     String getLocaleForColumn(int column) {
-        if (column <= 1 || column > visibleLocales.size() + 1) {
+        if (column < LOCALE_COLUMN_OFFSET || column > visibleLocales.size() + LOCALE_COLUMN_OFFSET - 1) {
             return null;
         }
-        return visibleLocales.get(column - 2);
+        return visibleLocales.get(column - LOCALE_COLUMN_OFFSET);
     }
 
     String getBundleText(LocaleGridRow row) {
@@ -149,6 +158,9 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     String getStatusCode(LocaleGridRow row) {
+        if (row.isExceptionKey()) {
+            return "";
+        }
         if (row.isDeleted()) {
             return "삭제";
         }
@@ -157,9 +169,6 @@ class LocaleGridTableModel extends AbstractTableModel {
         }
         if (row.isAdded()) {
             return "추가";
-        }
-        if (row.isComment()) {
-            return "읽기";
         }
         if (row.isModified()) {
             return "편집";
@@ -180,30 +189,36 @@ class LocaleGridTableModel extends AbstractTableModel {
         if (table == null) {
             return 1;
         }
-        return 2 + visibleLocales.size() + (bundleVisible ? 1 : 0);
+        return LOCALE_COLUMN_OFFSET + visibleLocales.size() + (bundleVisible ? 1 : 0);
     }
 
     @Override
     public String getColumnName(int column) {
-        if (column == 0) {
+        if (isHandleColumn(column)) {
+            return "";
+        }
+        if (isStatusColumn(column)) {
             return "상태";
         }
-        if (column == 1) {
+        if (isKeyColumn(column)) {
             return "key";
         }
         if (isBundleColumn(column)) {
             return BUNDLE_COLUMN_NAME;
         }
-        return visibleLocales.get(column - 2);
+        return visibleLocales.get(column - LOCALE_COLUMN_OFFSET);
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         LocaleGridRow row = visibleRows.get(rowIndex);
-        if (columnIndex == 0) {
+        if (isHandleColumn(columnIndex)) {
+            return "";
+        }
+        if (isStatusColumn(columnIndex)) {
             return getStatusCode(row);
         }
-        if (columnIndex == 1) {
+        if (isKeyColumn(columnIndex)) {
             return row.getKey();
         }
         if (isBundleColumn(columnIndex)) {
@@ -219,7 +234,7 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     boolean hasMissing(LocaleGridRow row) {
-        if (row.isComment()) {
+        if (row.isExceptionKey()) {
             return false;
         }
         return row.getValues().values().stream().anyMatch(value -> value.getDisplayText().isEmpty());
@@ -246,7 +261,7 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     boolean isReadonlyCell(LocaleGridRow row, int column) {
-        if (column == 0 || column == 1 || isBundleColumn(column)) {
+        if (isHandleColumn(column) || isStatusColumn(column) || isKeyColumn(column) || isBundleColumn(column)) {
             return false;
         }
         String locale = getLocaleForColumn(column);

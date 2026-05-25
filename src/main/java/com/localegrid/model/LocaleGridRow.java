@@ -4,17 +4,28 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class LocaleGridRow {
+    public enum RowType {
+        TRANSLATION,
+        EXCEPTION_KEY
+    }
+
     private final String originalKey;
+    private final RowType originalType;
     private String key;
     private final Map<String, LocaleValue> values = new LinkedHashMap<>();
-    private final boolean comment;
+    private RowType type;
     private boolean added;
     private boolean deleted;
 
-    public LocaleGridRow(String key, boolean comment) {
+    public LocaleGridRow(String key, boolean exceptionKey) {
+        this(key, exceptionKey ? RowType.EXCEPTION_KEY : RowType.TRANSLATION);
+    }
+
+    public LocaleGridRow(String key, RowType type) {
         this.originalKey = key;
+        this.originalType = type;
         this.key = key;
-        this.comment = comment;
+        this.type = type;
     }
 
     public String getKey() {
@@ -37,8 +48,12 @@ public class LocaleGridRow {
         values.put(locale, value);
     }
 
-    public boolean isComment() {
-        return comment;
+    public boolean isExceptionKey() {
+        return type == RowType.EXCEPTION_KEY;
+    }
+
+    public void setExceptionKey(boolean exceptionKey) {
+        this.type = exceptionKey ? RowType.EXCEPTION_KEY : RowType.TRANSLATION;
     }
 
     public boolean isDeleted() {
@@ -58,7 +73,7 @@ public class LocaleGridRow {
     }
 
     public boolean isModified() {
-        if (added || !originalKey.equals(key)) {
+        if (added || !originalKey.equals(key) || originalType != type) {
             return true;
         }
         if (deleted) {

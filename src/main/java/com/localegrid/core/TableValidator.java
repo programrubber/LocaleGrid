@@ -20,12 +20,12 @@ public final class TableValidator {
             if (row.isDeleted()) {
                 continue;
             }
+            if (row.isExceptionKey()) {
+                continue;
+            }
             String key = row.getKey();
             if (!seen.add(key)) {
                 table.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.ERROR, "Duplicated key: " + key, key));
-            }
-            if (row.isComment()) {
-                continue;
             }
             String error = DotPath.validate(key);
             if (error != null) {

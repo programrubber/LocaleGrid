@@ -13,6 +13,10 @@ public final class JsonTreeWriter {
     }
 
     public static String write(Map<String, Object> flatValues, int indent, List<Diagnostic> diagnostics) {
+        return writeRootEntries(toRootEntries(flatValues, diagnostics), indent, diagnostics);
+    }
+
+    public static List<JsonRootEntry> toRootEntries(Map<String, Object> flatValues, List<Diagnostic> diagnostics) {
         Node root = new Node();
         for (Map.Entry<String, Object> entry : flatValues.entrySet()) {
             String error = DotPath.validate(entry.getKey());
@@ -22,8 +26,12 @@ public final class JsonTreeWriter {
             }
             insert(root, entry.getKey().split("\\."), 0, entry.getValue(), diagnostics, entry.getKey());
         }
+        return toRootEntries(root);
+    }
+
+    public static String writeRootEntries(List<JsonRootEntry> rootEntries, int indent, List<Diagnostic> diagnostics) {
         StringBuilder out = new StringBuilder();
-        appendNode(out, root, 0, indent);
+        appendRootEntries(out, rootEntries, 0, indent);
         out.append('\n');
         return out.toString();
     }
@@ -74,6 +82,28 @@ public final class JsonTreeWriter {
                 appendValue(out, entry.getValue().value, level + 1, indent);
             }
             if (++index < count) {
+                out.append(',');
+            }
+            out.append('\n');
+        }
+        appendIndent(out, level, indent);
+        out.append('}');
+    }
+
+    private static void appendRootEntries(StringBuilder out, List<JsonRootEntry> entries, int level, int indent) {
+        out.append('{');
+        if (entries.isEmpty()) {
+            out.append('}');
+            return;
+        }
+        out.append('\n');
+        for (int i = 0; i < entries.size(); i++) {
+            JsonRootEntry entry = entries.get(i);
+            appendIndent(out, level + 1, indent);
+            appendQuoted(out, entry.getKey());
+            out.append(": ");
+            appendValue(out, entry.getValue(), level + 1, indent);
+            if (i + 1 < entries.size()) {
                 out.append(',');
             }
             out.append('\n');
@@ -190,6 +220,23 @@ public final class JsonTreeWriter {
 
     private static void appendIndent(StringBuilder out, int level, int indent) {
         out.append(" ".repeat(Math.max(0, level * indent)));
+    }
+
+    private static List<JsonRootEntry> toRootEntries(Node root) {
+        return root.entries.entrySet().stream()
+            .map(entry -> new JsonRootEntry(entry.getKey(), toPlainValue(entry.getValue())))
+            .toList();
+    }
+
+    private static Object toPlainValue(Entry entry) {
+        if (entry.child == null) {
+            return entry.value;
+        }
+        Map<String, Object> value = new LinkedHashMap<>();
+        for (Map.Entry<String, Entry> childEntry : entry.child.entries.entrySet()) {
+            value.put(childEntry.getKey(), toPlainValue(childEntry.getValue()));
+        }
+        return value;
     }
 
     private static final class Node {

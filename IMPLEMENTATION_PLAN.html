@@ -275,10 +275,19 @@
           <li><strong>구현 언어</strong>: MVP 안정성 확보를 위해 기존 Java 구조를 유지하며 최적화 완료</li>
           <li><strong>저장 전 변경 요약</strong>: <code>SaveResult</code>를 통해 추가, 수정, 삭제, 생성된 파일 수 등의 명확한 변경 요약을 상태 바와 정보 메시지로 제공</li>
           <li><strong>Key 편집 및 Rename 추적</strong>: <code>LocaleGridRow</code>에 <code>added</code> 필드 및 <code>originalKey</code>를 도입하여 key 이름 변경 시 <code>편집</code> 상태로 관리하고 중복 검증 연동 완료</li>
-          <li><strong>한글화 및 UI 개선</strong>: 상태 배지를 한글(<code>추가</code>, <code>경고</code>, <code>편집</code>, <code>삭제</code>, <code>에러</code>, <code>읽기</code>)로 직관적으로 변경하고, 동일한 기준으로 필터 토글 버튼 연동</li>
-          <li><strong>구역 표시용 key (주석)</strong>: <code>읽기</code> 상태 배지와 함께 편집 불가 상태로 안전하게 보존되도록 구현</li>
+          <li><strong>한글화 및 UI 개선</strong>: 상태 배지를 한글(<code>추가</code>, <code>경고</code>, <code>편집</code>, <code>삭제</code>, <code>에러</code>)로 직관적으로 변경하고, 동일한 기준으로 필터 토글 버튼 연동</li>
+          <li><strong>예외키 보존</strong>: root-level <code>__section__</code> entry를 hidden marker로 보존하고, 새로 추가한 예외키 row는 상태 배지 없이 편집 가능하도록 구현</li>
           <li><strong>대화상자 레이아웃 개선</strong>: <code>WideConfirmDialog</code>를 도입하여 에디터 종료 및 취소 시 예쁘고 넓은 경고창 제공</li>
           <li><strong>단위 테스트</strong>: <code>FlattenedJsonTest</code>에 중복 key 검증 및 dot path 구조 분석에 대한 단위 테스트 추가 완료</li>
+          <li><strong>설정 UI 고도화</strong>: 사용자 친화성과 가독성을 극대화하기 위해 플러그인 설정(Settings) 화면을 전면 개편 완료
+            <ul>
+              <li><strong>기본/고급 설정 영역 분리</strong>: 설정 항목들을 '기본 설정'과 '고급 설정' 영역으로 명확히 구획하고, 고급 설정은 펼치고 접을 수 있는 IntelliJ 스타일의 <code>HideableTitledPanel</code>로 묶어 복잡성 완화</li>
+              <li><strong>상세 힌트 설명 및 개행</strong>: 각 입력 필드 아래에 폰트 크기와 색상을 조정한 보조 힌트 라벨을 배치하고, 긴 텍스트에는 HTML 형식의 개행(<code>&lt;br&gt;</code>)을 적용하여 폼 가독성 극대화</li>
+              <li><strong>플레이스홀더(Placeholder) 제공</strong>: <code>locale 표시 순서</code> 필드에 <code>JBTextField</code>의 Empty Text API를 적용해 placeholder(<code>ko,en,jp,vi</code>)를 노출하고 힌트 텍스트에도 괄호 예시 추가</li>
+              <li><strong>명칭 표준화</strong>: 기존 '구역 표시 key' 명칭을 <strong>예외 키</strong>로 용어를 일원화 및 설명 문구 교체</li>
+              <li><strong>JSON 들여쓰기 컴포넌트 교체</strong>: 기존의 숫자 Spinner를 들여쓰기 2칸 혹은 4칸을 고를 수 있는 <strong>JComboBox(SelectBox)</strong> 형태의 콤보박스로 변경 및 연동 완료</li>
+            </ul>
+          </li>
         </ul>
       </section>
 
@@ -367,7 +376,7 @@
           </li>
           <li>
             <strong>JSON 처리 로직 고도화</strong>
-            <p>flatten 순서 보존, unflatten 충돌 검증, comment key 보존, unsupported value metadata, 저장 전 메모리 직렬화 검증을 강화한다.</p>
+            <p>flatten 순서 보존, unflatten 충돌 검증, root-level 예외키 hidden marker 보존, unsupported value metadata, 저장 전 메모리 직렬화 검증을 강화한다.</p>
           </li>
           <li>
             <strong>검증 체계 정리</strong>
@@ -386,8 +395,8 @@
             <p>Validate, warning 확인, 변경 요약, 누락 locale 파일 생성 확인, 파일 쓰기, VFS refresh, reload 순서로 안정화한다.</p>
           </li>
           <li>
-            <strong>프로젝트 설정 완성</strong>
-            <p>locales root, manual locales, comment key 목록, JSON indent 설정을 그리드와 상세 패널에 반영한다.</p>
+            <strong>프로젝트 설정 완성 및 UI 개선</strong>
+            <p>locales root, locale 표시 순서 필드 아래에 상세 힌트를 추가하고, 예외 키 명칭 수정 및 힌트 보완, JSON 들여쓰기 콤보박스(SelectBox) 변경, 고급 설정을 접이식 패널(HideableTitledPanel)로 그룹화하여 다듬습니다.</p>
           </li>
           <li>
             <strong>테스트 추가</strong>

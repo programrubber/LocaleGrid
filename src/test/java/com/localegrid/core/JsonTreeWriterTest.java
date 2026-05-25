@@ -49,6 +49,20 @@ class JsonTreeWriterTest {
         assertOrder(json, "\"first\"", "\"second\"");
     }
 
+    @Test
+    void writesDuplicatedRootEntriesWhenRootEntryListIsUsed() {
+        List<JsonRootEntry> entries = List.of(
+            new JsonRootEntry("__section__", "first"),
+            new JsonRootEntry("login", Map.of("title", "Login")),
+            new JsonRootEntry("__section__", "second")
+        );
+
+        String json = JsonTreeWriter.writeRootEntries(entries, 2, new ArrayList<>());
+
+        assertTrue(json.indexOf("\"__section__\"") < json.indexOf("\"login\""), json);
+        assertTrue(json.indexOf("\"login\"") < json.lastIndexOf("\"__section__\""), json);
+    }
+
     private static void assertOrder(String text, String first, String second, String third) {
         assertTrue(text.indexOf(first) < text.indexOf(second), text);
         assertTrue(text.indexOf(second) < text.indexOf(third), text);

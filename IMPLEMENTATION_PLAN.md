@@ -24,10 +24,16 @@
 - **구현 언어**: MVP 안정성 확보를 위해 기존 Java 구조를 유지하며 최적화 완료
 - **저장 전 변경 요약**: `SaveResult`를 통해 추가, 수정, 삭제, 생성된 파일 수 등의 명확한 변경 요약을 상태 바와 정보 메시지로 제공
 - **Key 편집 및 Rename 추적**: `LocaleGridRow`에 `added` 필드 및 `originalKey`를 도입하여 key 이름 변경 시 `편집` 상태로 관리하고 중복 검증 연동 완료
-- **한글화 및 UI 개선**: 상태 배지를 한글(`추가`, `경고`, `편집`, `삭제`, `에러`, `읽기`)로 직관적으로 변경하고, 동일한 기준으로 필터 토글 버튼 연동
-- **구역 표시용 key (주석)**: `읽기` 상태 배지와 함께 편집 불가 상태로 안전하게 보존되도록 구현
+- **한글화 및 UI 개선**: 상태 배지를 한글(`추가`, `경고`, `편집`, `삭제`, `에러`)로 직관적으로 변경하고, 동일한 기준으로 필터 토글 버튼 연동
+- **예외키 보존**: root-level `__section__` entry를 hidden marker로 보존하고, 새로 추가한 예외키 row는 상태 배지 없이 편집 가능하도록 구현
 - **대화상자 레이아웃 개선**: `WideConfirmDialog`를 도입하여 에디터 종료 및 취소 시 예쁘고 넓은 경고창 제공
 - **단위 테스트**: `FlattenedJsonTest`에 중복 key 검증 및 dot path 구조 분석에 대한 단위 테스트 추가 완료
+- **설정 UI 고도화**: 사용자 친화성과 가독성을 극대화하기 위해 플러그인 설정(Settings) 화면을 전면 개편 완료
+  - **기본/고급 설정 영역 분리**: 설정 항목들을 '기본 설정'과 '고급 설정' 영역으로 명확히 구획하고, 고급 설정은 펼치고 접을 수 있는 IntelliJ 스타일의 `HideableTitledPanel`로 묶어 복잡성 완화
+  - **상세 힌트 설명 및 개행**: 각 입력 필드 아래에 폰트 크기와 색상을 조정한 보조 힌트 라벨을 배치하고, 긴 텍스트에는 HTML 형식의 개행(`<br>`)을 적용하여 폼 가독성 극대화
+  - **플레이스홀더(Placeholder) 제공**: `locale 표시 순서` 필드에 `JBTextField`의 Empty Text API를 적용해 placeholder(`ko,en,jp,vi`)를 노출하고 힌트 텍스트에도 괄호 예시 추가
+  - **명칭 표준화**: 기존 '구역 표시 key' 명칭을 **예외 키**로 용어를 일원화 및 설명 문구 교체
+  - **JSON 들여쓰기 컴포넌트 교체**: 기존의 숫자 Spinner를 들여쓰기 2칸 혹은 4칸을 고를 수 있는 **JComboBox(SelectBox)** 형태의 콤보박스로 변경 및 연동 완료
 
 ## 결정 필요 사항
 
@@ -111,7 +117,7 @@ vi  Đăng nhập
   - `currentKey`
   - `renamed`
 - locale별 파일 존재 여부 모델 추가
-- 구역 표시용 key 여부를 row 레벨에 명확히 저장
+- 예외키 row 여부와 hidden marker 위치를 row/table 레벨에 명확히 저장
 
 완료 기준:
 
@@ -127,7 +133,7 @@ vi  Đăng nhập
 
 - flatten 시 key 순서 보존 강화
 - unflatten 시 leaf/object 충돌 검증 강화
-- comment key는 dot path 변환 대상에서 제외
+- root-level 예외키는 dot path 변환 대상에서 제외하고 hidden marker로 보존
 - unsupported value 타입 표시용 metadata 추가
 - 저장 전 모든 locale JSON을 메모리에서 먼저 생성
 - JSON 직렬화 실패 시 실제 파일 쓰기 차단
@@ -190,7 +196,7 @@ warning:
 - 언어별 컬럼은 기본 show
 - key 왼쪽의 별도 `상태` 컬럼에 상태 배지 표시
   - 배지는 고정폭 텍스트로 표시
-  - 예: `추가`, `경고`, `편집`, `삭제`, `에러`, `읽기`
+  - 예: `추가`, `경고`, `편집`, `삭제`, `에러`
   - 정상 행은 배지를 표시하지 않음
 - locale 표시/숨김 또는 preview locale 수 제한 옵션 추가
 - 기준 locale과 대상 locale 선택 UI는 상세 패널 편집 보조 기능으로 추가
@@ -204,7 +210,7 @@ warning:
   - error row
   - warning row
   - deleted row
-  - comment row
+  - exception key row
   - modified cell
 
 완료 기준:
@@ -224,7 +230,7 @@ warning:
   - 새 dot path key 입력
   - 선택 행 아래 삽입
   - 선택 행이 없으면 끝에 삽입
-  - 구역 표시용 key 추가 차단
+  - 예외키 입력 시 visible 예외키 row로 처리
 - Rename Key 팝업
   - 기존 key 표시
   - 새 key 입력
@@ -274,23 +280,29 @@ warning:
 
 - 저장 전에 사용자에게 실제 변경 범위가 명확히 보인다.
 
-## 7단계: 프로젝트 설정 완성
+## 7단계: 프로젝트 설정 완성 및 UI 개선
 
 목표:
 
-- 프로젝트별 locale grid 설정을 안정적으로 저장한다.
+- 프로젝트별 locale grid 설정을 안정적으로 저장하고, 사용자 친화적이고 직관적인 설정 UI로 고도화한다.
 
 작업:
 
-- locales root 설정
-- manual locales 설정
-- comment key 목록 설정
-- JSON indent 설정
+- **설정 화면 레이아웃 고도화**:
+  - 설정 화면을 '기본 설정'과 '고급 설정' 영역으로 명확히 분리하여 그룹화.
+  - '기본 설정': locales root 경로 설정, locale 표시 순서 설정과 각 필드 하단의 상세 안내(힌트) 텍스트 추가.
+  - '고급 설정': 접기/펼치기가 가능한 IntelliJ 스타일 접이식 패널(HideableTitledPanel)로 구현.
+- **예외 키 설정 개선**:
+  - 기존 '구역 표시 key'의 라벨명을 '예외 키'로 변경하고, 설명 문구를 "번역 key가 아니라 예외 키로 보존할 key입니다. 쉼표로 구분합니다."로 수정.
+- **JSON 들여쓰기 설정 개선**:
+  - 기존의 숫자 Spinner 대신, 2와 4 중 선택할 수 있는 콤보박스(SelectBox) 형태의 JComboBox UI 컴포넌트로 변경.
+  - 하단 설명 문구: "적용 시 저장되는 JSON 들여쓰기 칸 수입니다. 기본값은 2입니다."
 - 설정 변경 후 열린 에디터 refresh 안내
 
 완료 기준:
 
-- 수동 locale 순서가 그리드 컬럼 순서와 상세 패널 순서에 반영된다.
+- 설정 화면에서 2와 4 중 들여쓰기를 선택할 수 있고, 예외 키의 설명과 라벨이 업데이트되며, 변경 사항이 프로젝트 XML 설정에 정확하게 로드/세이브 및 반영된다.
+
 
 ## 8단계: 테스트 추가
 
@@ -308,7 +320,7 @@ warning:
 - 기준 파일 key 순서 보존
 - locale 자동 탐지
 - category 추론
-- comment key 판별
+- 예외키 판별
 - add/rename/delete 반영
 - 저장용 JSON 생성
 
@@ -362,3 +374,4 @@ warning:
 - 누락 locale 파일은 저장 시 사용자 확인 후 생성된다.
 - 저장 전 변경 요약이 표시된다.
 - 핵심 JSON 처리 로직 단위 테스트가 존재한다.
+

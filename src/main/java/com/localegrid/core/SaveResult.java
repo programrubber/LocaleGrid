@@ -12,6 +12,7 @@ public class SaveResult {
     private int addedKeys;
     private int modifiedKeys;
     private int deletedKeys;
+    private boolean orderChanged;
 
     public List<Diagnostic> getDiagnostics() {
         return diagnostics;
@@ -47,6 +48,14 @@ public class SaveResult {
 
     public void incrementDeletedKeys() {
         deletedKeys++;
+    }
+
+    public boolean isOrderChanged() {
+        return orderChanged;
+    }
+
+    public void setOrderChanged(boolean orderChanged) {
+        this.orderChanged = orderChanged;
     }
 
     public boolean hasErrors() {

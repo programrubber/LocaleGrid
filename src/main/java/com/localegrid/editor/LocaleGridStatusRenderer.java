@@ -103,8 +103,6 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
                 return new Color(184, 119, 0);
             case "삭제":
                 return new Color(104, 104, 104);
-            case "읽기":
-                return new Color(76, 131, 214);
             case "편집":
                 return new Color(31, 132, 181);
             default:
@@ -129,8 +127,6 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
                 return "경고 - 빈 값 또는 누락된 번역이 있어 확인이 필요합니다.";
             case "삭제":
                 return "삭제 - 적용 시 제거될 Row입니다.";
-            case "읽기":
-                return "읽기 - 주석 또는 편집할 수 없는 Row입니다.";
             case "편집":
                 return "편집 - 적용되지 않은 변경 사항이 있습니다.";
             default:
