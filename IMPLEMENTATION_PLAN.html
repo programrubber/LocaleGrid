@@ -284,10 +284,14 @@
               <li><strong>기본/고급 설정 영역 분리</strong>: 설정 항목들을 '기본 설정'과 '고급 설정' 영역으로 명확히 구획하고, 고급 설정은 펼치고 접을 수 있는 IntelliJ 스타일의 <code>HideableTitledPanel</code>로 묶어 복잡성 완화</li>
               <li><strong>상세 힌트 설명 및 개행</strong>: 각 입력 필드 아래에 폰트 크기와 색상을 조정한 보조 힌트 라벨을 배치하고, 긴 텍스트에는 HTML 형식의 개행(<code>&lt;br&gt;</code>)을 적용하여 폼 가독성 극대화</li>
               <li><strong>플레이스홀더(Placeholder) 제공</strong>: <code>locale 표시 순서</code> 필드에 <code>JBTextField</code>의 Empty Text API를 적용해 placeholder(<code>ko,en,jp,vi</code>)를 노출하고 힌트 텍스트에도 괄호 예시 추가</li>
-              <li><strong>명칭 표준화</strong>: 기존 '구역 표시 key' 명칭을 <strong>예외 키</strong>로 용어를 일원화 및 설명 문구 교체</li>
               <li><strong>JSON 들여쓰기 컴포넌트 교체</strong>: 기존의 숫자 Spinner를 들여쓰기 2칸 혹은 4칸을 고를 수 있는 <strong>JComboBox(SelectBox)</strong> 형태의 콤보박스로 변경 및 연동 완료</li>
             </ul>
           </li>
+          <li><strong>기어 아이콘 버튼 외관 개선</strong>: 다국어 에디터의 기어(설정) 버튼이 테두리와 마우스 리액션이 없어 비활성화된 것처럼 보였던 현상을 개선. 기존 <code>MoveActionButton</code> 디자인 사양을 계승한 <code>ToolbarIconButton</code>을 구현하고 설정 기어 버튼 및 위/아래 이동 버튼에 통합 적용하여 둥근 테두리와 호버/클릭 피드백을 제공함. 아울러 기어 아이콘 자체를 선명한 흰색(<code>java.awt.Color.WHITE</code>)으로 틴트 적용하여 다크 테마(Darcula)에서의 시인성을 높이고 흐려 보이는 비주얼을 완벽히 해결함.</li>
+          <li><strong>상단 툴바 레이아웃 개편 및 예외키 버튼 재배치</strong>: 다국어 에디터 상단 툴바를 3분할 구조로 전면 개편하였습니다. 필터 영역을 좌측(BorderLayout.WEST)에 정렬하고 라벨 앞의 파이프 기호(|)를 제거하였으며, 검색 영역을 정중앙(BorderLayout.CENTER)에 수평 배치하였습니다. 그리고 기존 하단 행에 있었던 "예외키 설정" 버튼명을 "예외키"로 간결화하고 상단 툴바 우측 끝(BorderLayout.EAST, 설정 기어 버튼 바로 왼쪽)으로 배치하여 미적 밸런스와 사용성을 고도로 충족시켰습니다.</li>
+          <li><strong>검색창 UI 개선</strong>: 기존의 텍스트 라벨 "검색"과 결합된 형태에서 라벨을 완전히 배제하고, 입력창 내부에 돋보기 검색 아이콘 및 입력 지우기(X) 버튼이 깔끔하게 내장된 <code>JBTextField</code>로 전환하였습니다. 또한 둥근 모서리(RoundRect) 속성을 활성화하여 부드러운 느낌을 부여하고, 가로 폭을 기존 320px에서 420px로 늘려 검색 영역을 더 확장하였으며, placeholder 텍스트를 "검색"으로 지정하여 직관적이고 세련된 미니멀 검색 영역을 완성했습니다.</li>
+          <li><strong>드래그 핸들러 디자인 개선</strong>: 행 순서 변경용 드래그 핸들(6도트 아이콘)을 입체적이고 현대적인 느낌으로 업그레이드하였습니다. 도트 크기를 4px로 조절하고, 개별 도트마다 3D 입체 엠보싱 효과(Drop shadow 그림자 및 Highlight 오버레이)를 적용하여 뛰어난 시각적 완성도를 구현했습니다. 또한 다크 테마 시인성을 위해 활성화 도트 색상의 명도를 높였습니다.</li>
+          <li><strong>용어 통일 및 0.2.0 릴리즈</strong>: 기존에 사용되던 모호한 용어인 '번역 묶음'을 직관적인 행동형 명칭인 <strong>'일괄보기'</strong>로 테이블 컬럼 헤더 및 상단 툴바 체크박스 모두 일괄 갱신했습니다. 또한 플러그인 버전을 <code>0.2.0</code>으로 공식 상향 조정한 뒤 빌드를 수행하여 배포용 릴리즈 zip 파일을 성공적으로 완성했습니다.</li>
         </ul>
       </section>
 
@@ -303,19 +307,19 @@
         <div class="callout warn">
           한국어, 영어, 일본어, 베트남어를 모두 한 줄에 컬럼으로 표시하면 한 행이 과도하게 길어지고 가독성이 떨어진다.
         </div>
-        <p><strong>권장 결정:</strong> 기본 화면은 <code>상태 + key + 언어별 컬럼</code> 중심으로 표시한다. <code>번역 묶음</code>은 마지막 컬럼으로 두되 기본 숨김 처리하고, 테이블 위 체크박스로 <code>번역 묶음</code>과 각 언어 컬럼을 show/hide 할 수 있게 한다. 상태는 key 왼쪽의 별도 고정폭 컬럼에 배지로 표시하고, 정상 행은 배지를 표시하지 않는다.</p>
+        <p><strong>권장 결정:</strong> 기본 화면은 <code>상태 + key + 언어별 컬럼</code> 중심으로 표시한다. <code>일괄보기</code>은 마지막 컬럼으로 두되 기본 숨김 처리하고, 테이블 위 체크박스로 <code>일괄보기</code>과 각 언어 컬럼을 show/hide 할 수 있게 한다. 상태는 key 왼쪽의 별도 고정폭 컬럼에 배지로 표시하고, 정상 행은 배지를 표시하지 않는다.</p>
       </section>
 
       <section id="ui-alternative">
         <h2>다국어 표시 대안</h2>
-        <p>PLAN의 key union 그리드 구조는 유지하되, 장문 다국어 값을 가로 컬럼에 모두 넣지 않는다. 사용자는 필요한 언어별 컬럼을 켜서 비교하고, 필요할 때만 마지막 <code>번역 묶음</code> 컬럼을 켤 수 있다. 선택 행 상세 패널에서는 locale별 값을 바로 수정한다.</p>
+        <p>PLAN의 key union 그리드 구조는 유지하되, 장문 다국어 값을 가로 컬럼에 모두 넣지 않는다. 사용자는 필요한 언어별 컬럼을 켜서 비교하고, 필요할 때만 마지막 <code>일괄보기</code> 컬럼을 켤 수 있다. 선택 행 상세 패널에서는 locale별 값을 바로 수정한다.</p>
         <div class="grid-demo">
           <p>
             <label><input type="checkbox" checked disabled> ko</label>
             <label><input type="checkbox" checked disabled> en</label>
             <label><input type="checkbox" checked disabled> jp</label>
             <label><input type="checkbox" checked disabled> vi</label>
-            <label><input type="checkbox" disabled> 번역 묶음</label>
+            <label><input type="checkbox" disabled> 일괄보기</label>
           </p>
           <table>
             <thead>
@@ -326,7 +330,7 @@
                 <th>en</th>
                 <th>jp</th>
                 <th>vi</th>
-                <th>번역 묶음 hidden</th>
+                <th>일괄보기 hidden</th>
               </tr>
             </thead>
             <tbody>
@@ -384,7 +388,7 @@
           </li>
           <li>
             <strong>그리드 UI 개선</strong>
-            <p>기본 그리드는 상태, key, 언어별 컬럼으로 구성한다. 자동 locale 순서는 ko, en, jp, vi를 우선한다. 번역 묶음은 마지막 컬럼이지만 기본 hide다. 상태는 key 왼쪽의 고정폭 컬럼에 표시하고, 번역 묶음과 언어별 컬럼은 체크박스로 show/hide 한다. 모든 locale 값은 상세 패널에서 세로로 표시하고 바로 수정한다.</p>
+            <p>기본 그리드는 상태, key, 언어별 컬럼으로 구성한다. 자동 locale 순서는 ko, en, jp, vi를 우선한다. 일괄보기는 마지막 컬럼이지만 기본 hide다. 상태는 key 왼쪽의 고정폭 컬럼에 표시하고, 일괄보기와 언어별 컬럼은 체크박스로 show/hide 한다. 모든 locale 값은 상세 패널에서 세로로 표시하고 바로 수정한다.</p>
           </li>
           <li>
             <strong>key 편집 기능 완성</strong>
@@ -422,7 +426,7 @@
           <li><code>TranslationTable</code>, <code>LocaleGridRow</code>, <code>LocaleValue</code> 모델 보강</li>
           <li><code>Diagnostic</code> 구조 확장</li>
           <li>저장 전 메모리 검증 강화</li>
-          <li>그리드 UI를 상태 배지 컬럼 + key + 언어별 컬럼 + 번역 묶음 마지막 컬럼 기본 hide + 상세 패널 구조로 개선</li>
+          <li>그리드 UI를 상태 배지 컬럼 + key + 언어별 컬럼 + 일괄보기 마지막 컬럼 기본 hide + 상세 패널 구조로 개선</li>
           <li>Add/Rename/Delete 저장 반영 완성</li>
           <li>단위 테스트 추가</li>
           <li>샌드박스 프로젝트 수동 검증</li>

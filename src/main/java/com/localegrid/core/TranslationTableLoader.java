@@ -43,7 +43,7 @@ public class TranslationTableLoader {
         LinkedHashSet<String> keyOrder = new LinkedHashSet<>();
         Set<String> exceptionKeys = new LinkedHashSet<>(settings.getExceptionKeyList());
         for (String locale : locales) {
-            File file = new File(new File(localeFile.getLocalesRoot(), locale), localeFile.getCategory() + ".json");
+            File file = localeFile.fileForLocale(locale);
             table.getFilesByLocale().put(locale, file);
             if (!file.exists()) {
                 table.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.WARNING, locale + " file is missing.", null));

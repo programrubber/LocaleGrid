@@ -1,5 +1,6 @@
 package com.localegrid.editor;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
@@ -7,6 +8,7 @@ import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.fileEditor.impl.EditorComposite;
 import com.intellij.openapi.fileEditor.impl.EditorWindow;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
@@ -15,6 +17,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.tabs.TabInfo;
 import com.localegrid.core.DotPath;
 import com.localegrid.core.SaveResult;
@@ -23,6 +26,7 @@ import com.localegrid.core.TranslationTableLoader;
 import com.localegrid.core.TranslationTableSaver;
 import com.localegrid.model.Diagnostic;
 import com.localegrid.model.LocaleGridRow;
+import com.localegrid.model.LocaleTextEscaper;
 import com.localegrid.model.LocaleValue;
 import com.localegrid.model.TranslationTable;
 import com.localegrid.settings.LocaleGridSettingsState;
@@ -93,7 +97,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             paintOrderDragIndicator((Graphics2D) graphics);
         }
     };
-    private final JTextField searchField = new JTextField();
+    private final JBTextField searchField = new JBTextField();
     private final StatusFilterButton addedOnly = new StatusFilterButton("추가");
     private final StatusFilterButton warningOnly = new StatusFilterButton("경고");
     private final StatusFilterButton modifiedOnly = new StatusFilterButton("편집");
@@ -103,8 +107,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final JButton renameButton = new JButton("편집");
     private final JButton deleteButton = new JButton("삭제");
     private final JButton undoDeleteButton = new JButton("삭제 취소");
-    private final JButton moveUpButton = new MoveActionButton(new MoveArrowIcon(true), "위로 이동");
-    private final JButton moveDownButton = new MoveActionButton(new MoveArrowIcon(false), "아래로 이동");
+    private final JButton moveUpButton = new ToolbarIconButton(new MoveArrowIcon(true), "위로 이동");
+    private final JButton moveDownButton = new ToolbarIconButton(new MoveArrowIcon(false), "아래로 이동");
     private final Map<String, JCheckBox> localeColumnChecks = new LinkedHashMap<>();
     private final JLabel statusLabel = new JLabel(" ");
     private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
@@ -162,9 +166,12 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private void buildUi() {
         JPanel top = new JPanel(new BorderLayout());
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        JPanel toolbar = new JPanel(new BorderLayout());
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4));
         JButton addButton = new JButton("추가");
-        JButton exceptionKeySettingsButton = new JButton("예외키 설정");
+        JButton settingsButton = createIconButton(com.intellij.util.IconUtil.colorize(AllIcons.General.Gear, java.awt.Color.WHITE), "LocaleGrid 설정 열기");
+        JButton exceptionKeySettingsButton = new JButton("예외키");
         JButton applyButton = new BottomActionButton(
             "적용",
             new Color(42, 121, 82),
@@ -180,19 +187,73 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             new Color(182, 91, 97)
         );
 
-        searchField.putClientProperty("JTextField.placeholderText", "key 또는 value 검색");
-        searchField.setPreferredSize(new Dimension(220, 30));
-        toolbar.add(new JLabel("검색"));
-        toolbar.add(searchField);
-        toolbar.add(new JLabel("| 필터 :"));
-        toolbar.add(addedOnly);
-        toolbar.add(warningOnly);
-        toolbar.add(modifiedOnly);
-        toolbar.add(deletedOnly);
-        toolbar.add(errorOnly);
+        searchField.setOpaque(false);
+        searchField.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
+        searchField.getEmptyText().setText("검색");
+        searchField.setPreferredSize(new Dimension(380, 26));
 
-        rowActionsPanel.add(exceptionKeySettingsButton);
-        rowActionsPanel.add(createActionSeparator());
+        JPanel searchRoundRectWrapper = new JPanel(new BorderLayout(6, 0)) {
+            {
+                setOpaque(false);
+                setPreferredSize(new Dimension(420, 32));
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(searchField.getBackground());
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                super.paintComponent(g);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintBorder(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color borderColor = searchField.hasFocus() ? new Color(59, 130, 246) : new Color(75, 85, 99);
+                g2.setColor(borderColor);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g2.dispose();
+            }
+        };
+
+        JLabel searchIconLabel = new JLabel(com.intellij.util.IconUtil.colorize(AllIcons.Actions.Find, new Color(180, 180, 180)));
+        searchIconLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+
+        searchRoundRectWrapper.add(searchIconLabel, BorderLayout.WEST);
+        searchRoundRectWrapper.add(searchField, BorderLayout.CENTER);
+
+        searchField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                searchRoundRectWrapper.repaint();
+            }
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                searchRoundRectWrapper.repaint();
+            }
+        });
+
+        searchPanel.add(searchRoundRectWrapper);
+        
+        filterPanel.add(new JLabel("필터 :"));
+        filterPanel.add(addedOnly);
+        filterPanel.add(warningOnly);
+        filterPanel.add(modifiedOnly);
+        filterPanel.add(deletedOnly);
+        filterPanel.add(errorOnly);
+
+        JPanel settingsWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        settingsWrapper.setOpaque(false);
+        settingsWrapper.add(exceptionKeySettingsButton);
+        settingsWrapper.add(settingsButton);
+
+        toolbar.add(filterPanel, BorderLayout.WEST);
+        toolbar.add(searchPanel, BorderLayout.CENTER);
+        toolbar.add(settingsWrapper, BorderLayout.EAST);
+
         rowActionsPanel.add(moveUpButton);
         rowActionsPanel.add(moveDownButton);
         rowActionsPanel.add(createActionSeparator());
@@ -245,6 +306,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         root.add(splitPane, BorderLayout.CENTER);
         root.add(bottom, BorderLayout.SOUTH);
 
+        settingsButton.addActionListener(e -> openLocaleGridSettings());
         addButton.addActionListener(e -> addRow());
         exceptionKeySettingsButton.addActionListener(e -> openExceptionKeySettingsDialog());
         renameButton.addActionListener(e -> renameSelectedRow());
@@ -271,6 +333,14 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
         separator.setPreferredSize(new Dimension(1, 24));
         return separator;
+    }
+
+    private static JButton createIconButton(Icon icon, String tooltip) {
+        return new ToolbarIconButton(icon, tooltip);
+    }
+
+    private void openLocaleGridSettings() {
+        ShowSettingsUtil.getInstance().showSettingsDialog(project, "LocaleGrid");
     }
 
     private void openExceptionKeySettingsDialog() {
@@ -309,7 +379,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private String exceptionKeySettingsMessage() {
         return "번역 항목에서 제외할 최상위 키를 쉼표로 구분해 입력하세요. (예: __section__, __comment__)\n"
-            + "예외키는 중복될 수 있으며, 저장 시 각 Locale 파일에서의 위치를 유지합니다.\n\n"
+            + "예외키는 중복될 수 있으며, 저장 시 각 Locale 파일에서의 위치를 유지합니다.\n"
+            + "설정된 예외키는 다국어 에디터에서 숨겨지며, 새로 추가한 예외키는 편집 중엔 보이지만 최종 적용(저장) 시 화면에서 사라집니다.\n\n"
             + "예외키";
     }
 
@@ -1304,7 +1375,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             localeLabel.setPreferredSize(new Dimension(44, 26));
             localeLabel.setMinimumSize(new Dimension(44, 26));
 
-            JTextArea editor = new JTextArea(value.getDisplayText(), 2, 48);
+            JTextArea editor = new JTextArea(LocaleTextEscaper.escapeForEditor(value.getDisplayText()), 2, 48);
             editor.setLineWrap(true);
             editor.setWrapStyleWord(true);
             installTextAreaFocusTraversal(editor);
@@ -1315,7 +1386,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 if (updatingDetail) {
                     return;
                 }
-                value.setText(editor.getText());
+                value.setText(LocaleTextEscaper.unescapeFromEditor(editor.getText()));
                 refreshAfterEdit(row);
             }));
 
@@ -1876,7 +1947,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     }
 
-    private static final class MoveActionButton extends JButton {
+    private static final class ToolbarIconButton extends JButton {
         private static final Color NORMAL_FILL = new Color(68, 74, 78);
         private static final Color HOVER_FILL = new Color(82, 91, 97);
         private static final Color PRESSED_FILL = new Color(54, 61, 66);
@@ -1885,7 +1956,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         private static final Color HOVER_BORDER = new Color(126, 145, 158);
         private static final Color DISABLED_BORDER = new Color(78, 84, 88);
 
-        private MoveActionButton(Icon icon, String tooltip) {
+        private ToolbarIconButton(Icon icon, String tooltip) {
             super(icon);
             setToolTipText(tooltip);
             setOpaque(false);
@@ -1934,8 +2005,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private final class DragHandleRenderer extends JComponent implements TableCellRenderer {
-        private static final Color ENABLED_DOT = new Color(118, 126, 132);
-        private static final Color DISABLED_DOT = new Color(86, 91, 95);
+        private static final Color ENABLED_DOT = new Color(180, 186, 192);
+        private static final Color DISABLED_DOT = new Color(85, 90, 95);
 
         private JTable table;
         private boolean selected;
@@ -1973,14 +2044,31 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 g.fillRect(0, 0, getWidth(), getHeight());
 
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g.setColor(isOrderMoveAvailable() ? ENABLED_DOT : DISABLED_DOT);
-                int dot = 3;
-                int gap = 5;
+                
+                int dot = 4;
+                int gap = 4;
                 int startX = (getWidth() - dot * 2 - gap) / 2;
                 int startY = (getHeight() - dot * 3 - gap * 2) / 2;
+                
+                boolean available = isOrderMoveAvailable();
                 for (int y = 0; y < 3; y++) {
                     for (int x = 0; x < 2; x++) {
-                        g.fillOval(startX + x * (dot + gap), startY + y * (dot + gap), dot, dot);
+                        int px = startX + x * (dot + gap);
+                        int py = startY + y * (dot + gap);
+                        
+                        // 1. Drop shadow (엠보싱 깊이감 효과)
+                        g.setColor(new Color(20, 20, 20, available ? 120 : 60));
+                        g.fillOval(px, py + 1, dot, dot);
+                        
+                        // 2. 메인 도트
+                        g.setColor(available ? ENABLED_DOT : DISABLED_DOT);
+                        g.fillOval(px, py, dot, dot);
+
+                        // 3. Highlight (상단 1px 반투명 밝은색)
+                        if (available) {
+                            g.setColor(new Color(255, 255, 255, 80));
+                            g.fillOval(px, py, dot - 1, dot - 1);
+                        }
                     }
                 }
             } finally {

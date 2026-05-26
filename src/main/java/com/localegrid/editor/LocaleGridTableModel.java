@@ -2,6 +2,7 @@ package com.localegrid.editor;
 
 import com.localegrid.model.Diagnostic;
 import com.localegrid.model.LocaleGridRow;
+import com.localegrid.model.LocaleTextEscaper;
 import com.localegrid.model.LocaleValue;
 import com.localegrid.model.TranslationTable;
 
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 class LocaleGridTableModel extends AbstractTableModel {
-    static final String BUNDLE_COLUMN_NAME = "번역 묶음";
+    static final String BUNDLE_COLUMN_NAME = "일괄보기";
 
     static final int HANDLE_COLUMN = 0;
     static final int STATUS_COLUMN = 1;
@@ -152,7 +153,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             if (text.length() > 0) {
                 text.append('\n');
             }
-            text.append(locale).append(": ").append(row.getValue(locale).getDisplayText());
+            text.append(locale).append(": ").append(LocaleTextEscaper.escapeForEditor(row.getValue(locale).getDisplayText()));
         }
         return text.toString();
     }
@@ -225,7 +226,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             return getBundleText(row);
         }
         String locale = getLocaleForColumn(columnIndex);
-        return locale == null ? "" : row.getValue(locale).getDisplayText();
+        return locale == null ? "" : LocaleTextEscaper.escapeForEditor(row.getValue(locale).getDisplayText());
     }
 
     @Override
@@ -277,7 +278,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             return true;
         }
         for (LocaleValue value : row.getValues().values()) {
-            if (value.getDisplayText().toLowerCase().contains(term)) {
+            if (LocaleTextEscaper.escapeForEditor(value.getDisplayText()).toLowerCase().contains(term)) {
                 return true;
             }
         }

@@ -50,6 +50,16 @@ class JsonTreeWriterTest {
     }
 
     @Test
+    void writesControlCharactersAsJsonEscapes() {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("message", "line1\nline2\tend");
+
+        String json = JsonTreeWriter.write(values, 2, new ArrayList<>());
+
+        assertTrue(json.contains("\"message\": \"line1\\nline2\\tend\""), json);
+    }
+
+    @Test
     void writesDuplicatedRootEntriesWhenRootEntryListIsUsed() {
         List<JsonRootEntry> entries = List.of(
             new JsonRootEntry("__section__", "first"),
