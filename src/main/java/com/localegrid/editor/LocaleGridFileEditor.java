@@ -39,9 +39,11 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.datatransfer.StringSelection;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
@@ -104,9 +106,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final StatusFilterButton deletedOnly = new StatusFilterButton("삭제");
     private final StatusFilterButton errorOnly = new StatusFilterButton("에러");
     private final JCheckBox bundleColumnCheck = new JCheckBox(LocaleGridTableModel.BUNDLE_COLUMN_NAME);
-    private final JButton renameButton = new JButton("편집");
-    private final JButton deleteButton = new JButton("삭제");
-    private final JButton undoDeleteButton = new JButton("삭제 취소");
+    private final JButton renameButton = new ToolbarTextButton("편집", 66);
+    private final JButton deleteButton = new ToolbarTextButton("삭제", 66);
+    private final JButton undoDeleteButton = new ToolbarTextButton("삭제 취소", 86);
     private final JButton moveUpButton = new ToolbarIconButton(new MoveArrowIcon(true), "위로 이동");
     private final JButton moveDownButton = new ToolbarIconButton(new MoveArrowIcon(false), "아래로 이동");
     private final Map<String, JCheckBox> localeColumnChecks = new LinkedHashMap<>();
@@ -122,6 +124,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private boolean skipNextSelectReload;
     private boolean suppressUnsavedPrompt;
     private boolean lastModifiedState;
+    private int lastClickedViewColumn = -1;
 
     public LocaleGridFileEditor(Project project, VirtualFile file) {
         this.project = project;
@@ -169,9 +172,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JPanel toolbar = new JPanel(new BorderLayout());
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4));
-        JButton addButton = new JButton("추가");
+        JButton addButton = new ToolbarTextButton("추가", 66);
         JButton settingsButton = createIconButton(com.intellij.util.IconUtil.colorize(AllIcons.General.Gear, java.awt.Color.WHITE), "LocaleGrid 설정 열기");
-        JButton exceptionKeySettingsButton = new JButton("예외키");
+        JButton exceptionKeySettingsButton = new ToolbarTextButton("예외키", 72);
         JButton applyButton = new BottomActionButton(
             "적용",
             new Color(42, 121, 82),
@@ -274,6 +277,17 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.setToolTipText("");
         grid.setRowHeight(30);
         grid.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        grid.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent event) {
+                rememberClickedCell(event);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                rememberClickedCell(event);
+            }
+        });
         grid.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 LocaleGridRow row = selectedRow();
@@ -326,7 +340,53 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         errorOnly.addActionListener(e -> applyFilter());
         bundleColumnCheck.addActionListener(e -> applyColumnVisibility());
         installOrderDragHandler();
+        installGridClipboardHandler();
         updateRowActionButtons(null);
+    }
+
+    private void rememberClickedCell(MouseEvent event) {
+        int viewColumn = grid.columnAtPoint(event.getPoint());
+        if (viewColumn >= 0) {
+            lastClickedViewColumn = viewColumn;
+        }
+    }
+
+    private void installGridClipboardHandler() {
+        int shortcutMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        InputMap inputMap = grid.getInputMap(JComponent.WHEN_FOCUSED);
+        ActionMap actionMap = grid.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, shortcutMask), "localeGridCopyCell");
+        actionMap.put("localeGridCopyCell", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                copySelectedCellToClipboard();
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, shortcutMask), "localeGridPasteIgnored");
+        actionMap.put("localeGridPasteIgnored", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                // Paste is intentionally limited to the detail editors, not the read-only grid.
+            }
+        });
+    }
+
+    private void copySelectedCellToClipboard() {
+        int viewRow = grid.getSelectedRow();
+        if (viewRow < 0) {
+            return;
+        }
+
+        int viewColumn = lastClickedViewColumn >= 0 ? lastClickedViewColumn : grid.getSelectedColumn();
+        if (viewColumn < 0) {
+            viewColumn = LocaleGridTableModel.KEY_COLUMN;
+        }
+
+        Object value = grid.getValueAt(viewRow, viewColumn);
+        String text = value == null ? "" : String.valueOf(value);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
     }
 
     private static JComponent createActionSeparator() {
@@ -1604,7 +1664,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         appendSummaryPart(parts, "파일 저장", writtenFiles);
         appendSummaryPart(parts, "생성", createdFiles);
         appendSummaryPart(parts, "추가", addedKeys);
-        appendSummaryPart(parts, "수정", modifiedKeys);
+        appendSummaryPart(parts, "편집", modifiedKeys);
         appendSummaryPart(parts, "삭제", deletedKeys);
         if (orderChanged) {
             parts.add("순서 변경 있음");
@@ -1897,6 +1957,69 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             } finally {
                 g.dispose();
             }
+        }
+    }
+
+    private static final class ToolbarTextButton extends JButton {
+        private static final Color NORMAL_FILL = new Color(68, 74, 78);
+        private static final Color HOVER_FILL = new Color(82, 91, 97);
+        private static final Color PRESSED_FILL = new Color(54, 61, 66);
+        private static final Color DISABLED_FILL = new Color(58, 63, 66);
+        private static final Color NORMAL_BORDER = new Color(98, 106, 112);
+        private static final Color HOVER_BORDER = new Color(126, 145, 158);
+        private static final Color DISABLED_BORDER = new Color(78, 84, 88);
+        private static final Color NORMAL_TEXT = new Color(224, 231, 237);
+        private static final Color DISABLED_TEXT = new Color(133, 140, 145);
+
+        private ToolbarTextButton(String text, int width) {
+            super(text);
+            setFont(getFont().deriveFont(Font.PLAIN, 12f));
+            setForeground(NORMAL_TEXT);
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setRolloverEnabled(true);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setMargin(new Insets(0, 8, 0, 8));
+            Dimension size = new Dimension(width, 28);
+            setPreferredSize(size);
+            setMinimumSize(size);
+            setMaximumSize(size);
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            super.setEnabled(enabled);
+            setForeground(enabled ? NORMAL_TEXT : DISABLED_TEXT);
+            setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                ButtonModel state = getModel();
+                Color fill = !isEnabled()
+                    ? DISABLED_FILL
+                    : state.isPressed() ? PRESSED_FILL : state.isRollover() ? HOVER_FILL : NORMAL_FILL;
+                Color border = !isEnabled()
+                    ? DISABLED_BORDER
+                    : state.isRollover() ? HOVER_BORDER : NORMAL_BORDER;
+
+                int x = 1;
+                int y = 2;
+                int width = getWidth() - 2;
+                int height = getHeight() - 4;
+                g.setColor(fill);
+                g.fillRoundRect(x, y, width, height, 7, 7);
+                g.setColor(border);
+                g.drawRoundRect(x, y, width, height, 7, 7);
+            } finally {
+                g.dispose();
+            }
+            super.paintComponent(graphics);
         }
     }
 

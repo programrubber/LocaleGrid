@@ -36,9 +36,26 @@ $env:PATH="$env:JAVA_HOME\bin;$env:PATH"
 .\gradlew.bat runIde --console=plain
 ```
 
+- 새 대화에서 개발을 이어갈 때는 먼저 현재 상태를 복구한다:
+
+```powershell
+git status --short
+Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'java|gradle|idea|pycharm|cmd' -and ($_.CommandLine -match 'LocaleGrid|runIde|idea-sandbox') } | Select-Object ProcessId,Name,CommandLine | Format-List
+```
+
+- 새 대화에서 빌드/검증할 때는 아래 환경을 먼저 설정한다:
+
+```powershell
+$env:JAVA_HOME='C:\Users\rafal\.vscode\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64'
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
+.\gradlew.bat compileJava --console=plain
+```
+
 - 개발 실행을 다시 요청받으면 먼저 기존 `runIde`/IDE 관련 `java`, `gradle`, `idea`, `pycharm` 프로세스를 확인한다.
 - 이미 개발 IDE가 켜져 있으면 기존 실행 프로세스를 종료한 뒤 새로 실행한다.
 - 종료 대상은 LocaleGrid 개발 실행으로 판단되는 프로세스로 제한하고, 가능한 경우 PID를 확인한 뒤 종료한다.
+- 개발 IDE 종료는 위 프로세스 조회에서 `LocaleGrid`, `runIde`, `idea-sandbox`가 확인된 PID만 대상으로 한다.
+- 개발 IDE 재시작 후에는 다시 프로세스를 조회해 `cmd.exe`, Gradle wrapper `java.exe`, sandbox IDE `java.exe`가 떠 있는지 확인한다.
 
 - 빌드:
 
