@@ -463,12 +463,11 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void openDownloadedExcelDirectory(Path output) {
-        Path parent = output.getParent();
-        if (parent == null || !Files.isDirectory(parent)) {
-            Messages.showErrorDialog(project, "다운로드 폴더를 찾을 수 없습니다.\n" + output, "엑셀 다운로드");
+        if (output == null || !Files.exists(output)) {
+            Messages.showErrorDialog(project, "다운로드된 파일을 찾을 수 없습니다.\n" + output, "엑셀 다운로드");
             return;
         }
-        RevealFileAction.openDirectory(parent);
+        RevealFileAction.openFile(output.toAbsolutePath());
     }
 
     private List<String> visibleExportHeaders() {
