@@ -283,7 +283,7 @@
             <ul>
               <li><strong>기본/고급 설정 영역 분리</strong>: 설정 항목들을 '기본 설정'과 '고급 설정' 영역으로 명확히 구획하고, 고급 설정은 펼치고 접을 수 있는 IntelliJ 스타일의 <code>HideableTitledPanel</code>로 묶어 복잡성 완화</li>
               <li><strong>상세 힌트 설명 및 개행</strong>: 각 입력 필드 아래에 폰트 크기와 색상을 조정한 보조 힌트 라벨을 배치하고, 긴 텍스트에는 HTML 형식의 개행(<code>&lt;br&gt;</code>)을 적용하여 폼 가독성 극대화</li>
-              <li><strong>플레이스홀더(Placeholder) 제공</strong>: <code>locale 표시 순서</code> 필드에 <code>JBTextField</code>의 Empty Text API를 적용해 placeholder(<code>ko,en,jp,vi</code>)를 노출하고 힌트 텍스트에도 괄호 예시 추가</li>
+              <li><strong>플레이스홀더(Placeholder) 제공</strong>: <code>locale 표시 순서</code> 필드에 <code>JBTextField</code>의 Empty Text API를 적용해 placeholder(<code>ko,en,ja,vi</code>)를 노출하고 힌트 텍스트에도 괄호 예시 추가</li>
               <li><strong>JSON 들여쓰기 컴포넌트 교체</strong>: 기존의 숫자 Spinner를 들여쓰기 2칸 혹은 4칸을 고를 수 있는 <strong>JComboBox(SelectBox)</strong> 형태의 콤보박스로 변경 및 연동 완료</li>
             </ul>
           </li>
@@ -317,7 +317,7 @@
           <p>
             <label><input type="checkbox" checked disabled> ko</label>
             <label><input type="checkbox" checked disabled> en</label>
-            <label><input type="checkbox" checked disabled> jp</label>
+            <label><input type="checkbox" checked disabled> ja</label>
             <label><input type="checkbox" checked disabled> vi</label>
             <label><input type="checkbox" disabled> 일괄보기</label>
           </p>
@@ -328,7 +328,7 @@
                 <th>key</th>
                 <th>ko</th>
                 <th>en</th>
-                <th>jp</th>
+                <th>ja</th>
                 <th>vi</th>
                 <th>일괄보기 hidden</th>
               </tr>
@@ -341,7 +341,7 @@
                 <td>Login</td>
                 <td>ログイン</td>
                 <td>Đăng nhập</td>
-                <td>ko: 로그인<br>en: Login<br>jp: ログイン<br>vi: Đăng nhập</td>
+                <td>ko: 로그인<br>en: Login<br>ja: ログイン<br>vi: Đăng nhập</td>
               </tr>
               <tr>
                 <td></td>
@@ -350,7 +350,7 @@
                 <td>Sign in</td>
                 <td>ログインする</td>
                 <td>Đăng nhập</td>
-                <td>ko: 로그인하기<br>en: Sign in<br>jp: ログインする<br>vi: Đăng nhập</td>
+                <td>ko: 로그인하기<br>en: Sign in<br>ja: ログインする<br>vi: Đăng nhập</td>
               </tr>
             </tbody>
           </table>
@@ -364,7 +364,7 @@
             <tbody>
               <tr><th>ko</th><td>로그인하기</td></tr>
               <tr><th>en</th><td>Sign in</td></tr>
-              <tr><th>jp</th><td>ログインする</td></tr>
+              <tr><th>ja</th><td>ログインする</td></tr>
               <tr><th>vi</th><td>Đăng nhập</td></tr>
             </tbody>
           </table>
@@ -388,7 +388,7 @@
           </li>
           <li>
             <strong>그리드 UI 개선</strong>
-            <p>기본 그리드는 상태, key, 언어별 컬럼으로 구성한다. 자동 locale 순서는 ko, en, jp, vi를 우선한다. 일괄보기는 마지막 컬럼이지만 기본 hide다. 상태는 key 왼쪽의 고정폭 컬럼에 표시하고, 일괄보기와 언어별 컬럼은 체크박스로 show/hide 한다. 모든 locale 값은 상세 패널에서 세로로 표시하고 바로 수정한다.</p>
+            <p>기본 그리드는 상태, key, 언어별 컬럼으로 구성한다. 자동 locale 순서는 ko, en, ja, vi를 우선한다. 일괄보기는 마지막 컬럼이지만 기본 hide다. 상태는 key 왼쪽의 고정폭 컬럼에 표시하고, 일괄보기와 언어별 컬럼은 체크박스로 show/hide 한다. 모든 locale 값은 상세 패널에서 세로로 표시하고 바로 수정한다.</p>
           </li>
           <li>
             <strong>key 편집 기능 완성</strong>

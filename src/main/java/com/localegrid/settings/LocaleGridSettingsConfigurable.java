@@ -55,12 +55,12 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         // 3. 입력 필드 초기화 및 래핑
         localesRootField = new JTextField(state.localesRoot, 32);
         manualLocalesField = new com.intellij.ui.components.JBTextField(state.manualLocales, 32);
-        manualLocalesField.getEmptyText().setText("ko,en,jp,vi");
+        manualLocalesField.getEmptyText().setText("ko,en,ja,vi");
 
         JComponent localesRootWrapper = createFieldWithHint(localesRootField,
             "프로젝트 기준 상대 경로입니다. 예: locales , src/locales");
         JComponent manualLocalesWrapper = createFieldWithHint(manualLocalesField,
-            "<html>비워두면 locale 루트 아래 디렉터리를 자동 감지합니다.<br>쉼표로 입력하면 그 순서대로 컬럼을 표시합니다. (예: ko,en,jp,vi)</html>");
+            "<html>비워두면 locale 루트 아래 디렉터리를 자동 감지합니다.<br>쉼표로 입력하면 그 순서대로 컬럼을 표시합니다. (예: ko,en,ja,vi)</html>");
 
         c.gridwidth = 1;
         c.insets = new Insets(8, 0, 8, 12);

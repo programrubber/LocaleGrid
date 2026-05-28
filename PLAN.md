@@ -53,7 +53,7 @@ locales/{locale}/{category}.json
 ```text
 locales/ko/login.json
 locales/en/login.json
-locales/jp/login.json
+locales/ja/login.json
 locales/vi/login.json
 ```
 
@@ -67,7 +67,7 @@ locales/vi/login.json
 locales/
 - ko/
 - en/
-- jp/
+- ja/
 - vi/
 ```
 
@@ -81,7 +81,7 @@ locales/
 
 ```text
 ko/login.json: login
-jp/login.json: alertLogin
+ja/login.json: alertLogin
 en/login.json: 없음
 vi/login.json: 없음
 ```
@@ -89,7 +89,7 @@ vi/login.json: 없음
 그리드는 다음처럼 표시한다.
 
 ```text
-key         ko       en   jp          vi
+key         ko       en   ja          vi
 login       로그인         빈 값       빈 값
 alertLogin  빈 값          アラート     빈 값
 ```
@@ -281,7 +281,7 @@ locale 목록에는 포함되어 있지만 현재 category 파일이 없는 경�
 ```text
 locales/ko/login.json
 locales/en/login.json
-locales/jp/login.json
+locales/ja/login.json
 locales/vi/login.json  없음
 ```
 

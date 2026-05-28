@@ -4,15 +4,18 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
-    private static final int BADGE_WIDTH = 48;
+    private static final int BADGE_WIDTH = 42;
     private static final int BADGE_HEIGHT = 20;
+    private static final int BADGE_GAP = 4;
     private static final Font BADGE_FONT = new Font(Font.MONOSPACED, Font.BOLD, 11);
     private static final Color BADGE_TEXT = Color.WHITE;
 
     private JTable table;
-    private String code = "";
+    private List<String> codes = List.of();
     private boolean selected;
     private boolean focused;
     private int row;
@@ -31,11 +34,11 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
         int column
     ) {
         this.table = table;
-        this.code = value == null ? "" : String.valueOf(value);
+        this.codes = statusCodes(value);
         this.selected = isSelected;
         this.focused = hasFocus;
         this.row = row;
-        setToolTipText(tooltipText(code));
+        setToolTipText(tooltipText(value));
         return this;
     }
 
@@ -44,7 +47,7 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
         Graphics2D g = (Graphics2D) graphics.create();
         try {
             paintBackground(g);
-            paintBadge(g);
+            paintBadges(g);
             paintFocus(g);
         } finally {
             g.dispose();
@@ -57,26 +60,31 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
         g.fillRect(0, 0, getWidth(), getHeight());
     }
 
-    private void paintBadge(Graphics2D g) {
-        if (code.isEmpty()) {
-            return;
-        }
-
-        Rectangle badge = badgeBounds(getWidth(), getHeight());
-        if (badge.width <= 0 || badge.height <= 0) {
+    private void paintBadges(Graphics2D g) {
+        if (codes.isEmpty()) {
             return;
         }
 
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setColor(badgeColor(code));
-        g.fillRoundRect(badge.x, badge.y, badge.width, badge.height, 6, 6);
-
         g.setFont(BADGE_FONT);
+        List<Rectangle> badges = badgeBounds(codes.size(), getWidth(), getHeight());
         FontMetrics metrics = g.getFontMetrics();
-        int textX = badge.x + (badge.width - metrics.stringWidth(code)) / 2;
-        int textY = badge.y + ((badge.height - metrics.getHeight()) / 2) + metrics.getAscent();
-        g.setColor(BADGE_TEXT);
-        g.drawString(code, textX, textY);
+
+        for (int i = 0; i < badges.size(); i++) {
+            String code = codes.get(i);
+            Rectangle badge = badges.get(i);
+            if (badge.width <= 0 || badge.height <= 0) {
+                continue;
+            }
+
+            g.setColor(badgeColor(code));
+            g.fillRoundRect(badge.x, badge.y, badge.width, badge.height, 6, 6);
+
+            int textX = badge.x + (badge.width - metrics.stringWidth(code)) / 2;
+            int textY = badge.y + ((badge.height - metrics.getHeight()) / 2) + metrics.getAscent();
+            g.setColor(BADGE_TEXT);
+            g.drawString(code, Math.max(badge.x + 3, textX), textY);
+        }
     }
 
     private void paintFocus(Graphics2D g) {
@@ -110,14 +118,43 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
         }
     }
 
-    static boolean containsBadgePoint(String code, int x, int y, int cellWidth, int cellHeight) {
-        if (code == null || code.isEmpty()) {
+    static boolean containsBadgePoint(Object value, int x, int y, int cellWidth, int cellHeight) {
+        List<String> codes = statusCodes(value);
+        if (codes.isEmpty()) {
             return false;
         }
-        return badgeBounds(cellWidth, cellHeight).contains(x, y);
+        for (Rectangle badge : badgeBounds(codes.size(), cellWidth, cellHeight)) {
+            if (badge.contains(x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean containsBadgePoint(String code, int x, int y, int cellWidth, int cellHeight) {
+        return containsBadgePoint((Object) code, x, y, cellWidth, cellHeight);
+    }
+
+    static String tooltipText(Object value) {
+        List<String> codes = statusCodes(value);
+        if (codes.isEmpty()) {
+            return null;
+        }
+        StringBuilder tooltip = new StringBuilder();
+        for (String code : codes) {
+            if (tooltip.length() > 0) {
+                tooltip.append(" / ");
+            }
+            tooltip.append(statusDescription(code));
+        }
+        return tooltip.toString();
     }
 
     static String tooltipText(String code) {
+        return tooltipText((Object) code);
+    }
+
+    private static String statusDescription(String code) {
         switch (code) {
             case "에러":
                 return "에러 - 중복 key 또는 dot path 충돌로 적용이 차단됩니다.";
@@ -128,17 +165,50 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
             case "삭제":
                 return "삭제 - 적용 시 제거될 Row입니다.";
             case "편집":
-                return "편집 - 적용되지 않은 변경 사항이 있습니다.";
+                return "편집 - 적용하지 않은 변경 사항이 있습니다.";
             default:
-                return null;
+                return code;
         }
     }
 
-    private static Rectangle badgeBounds(int cellWidth, int cellHeight) {
-        int width = Math.min(BADGE_WIDTH, Math.max(0, cellWidth - 8));
-        int height = Math.min(BADGE_HEIGHT, Math.max(0, cellHeight - 6));
-        int x = Math.max(4, (cellWidth - width) / 2);
-        int y = Math.max(3, (cellHeight - height) / 2);
-        return new Rectangle(x, y, width, height);
+    private static List<String> statusCodes(Object value) {
+        List<String> result = new ArrayList<>();
+        if (value instanceof List<?> list) {
+            for (Object item : list) {
+                addCode(result, item);
+            }
+            return result;
+        }
+        addCode(result, value);
+        return result;
+    }
+
+    private static void addCode(List<String> result, Object value) {
+        if (value == null) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (!text.isEmpty()) {
+            result.add(text);
+        }
+    }
+
+    private static List<Rectangle> badgeBounds(int count, int cellWidth, int cellHeight) {
+        List<Rectangle> badges = new ArrayList<>();
+        if (count <= 0) {
+            return badges;
+        }
+
+        int totalGap = BADGE_GAP * (count - 1);
+        int availableWidth = Math.max(0, cellWidth - 8 - totalGap);
+        int badgeWidth = Math.min(BADGE_WIDTH, count == 0 ? 0 : availableWidth / count);
+        int totalWidth = badgeWidth * count + totalGap;
+        int x = Math.max(4, (cellWidth - totalWidth) / 2);
+        int y = Math.max(3, (cellHeight - BADGE_HEIGHT) / 2);
+
+        for (int i = 0; i < count; i++) {
+            badges.add(new Rectangle(x + i * (badgeWidth + BADGE_GAP), y, badgeWidth, BADGE_HEIGHT));
+        }
+        return badges;
     }
 }

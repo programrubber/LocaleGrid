@@ -23,7 +23,7 @@
 
 - `TranslationTableLoader`가 같은 category의 locale 파일을 locale별로 읽어 하나의 `TranslationTable`로 구성한다.
 - locale 순서는 수동 설정이 있으면 설정값을 우선하고, 없으면 locale 루트 하위 디렉터리를 자동 감지한다.
-- 자동 감지 시 `ko`, `en`, `jp`, `vi`를 우선 배치하고 나머지는 이름순으로 배치한다.
+- 자동 감지 시 `ko`, `en`, `ja`, `vi`를 우선 배치하고 나머지는 이름순으로 배치한다.
 - 열린 파일의 locale key 순서를 먼저 반영한 뒤, 다른 locale의 추가 key를 뒤에 병합한다.
 - 존재하지 않는 locale 파일은 warning diagnostic으로 기록한다.
 

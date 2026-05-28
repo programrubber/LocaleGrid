@@ -25,13 +25,43 @@ import java.util.Map;
 import java.util.Set;
 
 public class TranslationTableSaver {
+    public SavePreview preview(Project project, TranslationTable table, boolean createMissingFiles) {
+        SavePreview preview = new SavePreview();
+        preview.setOrderChanged(table.isOrderChanged());
+        prepareValidation(table, preview.getDiagnostics());
+        if (preview.hasErrors()) {
+            return preview;
+        }
+
+        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
+        for (String locale : table.getLocales()) {
+            File file = table.getFilesByLocale().get(locale);
+            if (file == null) {
+                continue;
+            }
+            if (!file.exists() && !createMissingFiles && hasWritableValues(table, locale)) {
+                preview.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.WARNING, locale + " file was not created.", null));
+                continue;
+            }
+            if (!file.exists() && !hasWritableValues(table, locale)) {
+                continue;
+            }
+
+            List<JsonRootEntry> rootEntries = buildRootEntries(table, locale, preview.getDiagnostics());
+            String json = JsonTreeWriter.writeRootEntries(rootEntries, settings.jsonIndent, preview.getDiagnostics());
+            if (preview.hasErrors()) {
+                continue;
+            }
+            preview.getFiles().add(new SavePreviewFile(file.getPath(), readCurrentText(project, file), json, !file.exists()));
+        }
+        countChangedRows(table, preview);
+        return preview;
+    }
+
     public SaveResult save(Project project, TranslationTable table, boolean createMissingFiles) {
         SaveResult result = new SaveResult();
         result.setOrderChanged(table.isOrderChanged());
-        table.getDiagnostics().clear();
-        table.getDiagnostics().addAll(table.getActiveSourceDiagnostics());
-        TableValidator.validate(table);
-        result.getDiagnostics().addAll(table.getDiagnostics());
+        prepareValidation(table, result.getDiagnostics());
         if (table.hasErrors()) {
             return result;
         }
@@ -65,33 +95,77 @@ public class TranslationTableSaver {
         });
 
         if (!result.hasErrors()) {
-            int added = 0;
-            int modified = 0;
-            int deleted = 0;
-            for (LocaleGridRow row : table.getRows()) {
-                if (row.isDeleted()) {
-                    boolean wasPresent = false;
-                    for (String locale : table.getLocales()) {
-                        if (row.getValue(locale).isPresent()) {
-                            wasPresent = true;
-                            break;
-                        }
-                    }
-                    if (wasPresent) {
-                        deleted++;
-                    }
-                } else if (row.isAdded()) {
-                    added++;
-                } else if (row.isModified()) {
-                    modified++;
-                }
-            }
-            for (int i = 0; i < added; i++) result.incrementAddedKeys();
-            for (int i = 0; i < modified; i++) result.incrementModifiedKeys();
-            for (int i = 0; i < deleted; i++) result.incrementDeletedKeys();
+            countChangedRows(table, result);
         }
 
         return result;
+    }
+
+    private static void prepareValidation(TranslationTable table, List<Diagnostic> diagnostics) {
+        table.getDiagnostics().clear();
+        table.getDiagnostics().addAll(table.getActiveSourceDiagnostics());
+        TableValidator.validate(table);
+        diagnostics.addAll(table.getDiagnostics());
+    }
+
+    private static void countChangedRows(TranslationTable table, SavePreview preview) {
+        int added = 0;
+        int modified = 0;
+        int deleted = 0;
+        for (LocaleGridRow row : table.getRows()) {
+            if (row.isAdded() && row.isDeleted()) {
+                continue;
+            }
+            if (row.isDeleted()) {
+                boolean wasPresent = false;
+                for (String locale : table.getLocales()) {
+                    if (row.getValue(locale).isPresent()) {
+                        wasPresent = true;
+                        break;
+                    }
+                }
+                if (wasPresent) {
+                    deleted++;
+                }
+            } else if (row.isAdded()) {
+                added++;
+            } else if (row.isModified()) {
+                modified++;
+            }
+        }
+        for (int i = 0; i < added; i++) preview.incrementAddedKeys();
+        for (int i = 0; i < modified; i++) preview.incrementModifiedKeys();
+        for (int i = 0; i < deleted; i++) preview.incrementDeletedKeys();
+    }
+
+    private static void countChangedRows(TranslationTable table, SaveResult result) {
+        int added = 0;
+        int modified = 0;
+        int deleted = 0;
+        for (LocaleGridRow row : table.getRows()) {
+            if (row.isAdded() && row.isDeleted()) {
+                continue;
+            }
+            if (row.isDeleted()) {
+                boolean wasPresent = false;
+                for (String locale : table.getLocales()) {
+                    if (row.getValue(locale).isPresent()) {
+                        wasPresent = true;
+                        break;
+                    }
+                }
+                if (wasPresent) {
+                    deleted++;
+                }
+            } else if (row.isAdded()) {
+                added++;
+            } else if (row.isModified()) {
+                modified++;
+            }
+        }
+        for (int i = 0; i < added; i++) result.incrementAddedKeys();
+        for (int i = 0; i < modified; i++) result.incrementModifiedKeys();
+        for (int i = 0; i < deleted; i++) result.incrementDeletedKeys();
     }
 
     private static List<JsonRootEntry> buildRootEntries(TranslationTable table, String locale, List<Diagnostic> diagnostics) {
@@ -192,6 +266,24 @@ public class TranslationTableSaver {
     private static String topLevelGroup(String key) {
         int dot = key.indexOf('.');
         return dot < 0 ? key : key.substring(0, dot);
+    }
+
+    private static String readCurrentText(Project project, File file) {
+        if (!file.exists()) {
+            return "";
+        }
+        try {
+            VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
+            if (virtualFile != null) {
+                Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+                if (document != null) {
+                    return document.getText();
+                }
+            }
+            return Files.readString(file.toPath(), StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            return "";
+        }
     }
 
     private static void writeFile(Project project, File file, String json, SaveResult result) {

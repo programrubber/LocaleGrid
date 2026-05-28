@@ -22,7 +22,7 @@ class LocaleGridPathTest {
         assertEquals("common", fileName.getCategory());
         assertEquals(LocaleGridPath.FileNamePattern.CATEGORY_WITH_LOCALE_SUFFIX, fileName.getPattern());
         assertEquals("common_en.json", fileName.fileNameForLocale("en"));
-        assertEquals("common_jp.json", fileName.fileNameForLocale("jp"));
+        assertEquals("common_ja.json", fileName.fileNameForLocale("ja"));
     }
 
     @Test
@@ -40,7 +40,7 @@ class LocaleGridPathTest {
 
         assertEquals("common_en", fileName.getCategory());
         assertEquals(LocaleGridPath.FileNamePattern.CATEGORY_ONLY, fileName.getPattern());
-        assertEquals("common_en.json", fileName.fileNameForLocale("jp"));
+        assertEquals("common_en.json", fileName.fileNameForLocale("ja"));
     }
 
     @Test

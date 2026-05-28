@@ -122,7 +122,7 @@ public class TranslationTableLoader {
 
     private static List<String> sortLocales(Set<String> discovered) {
         List<String> result = new ArrayList<>();
-        for (String locale : Arrays.asList("ko", "en", "jp", "vi")) {
+        for (String locale : Arrays.asList("ko", "en", "ja", "vi")) {
             if (discovered.remove(locale)) {
                 result.add(locale);
             }

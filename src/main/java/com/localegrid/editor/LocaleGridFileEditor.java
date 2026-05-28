@@ -1,6 +1,13 @@
 package com.localegrid.editor;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.diff.DiffContentFactory;
+import com.intellij.diff.DiffManager;
+import com.intellij.diff.DiffRequestPanel;
+import com.intellij.diff.contents.DiffContent;
+import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.ide.BrowserUtil;
+import com.intellij.ide.actions.RevealFileAction;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
@@ -8,18 +15,24 @@ import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.fileEditor.impl.EditorComposite;
 import com.intellij.openapi.fileEditor.impl.EditorWindow;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.HideableTitledPanel;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.tabs.TabInfo;
 import com.localegrid.core.DotPath;
+import com.localegrid.core.SavePreview;
+import com.localegrid.core.SavePreviewFile;
 import com.localegrid.core.SaveResult;
 import com.localegrid.core.TableValidator;
 import com.localegrid.core.TranslationTableLoader;
@@ -37,16 +50,22 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.awt.datatransfer.StringSelection;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -77,16 +96,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             }
             if (viewRow >= 0 && viewColumn >= 0 && model.isStatusColumn(convertColumnIndexToModel(viewColumn))) {
                 Object value = getValueAt(viewRow, viewColumn);
-                String code = value == null ? "" : String.valueOf(value);
                 Rectangle cell = getCellRect(viewRow, viewColumn, false);
                 if (LocaleGridStatusRenderer.containsBadgePoint(
-                    code,
+                    value,
                     event.getX() - cell.x,
                     event.getY() - cell.y,
                     cell.width,
                     cell.height
                 )) {
-                    return LocaleGridStatusRenderer.tooltipText(code);
+                    return LocaleGridStatusRenderer.tooltipText(value);
                 }
                 return null;
             }
@@ -175,6 +193,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JButton addButton = new ToolbarTextButton("추가", 66);
         JButton settingsButton = createIconButton(com.intellij.util.IconUtil.colorize(AllIcons.General.Gear, java.awt.Color.WHITE), "LocaleGrid 설정 열기");
         JButton exceptionKeySettingsButton = new ToolbarTextButton("예외키", 72);
+        JButton excelExportButton = new ToolbarIconButton(new ExcelIcon(), "현재 테이블 Excel 다운로드");
         JButton applyButton = new BottomActionButton(
             "적용",
             new Color(42, 121, 82),
@@ -250,6 +269,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
         JPanel settingsWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
         settingsWrapper.setOpaque(false);
+        settingsWrapper.add(excelExportButton);
         settingsWrapper.add(exceptionKeySettingsButton);
         settingsWrapper.add(settingsButton);
 
@@ -321,6 +341,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         root.add(bottom, BorderLayout.SOUTH);
 
         settingsButton.addActionListener(e -> openLocaleGridSettings());
+        excelExportButton.addActionListener(e -> exportVisibleRowsToExcel());
         addButton.addActionListener(e -> addRow());
         exceptionKeySettingsButton.addActionListener(e -> openExceptionKeySettingsDialog());
         renameButton.addActionListener(e -> renameSelectedRow());
@@ -385,8 +406,153 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
 
         Object value = grid.getValueAt(viewRow, viewColumn);
-        String text = value == null ? "" : String.valueOf(value);
+        String text = tableCellText(value);
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
+    }
+
+    private void exportVisibleRowsToExcel() {
+        if (translationTable == null) {
+            Messages.showInfoMessage(project, "다운로드할 다국어 데이터가 없습니다.", "엑셀 다운로드");
+            return;
+        }
+
+        int rowCount = grid.getRowCount();
+        int answer = Messages.showOkCancelDialog(
+            project,
+            "현재 테이블에 표시된 " + rowCount + "개 행을 Excel 파일로 다운로드할까요?",
+            "엑셀 다운로드",
+            "다운로드",
+            "취소",
+            Messages.getQuestionIcon()
+        );
+        if (answer != Messages.OK) {
+            return;
+        }
+
+        try {
+            Path output = nextExcelExportPath();
+            ExcelExportWriter.write(output, visibleExportHeaders(), visibleExportRows());
+            showExcelDownloadCompleteDialog(output);
+        } catch (IOException ex) {
+            Messages.showErrorDialog(project, "Excel 파일 다운로드에 실패했습니다.\n" + ex.getMessage(), "엑셀 다운로드");
+        }
+    }
+
+    private void showExcelDownloadCompleteDialog(Path output) {
+        int selected = Messages.showDialog(
+            project,
+            "Excel 파일을 다운로드했습니다.\n" + output,
+            "엑셀 다운로드",
+            new String[]{"파일 열기", "폴더 열기", "닫기"},
+            0,
+            Messages.getInformationIcon()
+        );
+        if (selected == 0) {
+            openDownloadedExcelFile(output);
+        } else if (selected == 1) {
+            openDownloadedExcelDirectory(output);
+        }
+    }
+
+    private void openDownloadedExcelFile(Path output) {
+        if (!Files.isRegularFile(output)) {
+            Messages.showErrorDialog(project, "Excel 파일을 찾을 수 없습니다.\n" + output, "엑셀 다운로드");
+            return;
+        }
+        BrowserUtil.browse(output);
+    }
+
+    private void openDownloadedExcelDirectory(Path output) {
+        Path parent = output.getParent();
+        if (parent == null || !Files.isDirectory(parent)) {
+            Messages.showErrorDialog(project, "다운로드 폴더를 찾을 수 없습니다.\n" + output, "엑셀 다운로드");
+            return;
+        }
+        RevealFileAction.openDirectory(parent);
+    }
+
+    private List<String> visibleExportHeaders() {
+        List<String> headers = new ArrayList<>();
+        for (int viewColumn = 0; viewColumn < grid.getColumnModel().getColumnCount(); viewColumn++) {
+            int modelColumn = grid.convertColumnIndexToModel(viewColumn);
+            if (model.isHandleColumn(modelColumn)) {
+                continue;
+            }
+            TableColumn column = grid.getColumnModel().getColumn(viewColumn);
+            Object header = column.getHeaderValue();
+            headers.add(header == null ? "" : String.valueOf(header));
+        }
+        return headers;
+    }
+
+    private List<List<String>> visibleExportRows() {
+        List<List<String>> rows = new ArrayList<>();
+        for (int viewRow = 0; viewRow < grid.getRowCount(); viewRow++) {
+            List<String> values = new ArrayList<>();
+            int modelRow = grid.convertRowIndexToModel(viewRow);
+            for (int viewColumn = 0; viewColumn < grid.getColumnModel().getColumnCount(); viewColumn++) {
+                int modelColumn = grid.convertColumnIndexToModel(viewColumn);
+                if (model.isHandleColumn(modelColumn)) {
+                    continue;
+                }
+                Object value = model.getValueAt(modelRow, modelColumn);
+                values.add(tableCellText(value));
+            }
+            rows.add(values);
+        }
+        return rows;
+    }
+
+    private static String tableCellText(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof List<?> list) {
+            StringBuilder text = new StringBuilder();
+            for (Object item : list) {
+                if (item == null) {
+                    continue;
+                }
+                String part = String.valueOf(item).trim();
+                if (part.isEmpty()) {
+                    continue;
+                }
+                if (text.length() > 0) {
+                    text.append(" / ");
+                }
+                text.append(part);
+            }
+            return text.toString();
+        }
+        return String.valueOf(value);
+    }
+
+    private Path nextExcelExportPath() throws IOException {
+        Path downloads = Path.of(System.getProperty("user.home"), "Downloads");
+        if (!Files.isDirectory(downloads)) {
+            downloads = Path.of(System.getProperty("user.home"));
+        }
+        Files.createDirectories(downloads);
+
+        String baseName = sanitizeFileName(baseFileName(file.getName()));
+        String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now());
+        Path candidate = downloads.resolve("LocaleGrid-" + baseName + "-" + timestamp + ".xlsx");
+        int suffix = 2;
+        while (Files.exists(candidate)) {
+            candidate = downloads.resolve("LocaleGrid-" + baseName + "-" + timestamp + "-" + suffix + ".xlsx");
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private static String baseFileName(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot > 0 ? name.substring(0, dot) : name;
+    }
+
+    private static String sanitizeFileName(String name) {
+        String sanitized = name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+        return sanitized.isEmpty() ? "locale" : sanitized;
     }
 
     private static JComponent createActionSeparator() {
@@ -787,6 +953,14 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         if (row == null) {
             return;
         }
+        if (row.isAdded()) {
+            int selectedIndex = grid.getSelectedRow();
+            translationTable.getRows().remove(row);
+            validateCurrentTable();
+            selectNearestVisibleRow(selectedIndex);
+            updateModifiedState();
+            return;
+        }
         row.setDeleted(true);
         validateCurrentTable();
         selectRow(row);
@@ -822,11 +996,20 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             createMissingFiles = answer == Messages.YES;
         }
 
-        boolean confirmed = WideApplyConfirmDialog.show(
+        TranslationTableSaver saver = new TranslationTableSaver();
+        SavePreview preview = saver.preview(project, translationTable, createMissingFiles);
+        if (preview.hasErrors()) {
+            Messages.showErrorDialog(project, summarizeDiagnostics(preview), "LocaleGrid 적용");
+            return;
+        }
+
+        boolean confirmed = ApplyPreviewDialog.show(
             project,
             "LocaleGrid 적용",
-            "현재 다국어 에디터의 key 순서를 기준으로 locale JSON을 다시 구성하고 적용할까요?",
-            summarizePendingApply(createMissingFiles),
+            preview.getFiles(),
+            pendingApplyStatusItems(preview),
+            "적용하면 현재 다국어 에디터의 key 순서와 편집 내용으로 파일이 저장됩니다.",
+            summarizePendingApply(preview),
             "적용",
             "닫기",
             Messages.getQuestionIcon()
@@ -835,7 +1018,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             return;
         }
 
-        SaveResult result = new TranslationTableSaver().save(project, translationTable, createMissingFiles);
+        SaveResult result = saver.save(project, translationTable, createMissingFiles);
         if (result.hasErrors()) {
             Messages.showErrorDialog(project, summarizeDiagnostics(result), "LocaleGrid 적용");
             return;
@@ -927,7 +1110,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         boolean hasSelection = row != null;
         renameButton.setEnabled(hasSelection);
         deleteButton.setEnabled(hasSelection);
-        undoDeleteButton.setEnabled(hasSelection && row.isDeleted());
+        undoDeleteButton.setEnabled(hasSelection && isPendingDeletedRow(row));
         moveUpButton.setEnabled(canMoveSelectedRow(row, -1));
         moveDownButton.setEnabled(canMoveSelectedRow(row, 1));
     }
@@ -1416,6 +1599,22 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     }
 
+    private void selectNearestVisibleRow(int preferredIndex) {
+        int rowCount = model.getRowCount();
+        if (rowCount == 0) {
+            grid.clearSelection();
+            updateDetailPanel(null);
+            updateRowActionButtons(null);
+            return;
+        }
+        int index = Math.max(0, Math.min(preferredIndex, rowCount - 1));
+        LocaleGridRow row = model.getRow(index);
+        grid.getSelectionModel().setSelectionInterval(index, index);
+        grid.scrollRectToVisible(grid.getCellRect(index, LocaleGridTableModel.KEY_COLUMN, true));
+        updateDetailPanel(row);
+        updateRowActionButtons(row);
+    }
+
     private void updateDetailPanel(LocaleGridRow row) {
         updatingDetail = true;
         detailFields.removeAll();
@@ -1536,8 +1735,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setPreferredWidth(30);
         grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setMinWidth(28);
         grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setMaxWidth(34);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setPreferredWidth(64);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setMaxWidth(72);
+        grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setPreferredWidth(96);
+        grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setMaxWidth(132);
         grid.getColumnModel().getColumn(LocaleGridTableModel.KEY_COLUMN).setPreferredWidth(280);
         for (int i = LocaleGridTableModel.KEY_COLUMN; i < grid.getColumnModel().getColumnCount(); i++) {
             if (i == LocaleGridTableModel.KEY_COLUMN) {
@@ -1580,8 +1779,16 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private static String summarizeDiagnostics(SaveResult result) {
+        return summarizeDiagnostics(result.getDiagnostics());
+    }
+
+    private static String summarizeDiagnostics(SavePreview preview) {
+        return summarizeDiagnostics(preview.getDiagnostics());
+    }
+
+    private static String summarizeDiagnostics(List<Diagnostic> diagnostics) {
         StringBuilder out = new StringBuilder();
-        for (Diagnostic diagnostic : result.getDiagnostics()) {
+        for (Diagnostic diagnostic : diagnostics) {
             if (diagnostic.getSeverity() == Diagnostic.Severity.ERROR) {
                 out.append(diagnostic.getMessage()).append('\n');
             }
@@ -1599,6 +1806,30 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             summary.deletedKeys,
             summary.orderChanged
         );
+    }
+
+    private static String summarizePendingApply(SavePreview preview) {
+        return formatApplySummary(
+            preview.getFiles().size(),
+            createdFileCount(preview),
+            preview.getAddedKeys(),
+            preview.getModifiedKeys(),
+            preview.getDeletedKeys(),
+            preview.isOrderChanged()
+        );
+    }
+
+    private static List<ApplyStatusItem> pendingApplyStatusItems(SavePreview preview) {
+        int createdFiles = createdFileCount(preview);
+        int warnings = warningCount(preview);
+        List<ApplyStatusItem> items = new ArrayList<>();
+        items.add(new ApplyStatusItem("생성", createdFiles + "개", createdFiles > 0));
+        items.add(new ApplyStatusItem("추가", preview.getAddedKeys() + "개", preview.getAddedKeys() > 0));
+        items.add(new ApplyStatusItem("편집", preview.getModifiedKeys() + "개", preview.getModifiedKeys() > 0));
+        items.add(new ApplyStatusItem("삭제", preview.getDeletedKeys() + "개", preview.getDeletedKeys() > 0));
+        items.add(new ApplyStatusItem("경고", warnings + "개", warnings > 0));
+        items.add(new ApplyStatusItem("순서 변경", preview.isOrderChanged() ? "있음" : "없음", preview.isOrderChanged()));
+        return items;
     }
 
     private PendingApplySummary createPendingApplySummary(boolean createMissingFiles) {
@@ -1621,7 +1852,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
 
         for (LocaleGridRow row : translationTable.getRows()) {
-            if (row.isDeleted()) {
+            if (!row.isAdded() && row.isDeleted()) {
                 boolean wasPresent = false;
                 for (String locale : translationTable.getLocales()) {
                     if (row.getValue(locale).isPresent()) {
@@ -1650,6 +1881,26 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             result.getDeletedKeys(),
             result.isOrderChanged()
         );
+    }
+
+    private static int createdFileCount(SavePreview preview) {
+        int created = 0;
+        for (SavePreviewFile file : preview.getFiles()) {
+            if (file.isCreated()) {
+                created++;
+            }
+        }
+        return created;
+    }
+
+    private static int warningCount(SavePreview preview) {
+        int warnings = 0;
+        for (Diagnostic diagnostic : preview.getDiagnostics()) {
+            if (diagnostic.getSeverity() == Diagnostic.Severity.WARNING) {
+                warnings++;
+            }
+        }
+        return warnings;
     }
 
     private static String formatApplySummary(
@@ -1794,16 +2045,16 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         return isPendingAddedRow(row) || isPendingEditedRow(row) || isPendingDeletedRow(row);
     }
 
-    private static boolean isPendingAddedRow(LocaleGridRow row) {
+    static boolean isPendingAddedRow(LocaleGridRow row) {
         return row.isAdded() && !row.isDeleted();
     }
 
-    private static boolean isPendingEditedRow(LocaleGridRow row) {
+    static boolean isPendingEditedRow(LocaleGridRow row) {
         return !row.isAdded() && !row.isDeleted() && row.isModified();
     }
 
-    private static boolean isPendingDeletedRow(LocaleGridRow row) {
-        return row.isDeleted();
+    static boolean isPendingDeletedRow(LocaleGridRow row) {
+        return !row.isAdded() && row.isDeleted();
     }
 
     @Override
@@ -2070,6 +2321,92 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     }
 
+    private static final class ExcelIcon implements Icon {
+        private static final int WIDTH = 18;
+        private static final int HEIGHT = 18;
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color sheet = component.isEnabled() ? new Color(232, 246, 238) : new Color(126, 134, 130);
+                Color fold = component.isEnabled() ? new Color(196, 229, 211) : new Color(98, 106, 102);
+                Color green = component.isEnabled() ? new Color(39, 144, 88) : new Color(88, 96, 92);
+                Color darkGreen = component.isEnabled() ? new Color(24, 112, 65) : new Color(72, 78, 75);
+
+                int left = x + 3;
+                int top = y + 1;
+                int right = x + WIDTH - 2;
+                int bottom = y + HEIGHT - 1;
+
+                Polygon page = new Polygon(
+                    new int[]{left, right - 4, right, right, left},
+                    new int[]{top, top, top + 4, bottom, bottom},
+                    5
+                );
+                g.setColor(sheet);
+                g.fillPolygon(page);
+                g.setColor(darkGreen);
+                g.drawPolygon(page);
+
+                Polygon folded = new Polygon(
+                    new int[]{right - 4, right, right - 4},
+                    new int[]{top, top + 4, top + 4},
+                    3
+                );
+                g.setColor(fold);
+                g.fillPolygon(folded);
+
+                g.setColor(green);
+                g.fillRoundRect(x + 1, y + 6, 12, 9, 3, 3);
+                g.setColor(darkGreen);
+                g.drawRoundRect(x + 1, y + 6, 12, 9, 3, 3);
+
+                g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g.setColor(Color.WHITE);
+                g.drawLine(x + 5, y + 8, x + 10, y + 13);
+                g.drawLine(x + 10, y + 8, x + 5, y + 13);
+            } finally {
+                g.dispose();
+            }
+        }
+
+        @Override
+        public int getIconWidth() {
+            return WIDTH;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return HEIGHT;
+        }
+    }
+
+    private static final class ApplyStatusItem {
+        private final String label;
+        private final String value;
+        private final boolean highlighted;
+
+        private ApplyStatusItem(String label, String value, boolean highlighted) {
+            this.label = label;
+            this.value = value;
+            this.highlighted = highlighted;
+        }
+
+        private String label() {
+            return label;
+        }
+
+        private String value() {
+            return value;
+        }
+
+        private boolean highlighted() {
+            return highlighted;
+        }
+    }
+
     private static final class ToolbarIconButton extends JButton {
         private static final Color NORMAL_FILL = new Color(68, 74, 78);
         private static final Color HOVER_FILL = new Color(82, 91, 97);
@@ -2248,6 +2585,360 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
             return panel;
         }
+    }
+
+    private static final class ApplyPreviewDialog extends DialogWrapper {
+        private static final int DIALOG_WIDTH = 1120;
+        private static final int FILE_LIST_HEIGHT = 126;
+        private static final int DIFF_VIEWER_HEIGHT = 450;
+        private static final int TOP_COLUMN_WIDTH = (DIALOG_WIDTH - 12) / 2;
+
+        private final Project project;
+        private final List<SavePreviewFile> files;
+        private final List<ApplyStatusItem> statusItems;
+        private final String message;
+        private final String summary;
+        private final Icon icon;
+        private final DiffRequestPanel requestPanel;
+        private final JPanel diffHost = new JPanel(new BorderLayout());
+
+        private ApplyPreviewDialog(
+            Project project,
+            String title,
+            List<SavePreviewFile> files,
+            List<ApplyStatusItem> statusItems,
+            String message,
+            String summary,
+            String applyText,
+            String closeText,
+            Icon icon
+        ) {
+            super(project, true);
+            this.project = project;
+            this.files = files;
+            this.statusItems = statusItems;
+            this.message = message;
+            this.summary = summary;
+            this.icon = icon;
+            this.requestPanel = DiffManager.getInstance().createRequestPanel(project, getDisposable(), null);
+            setTitle(title);
+            setOKButtonText(applyText);
+            setCancelButtonText(closeText);
+            setResizable(true);
+            init();
+        }
+
+        private static boolean show(
+            Project project,
+            String title,
+            List<SavePreviewFile> files,
+            List<ApplyStatusItem> statusItems,
+            String message,
+            String summary,
+            String applyText,
+            String closeText,
+            Icon icon
+        ) {
+            return new ApplyPreviewDialog(project, title, files, statusItems, message, summary, applyText, closeText, icon).showAndGet();
+        }
+
+        @Override
+        protected Action @NotNull [] createActions() {
+            return new Action[] {getCancelAction(), getOKAction()};
+        }
+
+        @Override
+        protected @Nullable JComponent createCenterPanel() {
+            JPanel panel = new FixedWidthPanel(new BorderLayout(0, 10), DIALOG_WIDTH);
+            panel.add(createMainPanel(), BorderLayout.CENTER);
+            panel.add(createBottomMessagePanel(), BorderLayout.SOUTH);
+            return panel;
+        }
+
+        private JComponent createMainPanel() {
+            JPanel main = new JPanel(new BorderLayout(0, 8));
+            main.add(createTopPanel(), BorderLayout.NORTH);
+            main.add(createCollapsibleDiffPanel(), BorderLayout.CENTER);
+            return main;
+        }
+
+        private JComponent createTopPanel() {
+            JPanel top = new JPanel(new GridLayout(1, 2, 12, 0));
+            top.add(createFileListPanel());
+            top.add(createStatusPanel());
+            return top;
+        }
+
+        private JComponent createFileListPanel() {
+            DefaultListModel<SavePreviewFile> model = new DefaultListModel<>();
+            for (SavePreviewFile file : files) {
+                model.addElement(file);
+            }
+
+            JList<SavePreviewFile> fileList = new JList<>(model);
+            fileList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            fileList.setVisibleRowCount(4);
+            fileList.setCellRenderer(new SavePreviewFileRenderer(project));
+            fileList.addListSelectionListener(event -> {
+                if (!event.getValueIsAdjusting()) {
+                    updateDiff(fileList.getSelectedValue());
+                }
+            });
+
+            JPanel filePanel = new JPanel(new BorderLayout(0, 6));
+            filePanel.add(new JLabel("대상 파일"), BorderLayout.NORTH);
+            JBScrollPane scrollPane = new JBScrollPane(fileList);
+            scrollPane.setPreferredSize(new Dimension(TOP_COLUMN_WIDTH, FILE_LIST_HEIGHT));
+            filePanel.add(scrollPane, BorderLayout.CENTER);
+
+            int selectedIndex = firstChangedFileIndex();
+            if (selectedIndex >= 0) {
+                fileList.setSelectedIndex(selectedIndex);
+                fileList.ensureIndexIsVisible(selectedIndex);
+            } else {
+                updateDiff(null);
+            }
+            return filePanel;
+        }
+
+        private JComponent createStatusPanel() {
+            JPanel panel = new JPanel(new BorderLayout(0, 6));
+            panel.add(new JLabel("현황"), BorderLayout.NORTH);
+
+            JPanel grid = new JPanel(new GridLayout(2, 3, 10, 8));
+            grid.setOpaque(false);
+            grid.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+            for (ApplyStatusItem item : statusItems) {
+                grid.add(createStatusItemComponent(item));
+            }
+            panel.add(grid, BorderLayout.CENTER);
+            return panel;
+        }
+
+        private static JComponent createStatusItemComponent(ApplyStatusItem item) {
+            return new ApplyStatusTile(item);
+        }
+
+        private JComponent createCollapsibleDiffPanel() {
+            diffHost.setPreferredSize(new Dimension(DIALOG_WIDTH, DIFF_VIEWER_HEIGHT));
+            diffHost.add(requestPanel.getComponent(), BorderLayout.CENTER);
+            return new PackingHideableTitledPanel("Diff", diffHost, true);
+        }
+
+        private JComponent createBottomMessagePanel() {
+            JPanel panel = new JPanel(new BorderLayout(18, 0));
+            panel.setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
+
+            panel.add(dialogLabel(message, Font.PLAIN), BorderLayout.CENTER);
+            return panel;
+        }
+
+        private void updateDiff(@Nullable SavePreviewFile file) {
+            if (file == null) {
+                requestPanel.setRequest(new SimpleDiffRequest(
+                    "저장 파일",
+                    DiffContentFactory.getInstance().create(project, "", jsonFileType()),
+                    DiffContentFactory.getInstance().create(project, "저장할 파일이 없습니다.", jsonFileType()),
+                    "변경 전",
+                    "변경 후"
+                ));
+                return;
+            }
+            FileType jsonType = jsonFileType();
+            DiffContent before = file.isCreated()
+                ? DiffContentFactory.getInstance().createEmpty()
+                : DiffContentFactory.getInstance().create(project, file.getOriginalText(), jsonType);
+            DiffContent after = DiffContentFactory.getInstance().create(project, file.getNewText(), jsonType);
+            requestPanel.setRequest(new SimpleDiffRequest(
+                displayPath(project, file),
+                before,
+                after,
+                file.isCreated() ? "변경 전 (파일 없음)" : "변경 전",
+                "변경 후"
+            ));
+        }
+
+        private static JLabel dialogLabel(String text, int style) {
+            JLabel label = new JLabel(text);
+            label.setFont(UIManager.getFont("Label.font").deriveFont(style));
+            label.setForeground(UIManager.getColor("Label.foreground"));
+            return label;
+        }
+
+        private int firstChangedFileIndex() {
+            for (int i = 0; i < files.size(); i++) {
+                if (files.get(i).hasChanges()) {
+                    return i;
+                }
+            }
+            return files.isEmpty() ? -1 : 0;
+        }
+
+        private static FileType jsonFileType() {
+            return FileTypeManager.getInstance().getFileTypeByExtension("json");
+        }
+
+        private static final class FixedWidthPanel extends JPanel {
+            private final int preferredWidth;
+
+            private FixedWidthPanel(LayoutManager layout, int preferredWidth) {
+                super(layout);
+                this.preferredWidth = preferredWidth;
+            }
+
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension size = super.getPreferredSize();
+                return new Dimension(preferredWidth, size.height);
+            }
+        }
+
+        private static final class PackingHideableTitledPanel extends HideableTitledPanel {
+            private PackingHideableTitledPanel(String title, JComponent content, boolean expanded) {
+                super(title, content, expanded);
+            }
+
+            @Override
+            public void setOn(boolean on) {
+                super.setOn(on);
+                SwingUtilities.invokeLater(() -> {
+                    Window window = SwingUtilities.getWindowAncestor(this);
+                    if (window != null) {
+                        window.pack();
+                    }
+                });
+            }
+        }
+
+        private static final class ApplyStatusTile extends JPanel {
+            private static final Color NORMAL_FILL = new JBColor(new Color(246, 248, 250), new Color(56, 61, 64));
+            private static final Color HIGHLIGHT_FILL = new JBColor(new Color(232, 243, 255), new Color(45, 62, 76));
+            private static final Color NORMAL_BORDER = new JBColor(new Color(216, 222, 228), new Color(76, 83, 88));
+            private static final Color HIGHLIGHT_BORDER = new JBColor(new Color(64, 141, 221), new Color(99, 179, 255));
+            private static final Color MUTED_TEXT = new JBColor(new Color(101, 109, 118), new Color(169, 176, 183));
+            private static final Color VALUE_TEXT = new JBColor(new Color(36, 41, 47), new Color(225, 231, 237));
+            private static final Color CHANGE_BLUE = new JBColor(new Color(28, 105, 212), new Color(108, 188, 255));
+            private static final Color SUCCESS_GREEN = new JBColor(new Color(25, 128, 76), new Color(91, 214, 139));
+            private static final Color WARNING_AMBER = new JBColor(new Color(171, 103, 0), new Color(255, 190, 82));
+            private static final Color DANGER_RED = new JBColor(new Color(188, 63, 60), new Color(255, 122, 117));
+            private static final Color ORDER_PURPLE = new JBColor(new Color(112, 83, 196), new Color(178, 145, 255));
+
+            private final ApplyStatusItem item;
+            private final Color accent;
+
+            private ApplyStatusTile(ApplyStatusItem item) {
+                super(new BorderLayout(8, 0));
+                this.item = item;
+                this.accent = accentFor(item);
+                setOpaque(false);
+                setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+                setPreferredSize(new Dimension(150, 46));
+                setToolTipText(tooltipFor(item));
+
+                JLabel label = new JLabel(item.label());
+                label.setForeground(MUTED_TEXT);
+                label.setFont(UIManager.getFont("Label.font").deriveFont(Font.PLAIN));
+                label.setToolTipText(tooltipFor(item));
+
+                JLabel value = new JLabel(item.value());
+                value.setForeground(item.highlighted() ? accent : VALUE_TEXT);
+                value.setFont(UIManager.getFont("Label.font").deriveFont(Font.BOLD));
+                value.setToolTipText(tooltipFor(item));
+
+                add(label, BorderLayout.WEST);
+                add(value, BorderLayout.EAST);
+            }
+
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                try {
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    int width = getWidth() - 1;
+                    int height = getHeight() - 1;
+                    int arc = 10;
+                    g.setColor(item.highlighted() ? HIGHLIGHT_FILL : NORMAL_FILL);
+                    g.fillRoundRect(0, 0, width, height, arc, arc);
+                    g.setColor(item.highlighted() ? HIGHLIGHT_BORDER : NORMAL_BORDER);
+                    g.drawRoundRect(0, 0, width, height, arc, arc);
+                    if (item.highlighted()) {
+                        g.setColor(accent);
+                        g.fillRoundRect(0, 0, 4, height, arc, arc);
+                    }
+                } finally {
+                    g.dispose();
+                }
+                super.paintComponent(graphics);
+            }
+
+            private static Color accentFor(ApplyStatusItem item) {
+                if (!item.highlighted()) {
+                    return VALUE_TEXT;
+                }
+                return switch (item.label()) {
+                    case "생성", "추가" -> SUCCESS_GREEN;
+                    case "삭제" -> DANGER_RED;
+                    case "경고" -> WARNING_AMBER;
+                    case "순서 변경" -> ORDER_PURPLE;
+                    default -> CHANGE_BLUE;
+                };
+            }
+
+            private static String tooltipFor(ApplyStatusItem item) {
+                String description = switch (item.label()) {
+                    case "생성" -> "새로 생성될 locale JSON 파일 수";
+                    case "추가" -> "새로 추가된 key 수";
+                    case "편집" -> "값이 변경된 key 수";
+                    case "삭제" -> "삭제로 표시된 key 수";
+                    case "경고" -> "적용은 가능하지만 확인이 필요한 경고 수";
+                    case "순서 변경" -> "현재 다국어 에디터의 key 순서 변경 여부";
+                    default -> item.label();
+                };
+                return item.label() + ": " + item.value() + " - " + description;
+            }
+        }
+    }
+
+    private static final class SavePreviewFileRenderer extends DefaultListCellRenderer {
+        private final Project project;
+
+        private SavePreviewFileRenderer(Project project) {
+            this.project = project;
+        }
+
+        @Override
+        public Component getListCellRendererComponent(
+            JList<?> list,
+            Object value,
+            int index,
+            boolean isSelected,
+            boolean cellHasFocus
+        ) {
+            JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof SavePreviewFile file) {
+                String state = file.isCreated() ? "생성" : file.hasChanges() ? "변경" : "변경 없음";
+                label.setText(displayPath(project, file) + "  ·  " + state);
+            }
+            return label;
+        }
+    }
+
+    private static String displayPath(Project project, SavePreviewFile file) {
+        String path = file.getPath();
+        String basePath = project.getBasePath();
+        if (basePath == null) {
+            return path;
+        }
+        try {
+            Path base = Path.of(basePath).toAbsolutePath().normalize();
+            Path target = Path.of(path).toAbsolutePath().normalize();
+            if (target.startsWith(base)) {
+                return base.relativize(target).toString();
+            }
+        } catch (RuntimeException ignored) {
+            return path;
+        }
+        return path;
     }
 
     private static final class WideApplyConfirmDialog extends DialogWrapper {

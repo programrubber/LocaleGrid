@@ -14,7 +14,7 @@ LocaleGrid는 개발자가 여러 언어의 JSON 번역 파일을 직접 열어 
 ```text
 locales/ko/login.json
 locales/en/login.json
-locales/jp/login.json
+locales/ja/login.json
 locales/vi/login.json
 ```
 
@@ -23,14 +23,14 @@ locales/vi/login.json
 ```text
 locales/ko/common_ko.json
 locales/en/common_en.json
-locales/jp/common_jp.json
+locales/ja/common_ja.json
 locales/vi/common_vi.json
 ```
 
 이후 각 JSON 파일의 key를 dot path 형태로 펼친 뒤, locale별 value를 하나의 그리드에서 표시합니다.
 
 ```text
-key            ko       en       jp       vi
+key            ko       en       ja       vi
 login.title    ...      ...      ...      ...
 login.button   ...      ...      ...      ...
 ```
@@ -141,6 +141,7 @@ LocaleGrid MVP에서 사용하는 팝업은 다음 흐름에 맞춰 동작합니
 
 ## 빌드 실행
 
+### 수동 빌드
 1. `build.gradle.kts`의 `version` 값을 변경하고 커밋
 2. 우측 Gradle 메뉴 선택
 3. Tasks > intellij > buildPlugin 실행
@@ -150,6 +151,15 @@ LocaleGrid MVP에서 사용하는 팝업은 다음 흐름에 맞춰 동작합니
 
 ```powershell
 .\gradlew.bat build
+```
+
+### 자동 마이너 버전 상향 및 릴리즈 빌드 (추천)
+마이너 버전을 자동으로 1 올리고 빌드를 수행한 뒤, 최종 배포용 zip 파일을 루트 `release` 디렉토리로 이동시키고 이전 릴리즈를 정리해주는 자동화 스크립트를 제공합니다.
+
+터미널에서 아래 스크립트를 실행하면 전체 릴리즈 패키징 과정이 자동으로 완료됩니다.
+
+```powershell
+.\bump-minor-release.ps1
 ```
 
 ## PyCharm 적용 방법

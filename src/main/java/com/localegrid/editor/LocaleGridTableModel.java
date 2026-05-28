@@ -159,25 +159,31 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     String getStatusCode(LocaleGridRow row) {
+        List<String> codes = getStatusCodes(row);
+        return codes.isEmpty() ? "" : codes.get(0);
+    }
+
+    List<String> getStatusCodes(LocaleGridRow row) {
+        List<String> codes = new ArrayList<>();
         if (row.isExceptionKey()) {
-            return "";
+            return codes;
         }
         if (row.isDeleted()) {
-            return "삭제";
+            codes.add("삭제");
+            return codes;
         }
         if (hasError(row)) {
-            return "에러";
+            codes.add("에러");
         }
         if (row.isAdded()) {
-            return "추가";
-        }
-        if (row.isModified()) {
-            return "편집";
+            codes.add("추가");
+        } else if (row.isModified()) {
+            codes.add("편집");
         }
         if (hasWarning(row)) {
-            return "경고";
+            codes.add("경고");
         }
-        return "";
+        return codes;
     }
 
     @Override
@@ -217,7 +223,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             return "";
         }
         if (isStatusColumn(columnIndex)) {
-            return getStatusCode(row);
+            return getStatusCodes(row);
         }
         if (isKeyColumn(columnIndex)) {
             return row.getKey();
