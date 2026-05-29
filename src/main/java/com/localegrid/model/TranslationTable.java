@@ -81,16 +81,30 @@ public class TranslationTable {
     }
 
     public List<Diagnostic> getActiveSourceDiagnostics() {
-        Set<String> deletedKeys = rows.stream()
-            .filter(LocaleGridRow::isDeleted)
+        Set<String> activeKeys = rows.stream()
+            .filter(row -> !row.isDeleted())
             .map(LocaleGridRow::getKey)
             .collect(Collectors.toSet());
-        if (deletedKeys.isEmpty()) {
-            return sourceDiagnostics;
-        }
         return sourceDiagnostics.stream()
-            .filter(d -> d.getKey() == null || !deletedKeys.contains(d.getKey()))
+            .filter(d -> isActiveSourceDiagnostic(d, activeKeys))
             .collect(Collectors.toList());
+    }
+
+    private static boolean isActiveSourceDiagnostic(Diagnostic diagnostic, Set<String> activeKeys) {
+        String key = diagnostic.getKey();
+        if (key == null) {
+            return true;
+        }
+        for (String activeKey : activeKeys) {
+            if (isSameOrNestedPath(key, activeKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSameOrNestedPath(String left, String right) {
+        return left.equals(right) || left.startsWith(right + ".") || right.startsWith(left + ".");
     }
 
     public boolean hasErrors() {

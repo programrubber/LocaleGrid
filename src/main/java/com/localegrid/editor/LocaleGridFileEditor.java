@@ -131,6 +131,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final JButton moveDownButton = new ToolbarIconButton(new MoveArrowIcon(false), "아래로 이동");
     private final Map<String, JCheckBox> localeColumnChecks = new LinkedHashMap<>();
     private final JLabel statusLabel = new JLabel(" ");
+    private JComponent statusScrollMap;
     private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
     private TranslationTable translationTable;
     private LocaleGridRow dragSourceRow;
@@ -189,7 +190,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JPanel top = new JPanel(new BorderLayout());
         JPanel toolbar = new JPanel(new BorderLayout());
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4));
+        JPanel searchPanel = new JPanel();
+        searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.X_AXIS));
+        searchPanel.setBorder(BorderFactory.createEmptyBorder(4, 24, 4, 24));
         JButton addButton = new ToolbarTextButton("추가", 66);
         JButton settingsButton = createIconButton(com.intellij.util.IconUtil.colorize(AllIcons.General.Gear, java.awt.Color.WHITE), "LocaleGrid 설정 열기");
         JButton exceptionKeySettingsButton = new ToolbarTextButton("예외키", 72);
@@ -212,12 +215,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         searchField.setOpaque(false);
         searchField.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
         searchField.getEmptyText().setText("검색");
-        searchField.setPreferredSize(new Dimension(380, 26));
+        searchField.setMinimumSize(new Dimension(80, 26));
+        searchField.setPreferredSize(new Dimension(240, 26));
 
         JPanel searchRoundRectWrapper = new JPanel(new BorderLayout(6, 0)) {
             {
                 setOpaque(false);
-                setPreferredSize(new Dimension(420, 32));
+                setMinimumSize(new Dimension(140, 32));
+                setPreferredSize(new Dimension(360, 32));
+                setMaximumSize(new Dimension(520, 32));
             }
 
             @Override
@@ -258,7 +264,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             }
         });
 
+        searchPanel.add(Box.createHorizontalGlue());
         searchPanel.add(searchRoundRectWrapper);
+        searchPanel.add(Box.createHorizontalGlue());
         
         filterPanel.add(new JLabel("필터 :"));
         filterPanel.add(addedOnly);
@@ -296,7 +304,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.getTableHeader().setReorderingAllowed(false);
         grid.setToolTipText("");
         grid.setRowHeight(30);
-        grid.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        grid.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         grid.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent event) {
@@ -311,8 +319,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 LocaleGridRow row = selectedRow();
-                updateDetailPanel(row);
-                updateRowActionButtons(row);
+                updateDetailPanel(selectedRowCount() == 1 ? row : null);
+                updateRowActionButtons();
+                repaintStatusScrollMap();
             }
         });
 
@@ -323,7 +332,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         detailPanel.add(detailTitle, BorderLayout.NORTH);
         detailPanel.add(new JBScrollPane(detailFields), BorderLayout.CENTER);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, new JBScrollPane(grid), detailPanel);
+        JPanel gridPanel = new JPanel(new BorderLayout(4, 0));
+        JBScrollPane gridScrollPane = new JBScrollPane(grid);
+        statusScrollMap = new StatusScrollMap();
+        gridScrollPane.setVerticalScrollBar((JScrollBar) statusScrollMap);
+        gridScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        gridScrollPane.getViewport().addChangeListener(e -> repaintStatusScrollMap());
+        gridPanel.add(gridScrollPane, BorderLayout.CENTER);
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, gridPanel, detailPanel);
         splitPane.setResizeWeight(0.68);
         splitPane.setBorder(null);
 
@@ -362,7 +379,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         bundleColumnCheck.addActionListener(e -> applyColumnVisibility());
         installOrderDragHandler();
         installGridClipboardHandler();
-        updateRowActionButtons(null);
+        updateRowActionButtons();
     }
 
     private void rememberClickedCell(MouseEvent event) {
@@ -624,6 +641,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             resizeColumns();
             restoreSelection(state);
             updateStatus();
+            repaintStatusScrollMap();
             updateModifiedState();
         } catch (RuntimeException ex) {
             statusLabel.setText("로드 실패: " + ex.getMessage());
@@ -722,9 +740,16 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             errorOnly.isSelected()
         );
         LocaleGridRow row = selectedRow();
-        updateDetailPanel(row);
-        updateRowActionButtons(row);
+        updateDetailPanel(selectedRowCount() == 1 ? row : null);
+        updateRowActionButtons();
         grid.repaint();
+        repaintStatusScrollMap();
+    }
+
+    private void repaintStatusScrollMap() {
+        if (statusScrollMap != null) {
+            statusScrollMap.repaint();
+        }
     }
 
     private ViewState captureViewState() {
@@ -741,7 +766,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private void restoreSelection(@Nullable ViewState state) {
         if (state == null || state.selectedKey == null) {
             updateDetailPanel(null);
-            updateRowActionButtons(null);
+            updateRowActionButtons();
             return;
         }
         for (int i = 0; i < model.getRowCount(); i++) {
@@ -749,12 +774,12 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             if (state.selectedKey.equals(row.getKey())) {
                 selectRow(row);
                 updateDetailPanel(row);
-                updateRowActionButtons(row);
+                updateRowActionButtons();
                 return;
             }
         }
         updateDetailPanel(null);
-        updateRowActionButtons(null);
+        updateRowActionButtons();
     }
 
     private void addRow() {
@@ -948,32 +973,41 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void deleteSelectedRow() {
-        LocaleGridRow row = selectedRow();
-        if (row == null) {
+        List<LocaleGridRow> rows = selectedRows();
+        if (rows.isEmpty()) {
             return;
         }
-        if (row.isAdded()) {
-            int selectedIndex = grid.getSelectedRow();
-            translationTable.getRows().remove(row);
-            validateCurrentTable();
-            selectNearestVisibleRow(selectedIndex);
-            updateModifiedState();
-            return;
+        int selectedIndex = grid.getSelectedRow();
+        List<LocaleGridRow> rowsToKeepSelected = new ArrayList<>();
+        for (LocaleGridRow row : rows) {
+            if (row.isAdded()) {
+                translationTable.getRows().remove(row);
+            } else {
+                row.setDeleted(true);
+                rowsToKeepSelected.add(row);
+            }
         }
-        row.setDeleted(true);
         validateCurrentTable();
-        selectRow(row);
+        if (rowsToKeepSelected.isEmpty()) {
+            selectNearestVisibleRow(selectedIndex);
+        } else {
+            selectRows(rowsToKeepSelected);
+        }
         updateModifiedState();
     }
 
     private void undoDeleteSelectedRow() {
-        LocaleGridRow row = selectedRow();
-        if (row == null || !row.isDeleted()) {
+        List<LocaleGridRow> rows = selectedRows().stream()
+            .filter(LocaleGridFileEditor::isPendingDeletedRow)
+            .toList();
+        if (rows.isEmpty()) {
             return;
         }
-        row.setDeleted(false);
+        for (LocaleGridRow row : rows) {
+            row.setDeleted(false);
+        }
         validateCurrentTable();
-        selectRow(row);
+        selectRows(rows);
         updateModifiedState();
     }
 
@@ -1053,6 +1087,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         applyFilter();
         updateDetailPanel(selectedRow());
         updateStatus();
+        repaintStatusScrollMap();
     }
 
     private String validateNewKey(String key, LocaleGridRow currentRow) {
@@ -1105,13 +1140,28 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         return model.getRow(selected);
     }
 
-    private void updateRowActionButtons(@Nullable LocaleGridRow row) {
-        boolean hasSelection = row != null;
-        renameButton.setEnabled(hasSelection);
-        deleteButton.setEnabled(hasSelection);
-        undoDeleteButton.setEnabled(hasSelection && isPendingDeletedRow(row));
-        moveUpButton.setEnabled(canMoveSelectedRow(row, -1));
-        moveDownButton.setEnabled(canMoveSelectedRow(row, 1));
+    private List<LocaleGridRow> selectedRows() {
+        List<LocaleGridRow> rows = new ArrayList<>();
+        for (int selected : grid.getSelectedRows()) {
+            if (selected >= 0 && selected < model.getRowCount()) {
+                rows.add(model.getRow(selected));
+            }
+        }
+        return rows;
+    }
+
+    private int selectedRowCount() {
+        return selectedRows().size();
+    }
+
+    private void updateRowActionButtons() {
+        List<LocaleGridRow> rows = selectedRows();
+        LocaleGridRow singleRow = rows.size() == 1 ? rows.get(0) : null;
+        renameButton.setEnabled(singleRow != null);
+        deleteButton.setEnabled(rows.stream().anyMatch(row -> !row.isDeleted()));
+        undoDeleteButton.setEnabled(rows.stream().anyMatch(LocaleGridFileEditor::isPendingDeletedRow));
+        moveUpButton.setEnabled(singleRow != null && canMoveSelectedRow(singleRow, -1));
+        moveDownButton.setEnabled(singleRow != null && canMoveSelectedRow(singleRow, 1));
     }
 
     private boolean canMoveSelectedRow(@Nullable LocaleGridRow row, int direction) {
@@ -1598,12 +1648,41 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     }
 
+    private void selectRows(List<LocaleGridRow> rows) {
+        List<Integer> indexes = rows.stream()
+            .map(model::indexOf)
+            .filter(index -> index >= 0)
+            .sorted()
+            .toList();
+        if (indexes.isEmpty()) {
+            grid.clearSelection();
+            updateDetailPanel(null);
+            updateRowActionButtons();
+            return;
+        }
+
+        ListSelectionModel selectionModel = grid.getSelectionModel();
+        selectionModel.setValueIsAdjusting(true);
+        try {
+            selectionModel.clearSelection();
+            for (int index : indexes) {
+                selectionModel.addSelectionInterval(index, index);
+            }
+        } finally {
+            selectionModel.setValueIsAdjusting(false);
+        }
+        int firstIndex = indexes.get(0);
+        grid.scrollRectToVisible(grid.getCellRect(firstIndex, LocaleGridTableModel.KEY_COLUMN, true));
+        updateDetailPanel(indexes.size() == 1 ? model.getRow(firstIndex) : null);
+        updateRowActionButtons();
+    }
+
     private void selectNearestVisibleRow(int preferredIndex) {
         int rowCount = model.getRowCount();
         if (rowCount == 0) {
             grid.clearSelection();
             updateDetailPanel(null);
-            updateRowActionButtons(null);
+            updateRowActionButtons();
             return;
         }
         int index = Math.max(0, Math.min(preferredIndex, rowCount - 1));
@@ -1611,14 +1690,20 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.getSelectionModel().setSelectionInterval(index, index);
         grid.scrollRectToVisible(grid.getCellRect(index, LocaleGridTableModel.KEY_COLUMN, true));
         updateDetailPanel(row);
-        updateRowActionButtons(row);
+        updateRowActionButtons();
     }
 
     private void updateDetailPanel(LocaleGridRow row) {
         updatingDetail = true;
         detailFields.removeAll();
         if (row == null || translationTable == null) {
-            detailTitle.setText("편집할 Row를 선택하세요.");
+            int selectedCount = selectedRowCount();
+            detailTitle.setText(selectedCount > 1 ? selectedCount + "개 Row가 선택되었습니다." : "편집할 Row를 선택하세요.");
+            if (selectedCount > 1) {
+                JLabel message = new JLabel("범위 선택 중에는 상세 편집을 사용할 수 없습니다. 삭제 또는 삭제 취소를 사용할 수 있습니다.");
+                message.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+                detailFields.add(message);
+            }
             detailFields.revalidate();
             detailFields.repaint();
             updatingDetail = false;
@@ -1668,6 +1753,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         TableValidator.validate(translationTable);
         model.refreshRow(row);
         updateStatus();
+        repaintStatusScrollMap();
         updateModifiedState();
     }
 
@@ -2207,6 +2293,126 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             } finally {
                 g.dispose();
             }
+        }
+    }
+
+    private final class StatusScrollMap extends JScrollBar {
+        private static final int WIDTH = 18;
+        private static final int MARKER_WIDTH = 4;
+        private static final int MARKER_TOP = 2;
+        private static final int MARKER_BOTTOM = 2;
+        private static final Color SELECTED_BORDER = new Color(215, 222, 228);
+
+        private StatusScrollMap() {
+            super(JScrollBar.VERTICAL);
+            Dimension size = new Dimension(WIDTH, 120);
+            setPreferredSize(size);
+            setMinimumSize(new Dimension(WIDTH, 40));
+            setMaximumSize(new Dimension(WIDTH, Integer.MAX_VALUE));
+            setOpaque(true);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setToolTipText("");
+            setUnitIncrement(grid.getRowHeight());
+            setBlockIncrement(grid.getRowHeight() * 8);
+            addAdjustmentListener(e -> repaint());
+        }
+
+        @Override
+        public String getToolTipText(MouseEvent event) {
+            int rowIndex = rowAt(event.getY());
+            if (rowIndex < 0 || rowIndex >= LocaleGridFileEditor.this.model.getRowCount()) {
+                return "현황 스크롤맵";
+            }
+
+            LocaleGridRow row = LocaleGridFileEditor.this.model.getRow(rowIndex);
+            String status = primaryStatus(row);
+            if (status == null) {
+                return row.getKey();
+            }
+            return status + " - " + row.getKey();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                paintMarkers(g);
+            } finally {
+                g.dispose();
+            }
+        }
+
+        private void paintMarkers(Graphics2D g) {
+            int rowCount = LocaleGridFileEditor.this.model.getRowCount();
+            if (rowCount <= 0) {
+                return;
+            }
+
+            int available = trackHeight();
+            int markerHeight = 2;
+            int markerWidth = MARKER_WIDTH;
+            int markerX = 1;
+            int selectedRow = grid.getSelectedRow();
+
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                LocaleGridRow row = LocaleGridFileEditor.this.model.getRow(rowIndex);
+                String status = primaryStatus(row);
+                if (status == null) {
+                    continue;
+                }
+
+                int markerY = markerY(rowIndex, rowCount, markerHeight);
+                g.setColor(LocaleGridStatusRenderer.badgeColor(status));
+                g.fillRect(markerX, markerY, markerWidth, markerHeight);
+                if (rowIndex == selectedRow) {
+                    g.setColor(SELECTED_BORDER);
+                    g.fillRect(markerX + markerWidth + 1, markerY, 1, markerHeight);
+                }
+            }
+        }
+
+        private int rowAt(int y) {
+            int rowCount = LocaleGridFileEditor.this.model.getRowCount();
+            if (rowCount <= 0) {
+                return -1;
+            }
+
+            int top = trackTop();
+            int available = trackHeight();
+            int clampedY = Math.max(top, Math.min(top + available, y));
+            double ratio = (clampedY - top) / (double) available;
+            return Math.max(0, Math.min(rowCount - 1, (int) Math.round(ratio * (rowCount - 1))));
+        }
+
+        private int markerY(int rowIndex, int rowCount, int markerHeight) {
+            int top = trackTop();
+            int available = trackHeight();
+            if (rowCount <= 1) {
+                return top + Math.max(0, (available - markerHeight) / 2);
+            }
+
+            double ratio = rowIndex / (double) (rowCount - 1);
+            return top + (int) Math.round((available - markerHeight) * ratio);
+        }
+
+        private int trackTop() {
+            return MARKER_TOP;
+        }
+
+        private int trackHeight() {
+            return Math.max(1, getHeight() - trackTop() - MARKER_BOTTOM);
+        }
+
+        private String primaryStatus(LocaleGridRow row) {
+            List<String> codes = LocaleGridFileEditor.this.model.getStatusCodes(row);
+            for (String candidate : List.of("에러", "삭제", "추가", "편집", "경고")) {
+                if (codes.contains(candidate)) {
+                    return candidate;
+                }
+            }
+            return null;
         }
     }
 
