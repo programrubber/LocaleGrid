@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.localegrid"
-version = "0.6.0"
+version = "0.7.0"
 
 repositories {
     mavenCentral()
@@ -15,6 +15,24 @@ intellij {
     version.set("2023.3.5")
     type.set("PY")
     plugins.set(listOf())
+}
+
+val validatePluginDescriptionEncoding by tasks.registering {
+    val pluginXml = layout.projectDirectory.file("src/main/resources/META-INF/plugin.xml")
+    inputs.file(pluginXml)
+
+    doLast {
+        val content = pluginXml.asFile.readText(Charsets.UTF_8)
+        val requiredPhrase = "\uB2E4\uAD6D\uC5B4 \uC5D0\uB514\uD130"
+        val badTokens = listOf("\uFFFD", "LocaleGrid??")
+        val badToken = badTokens.firstOrNull { content.contains(it) }
+        if (badToken != null) {
+            throw GradleException("plugin.xml appears to contain mojibake token: '$badToken'")
+        }
+        if (!content.contains(requiredPhrase)) {
+            throw GradleException("plugin.xml is missing the required Korean description phrase.")
+        }
+    }
 }
 
 dependencies {
@@ -52,4 +70,8 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
+}
+
+tasks.named("patchPluginXml") {
+    dependsOn(validatePluginDescriptionEncoding)
 }
