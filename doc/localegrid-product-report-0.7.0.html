@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LocaleGrid 플러그인 산출물 보고서</title>
+  <style>
+    :root {
+      --page: #f4f7fa;
+      --paper: #ffffff;
+      --ink: #15202b;
+      --muted: #657282;
+      --line: #d9e2ea;
+      --brand: #0f6f80;
+      --brand-2: #1ca390;
+      --brand-3: #2f7ea7;
+      --soft: #eaf7f5;
+      --soft-blue: #edf5fb;
+      --soft-warn: #fff6df;
+      --soft-danger: #fff0f0;
+      --code: #243140;
+      --shadow: 0 14px 34px rgba(20, 35, 48, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      line-height: 1.62;
+      letter-spacing: 0;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 38px 28px 60px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      padding: 38px 40px;
+      color: #fff;
+      background:
+        linear-gradient(135deg, rgba(15, 32, 47, 0.98), rgba(15, 111, 128, 0.95) 56%, rgba(28, 163, 144, 0.96)),
+        radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.22), transparent 30%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -130px auto;
+      width: 310px;
+      height: 310px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      background:
+        linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.12) 49%, rgba(255, 255, 255, 0.12) 51%, transparent 52%),
+        linear-gradient(0deg, transparent 48%, rgba(255, 255, 255, 0.12) 49%, rgba(255, 255, 255, 0.12) 51%, transparent 52%);
+      opacity: 0.6;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      max-width: 780px;
+      font-size: 36px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .hero .lead {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 16px 0 0;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 16px;
+    }
+
+    .meta-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .meta-card {
+      min-height: 76px;
+      padding: 13px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .meta-card span {
+      display: block;
+      color: rgba(255, 255, 255, 0.67);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .meta-card strong {
+      display: block;
+      margin-top: 5px;
+      color: #fff;
+      font-size: 15px;
+      word-break: keep-all;
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--brand);
+      background: var(--paper);
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    section {
+      margin-top: 24px;
+      padding: 28px 30px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      color: var(--brand);
+      font-size: 23px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 22px 0 9px;
+      color: #243140;
+      font-size: 17px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 0 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: var(--code);
+      background: #eef2f6;
+      font-family: Consolas, "SFMono-Regular", "Noto Sans Mono", monospace;
+      font-size: 0.93em;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 12px;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      color: #214856;
+      background: #eef6f8;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .card {
+      min-height: 132px;
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fbfdfe;
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--brand);
+      font-size: 16px;
+    }
+
+    .card.small {
+      min-height: 100px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin: 0 6px 7px 0;
+      padding: 4px 9px;
+      border-radius: 999px;
+      color: var(--brand);
+      background: var(--soft);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .badge.blue {
+      color: #255f83;
+      background: var(--soft-blue);
+    }
+
+    .badge.warn {
+      color: #7b5500;
+      background: var(--soft-warn);
+    }
+
+    .badge.danger {
+      color: #9a2b2b;
+      background: var(--soft-danger);
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--brand-2);
+      border-radius: 12px;
+      color: #214856;
+      background: var(--soft);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .compare {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfdfe;
+    }
+
+    .compare.before {
+      border-top: 5px solid #d99b18;
+    }
+
+    .compare.after {
+      border-top: 5px solid var(--brand-2);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+      align-items: stretch;
+    }
+
+    .flow-step {
+      position: relative;
+      min-height: 96px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfdfe;
+    }
+
+    .flow-step::after {
+      content: "→";
+      position: absolute;
+      top: 34px;
+      right: -12px;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .flow-step:last-child::after {
+      content: "";
+    }
+
+    .flow-step span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin-bottom: 8px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--brand);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .flow-step strong {
+      display: block;
+      color: #243140;
+      font-size: 14px;
+    }
+
+    .flow-step p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+      align-items: stretch;
+    }
+
+    .arch-box {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fbfdfe;
+      text-align: center;
+    }
+
+    .arch-box h3 {
+      margin: 0 0 8px;
+      color: var(--brand);
+    }
+
+    .arch-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .arch-list div {
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: #eef6f8;
+      color: #254a58;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .case-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .case-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfdfe;
+    }
+
+    .case-card h3 {
+      margin-top: 0;
+      color: var(--brand);
+    }
+
+    .case-row {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .case-row strong {
+      display: block;
+      margin-bottom: 3px;
+      color: #243140;
+      font-size: 13px;
+    }
+
+    .dialog-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .dialog-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfdfe;
+      box-shadow: 0 12px 24px rgba(20, 35, 48, 0.08);
+    }
+
+    .dialog-titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      padding: 10px 13px;
+      color: #fff;
+      background: linear-gradient(135deg, #263747, #0f6f80);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .window-dots {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .window-dots i {
+      display: block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .dialog-body {
+      padding: 16px;
+    }
+
+    .dialog-body h4 {
+      margin: 0 0 8px;
+      color: var(--brand);
+      font-size: 16px;
+    }
+
+    .dialog-copy {
+      min-height: 66px;
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dialog-field {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .field-row span {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .dialog-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px 16px;
+      border-top: 1px solid var(--line);
+      background: #f6f9fb;
+    }
+
+    .dialog-button {
+      min-width: 62px;
+      padding: 7px 10px;
+      border: 1px solid #bfd0dc;
+      border-radius: 8px;
+      color: #365061;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .dialog-button.primary {
+      border-color: var(--brand);
+      color: #fff;
+      background: var(--brand);
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1.1fr repeat(3, 0.8fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .mini-grid div {
+      padding: 6px 7px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .mini-grid div:nth-child(4n) {
+      border-right: 0;
+    }
+
+    .mini-grid div:nth-last-child(-n + 4) {
+      border-bottom: 0;
+    }
+
+    .mini-grid .head {
+      color: #244654;
+      background: #eef6f8;
+      font-weight: 900;
+    }
+
+    .mini-grid .warn-cell {
+      background: #fff8e8;
+    }
+
+    .mini-grid .error-cell {
+      background: #fff0f0;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        max-width: none;
+        padding: 0;
+      }
+
+      .hero,
+      section,
+      .toc a {
+        box-shadow: none;
+      }
+
+      section {
+        break-inside: avoid;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .meta-grid,
+      .cards,
+      .case-grid,
+      .dialog-grid,
+      .flow,
+      .architecture,
+      .toc,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-step::after {
+        content: "↓";
+        top: auto;
+        right: 50%;
+        bottom: -16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">LocaleGrid Product Report</p>
+      <h1>다국어 JSON 편집 업무 개선을 위한 LocaleGrid 플러그인 산출물 보고서</h1>
+      <p class="lead">
+        LocaleGrid는 PyCharm/IntelliJ 기반 IDE에서 <code>locales/{locale}/{category}.json</code> 구조의
+        번역 JSON을 한 화면에서 비교, 수정, 검증, 적용할 수 있도록 지원하는 다국어 에디터 플러그인입니다.
+        본 문서는 플러그인의 도입 목적, 업무 개선 흐름, 주요 기능, 휴먼 에러 검출 사례, 초기 설정과 배포 정보를 정리합니다.
+      </p>
+      <div class="meta-grid">
+        <div class="meta-card">
+          <span>프로젝트</span>
+          <strong>LocaleGrid</strong>
+        </div>
+        <div class="meta-card">
+          <span>문서 기준 버전</span>
+          <strong>0.7.0</strong>
+        </div>
+        <div class="meta-card">
+          <span>플러그인 ID</span>
+          <strong>com.localegrid</strong>
+        </div>
+        <div class="meta-card">
+          <span>대상 IDE</span>
+          <strong>PyCharm / IntelliJ</strong>
+        </div>
+        <div class="meta-card">
+          <span>작성일</span>
+          <strong>2026-06-01</strong>
+        </div>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="문서 목차">
+      <a href="#overview">1. 프로젝트 개요</a>
+      <a href="#process">2. 업무 프로세스 개선</a>
+      <a href="#requirements">3. 요구사항 및 유스케이스</a>
+      <a href="#architecture">4. 시스템 설계</a>
+      <a href="#features">5. 주요 기능 소개</a>
+      <a href="#human-error">6. 검출 가능한 휴먼 에러</a>
+      <a href="#device-cases">7. 장비별 검출 사례</a>
+      <a href="#setup">8. 초기 설정 및 사용 가이드</a>
+      <a href="#build">9. 빌드/배포</a>
+    </nav>
+
+    <section id="overview">
+      <h2>1. 프로젝트 개요</h2>
+      <h3>개발 배경 및 목적</h3>
+      <p>
+        기존 다국어 작업은 언어별 JSON 파일을 각각 열어 key를 수동으로 비교하고 값을 수정하는 방식이었습니다.
+        파일이 늘어날수록 누락 번역, 중복 key, dot path 충돌, 빈 값 같은 휴먼 에러를 놓치기 쉽고,
+        저장 후 리뷰나 실제 동작 확인 단계에서 문제가 드러나는 경우가 많았습니다.
+      </p>
+      <p>
+        LocaleGrid는 동일 category의 locale JSON 파일을 하나의 그리드로 묶어 보여주고,
+        편집과 검증을 IDE 안에서 처리하도록 하여 다국어 리소스 관리의 반복 작업과 검수 비용을 줄이는 것을 목표로 합니다.
+      </p>
+
+      <div class="cards">
+        <div class="card">
+          <strong>주요 기능 요약</strong>
+          다국어 에디터, 검색/상태 필터, 현황 스크롤맵, key 추가/수정/삭제, 적용 미리보기, JSON 검증, Excel 내보내기를 제공합니다.
+        </div>
+        <div class="card">
+          <strong>기대 효과</strong>
+          locale별 파일 비교 시간을 줄이고, 저장 전 오류를 차단하며, 번역 누락과 중복 key를 빠르게 확인할 수 있습니다.
+        </div>
+        <div class="card">
+          <strong>적용 대상</strong>
+          IntelliJ Platform 2023.3.5 기반, PyCharm 타입 <code>PY</code>, Java 17, <code>sinceBuild 233</code> 이상 환경을 대상으로 합니다.
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>기본 파일 구조</td>
+            <td><code>locales/{locale}/{category}.json</code>, <code>locales/{locale}/{category}_{locale}.json</code></td>
+          </tr>
+          <tr>
+            <td>대표 사용 예</td>
+            <td><code>locales/ko/menu.json</code>, <code>locales/en/menu.json</code>, <code>locales/ja/menu.json</code>을 하나의 다국어 에디터에서 비교</td>
+          </tr>
+          <tr>
+            <td>지원 편집 값</td>
+            <td>문자열 value 직접 편집. number, boolean, array, object leaf는 readonly 또는 unsupported 상태로 표시</td>
+          </tr>
+          <tr>
+            <td>저장 방식</td>
+            <td>적용 전 JSON 재생성 및 검증 후, 설정된 JSON indent 기준으로 파일 반영</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="process">
+      <h2>2. 업무 프로세스 개선</h2>
+      <div class="two-col">
+        <div class="compare before">
+          <h3>기존 다국어 작업 흐름</h3>
+          <ol>
+            <li>locale별 JSON 파일을 직접 탐색한다.</li>
+            <li>같은 category 파일을 여러 탭에 열어 key를 수동 비교한다.</li>
+            <li>언어별 value를 직접 수정한다.</li>
+            <li>빈 값, 누락 key, 중복 key 여부를 사람이 직접 확인한다.</li>
+            <li>저장 후 리뷰 또는 동작 확인 단계에서 오류가 발견된다.</li>
+          </ol>
+          <div class="note">문제점: 파일 간 비교 기준이 사람의 눈에 의존하고, 오류 검출 시점이 늦습니다.</div>
+        </div>
+        <div class="compare after">
+          <h3>LocaleGrid 적용 후 흐름</h3>
+          <ol>
+            <li>JSON 파일을 열고 <code>다국어 에디터</code> 탭을 선택한다.</li>
+            <li>같은 category의 locale 파일을 자동으로 그룹화한다.</li>
+            <li>key/value를 그리드에서 비교하고 필요한 값을 수정한다.</li>
+            <li>검색, 필터, 현황 스크롤맵으로 변경/경고/에러 위치를 찾는다.</li>
+            <li>적용 미리보기와 검증을 거쳐 JSON 파일에 반영한다.</li>
+          </ol>
+          <div class="note">개선점: 비교, 편집, 검증, 적용이 IDE 안의 단일 흐름으로 연결됩니다.</div>
+        </div>
+      </div>
+
+      <h3>개선된 처리 흐름</h3>
+      <div class="flow" aria-label="LocaleGrid 개선 흐름">
+        <div class="flow-step">
+          <span>1</span>
+          <strong>JSON 파일 열기</strong>
+          <p>현재 파일의 locale과 category를 식별합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>2</span>
+          <strong>자동 그룹화</strong>
+          <p>같은 category의 locale 파일을 찾아 key union을 구성합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>3</span>
+          <strong>그리드 편집</strong>
+          <p>언어별 value를 한 화면에서 비교하고 수정합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>4</span>
+          <strong>검증 및 미리보기</strong>
+          <p>경고와 에러를 표시하고, 적용 전에 변경 요약을 확인할 수 있게 합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>5</span>
+          <strong>JSON 반영</strong>
+          <p>설정된 indent 기준으로 locale JSON 파일에 저장합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="requirements">
+      <h2>3. 요구사항 및 유스케이스</h2>
+      <h3>기능 요구사항</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>요구사항</th>
+            <th>내용</th>
+            <th>LocaleGrid 대응</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>다국어 파일 자동 인식</td>
+            <td>현재 JSON 파일을 기준으로 같은 category의 locale 파일을 함께 보여줘야 합니다.</td>
+            <td>locale root와 파일명 패턴을 기준으로 자동 로드합니다.</td>
+          </tr>
+          <tr>
+            <td>한 화면 비교</td>
+            <td>key별 locale value를 나란히 비교할 수 있어야 합니다.</td>
+            <td>key 열과 locale별 value 열로 구성된 다국어 에디터 그리드를 제공합니다.</td>
+          </tr>
+          <tr>
+            <td>편집 및 일괄 정리</td>
+            <td>key 추가, 이름 변경, 삭제, 삭제 취소가 가능해야 합니다.</td>
+            <td>툴바 버튼과 범위 선택으로 삭제/복구 작업을 처리합니다.</td>
+          </tr>
+          <tr>
+            <td>오류 검출</td>
+            <td>중복 key, dot path 충돌, 빈 값, JSON 파싱 실패를 확인해야 합니다.</td>
+            <td>진단 모델과 상태 렌더러로 경고/에러를 표시하고 에러는 적용을 차단합니다.</td>
+          </tr>
+          <tr>
+            <td>적용 전 확인</td>
+            <td>저장 전 변경 내용을 확인할 수 있어야 합니다.</td>
+            <td>추가, 수정, 삭제, 생성 파일, 경고/에러 수를 적용 미리보기로 표시합니다.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>비기능 요구사항</h3>
+      <div class="cards">
+        <div class="card small">
+          <strong>호환성</strong>
+          IntelliJ Platform 233 이상을 기준으로 PyCharm/IntelliJ 기반 IDE에서 동작합니다.
+        </div>
+        <div class="card small">
+          <strong>성능</strong>
+          검색, 필터, 스크롤맵은 현재 필터 적용 후 보이는 행 기준으로 갱신되어 대량 key 탐색을 보조합니다.
+        </div>
+        <div class="card small">
+          <strong>데이터 안정성</strong>
+          적용 전 메모리에서 JSON을 재생성하고 검증한 뒤 파일에 반영합니다.
+        </div>
+      </div>
+
+      <h3>유스케이스 다이얼로그 예시</h3>
+      <p>
+        실제 사용 흐름을 IDE 다이얼로그 형태로 표현했습니다. 각 예시는 사용자가 어떤 화면에서 판단하고,
+        LocaleGrid가 어떤 정보를 보여주며, 최종적으로 어떤 조치를 수행하는지 한눈에 확인할 수 있도록 구성했습니다.
+      </p>
+      <div class="dialog-grid" aria-label="유스케이스 다이얼로그 예시">
+        <article class="dialog-card">
+          <div class="dialog-titlebar">
+            <span>Key 추가</span>
+            <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          </div>
+          <div class="dialog-body">
+            <h4>새 메뉴 문구 등록</h4>
+            <p class="dialog-copy">
+              개발자는 신규 화면에 필요한 key를 추가하고, 각 locale의 번역 값을 같은 화면에서 입력합니다.
+            </p>
+            <div class="dialog-field">
+              <div class="field-row"><span>key</span><code>menu.export</code></div>
+              <div class="field-row"><span>ko</span><strong>내보내기</strong></div>
+              <div class="field-row"><span>en</span><strong>Export</strong></div>
+            </div>
+            <div class="dialog-status">
+              <span class="badge blue">추가</span>
+              <span class="badge">적용 미리보기</span>
+              <span class="badge">JSON 반영</span>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <span class="dialog-button">취소</span>
+            <span class="dialog-button primary">적용</span>
+          </div>
+        </article>
+
+        <article class="dialog-card">
+          <div class="dialog-titlebar">
+            <span>경고 확인</span>
+            <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          </div>
+          <div class="dialog-body">
+            <h4>빈 번역 값 검수</h4>
+            <p class="dialog-copy">
+              검수자는 경고 필터와 현황 스크롤맵을 통해 빈 값이 있는 행으로 이동하고 누락 번역을 보완합니다.
+            </p>
+            <div class="mini-grid" aria-label="빈 값 검수 예시 그리드">
+              <div class="head">key</div>
+              <div class="head">ko</div>
+              <div class="head">en</div>
+              <div class="head">상태</div>
+              <div>menu.save</div>
+              <div>저장</div>
+              <div class="warn-cell"></div>
+              <div class="warn-cell">경고</div>
+              <div>menu.close</div>
+              <div>닫기</div>
+              <div>Close</div>
+              <div>정상</div>
+            </div>
+            <div class="dialog-status">
+              <span class="badge warn">빈 값</span>
+              <span class="badge">경고 필터</span>
+              <span class="badge">스크롤맵 이동</span>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <span class="dialog-button">나중에</span>
+            <span class="dialog-button primary">값 입력</span>
+          </div>
+        </article>
+
+        <article class="dialog-card">
+          <div class="dialog-titlebar">
+            <span>삭제 정리</span>
+            <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          </div>
+          <div class="dialog-body">
+            <h4>미사용 key 일괄 삭제</h4>
+            <p class="dialog-copy">
+              유지보수 담당자는 여러 행을 범위 선택해 삭제 상태로 표시하고, 적용 전 삭제 요약을 확인합니다.
+            </p>
+            <div class="dialog-field">
+              <div class="field-row"><span>선택</span><strong>3개 key</strong></div>
+              <div class="field-row"><span>상태</span><strong>삭제 예정</strong></div>
+              <div class="field-row"><span>검증</span><strong>적용 가능</strong></div>
+            </div>
+            <div class="dialog-status">
+              <span class="badge danger">삭제</span>
+              <span class="badge">삭제 취소 가능</span>
+              <span class="badge">변경 요약</span>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <span class="dialog-button">삭제 취소</span>
+            <span class="dialog-button primary">적용</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <h2>4. 시스템 설계</h2>
+      <h3>IntelliJ Platform 연동 구조</h3>
+      <div class="architecture" aria-label="시스템 아키텍처">
+        <div class="arch-box">
+          <h3>IDE</h3>
+          <p>PyCharm / IntelliJ</p>
+          <div class="arch-list">
+            <div>JSON 파일 열기</div>
+            <div>Settings > Tools</div>
+            <div>FileEditor 탭</div>
+          </div>
+        </div>
+        <div class="arch-box">
+          <h3>LocaleGrid Plugin</h3>
+          <p>다국어 에디터와 JSON 처리 계층</p>
+          <div class="arch-list">
+            <div>FileEditorProvider</div>
+            <div>TranslationTableLoader</div>
+            <div>TableValidator</div>
+            <div>TranslationTableSaver</div>
+          </div>
+        </div>
+        <div class="arch-box">
+          <h3>Locale Files</h3>
+          <p>프로젝트 내 번역 JSON</p>
+          <div class="arch-list">
+            <div>locales/ko/*.json</div>
+            <div>locales/en/*.json</div>
+            <div>locales/ja/*.json</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>모듈 구성</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>모듈</th>
+            <th>역할</th>
+            <th>대표 구성요소</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>core</td>
+            <td>JSON flatten/unflatten, 경로 인식, 검증, 저장 미리보기와 저장 처리</td>
+            <td><code>TranslationTableLoader</code>, <code>TableValidator</code>, <code>TranslationTableSaver</code></td>
+          </tr>
+          <tr>
+            <td>editor</td>
+            <td>커스텀 에디터 UI, 그리드 표시, 필터, 스크롤맵, 적용 대화상자</td>
+            <td><code>LocaleGridFileEditor</code>, <code>LocaleGridTableModel</code>, <code>LocaleGridStatusRenderer</code></td>
+          </tr>
+          <tr>
+            <td>model</td>
+            <td>key 행, locale value, 진단 정보, 테이블 상태 모델</td>
+            <td><code>TranslationTable</code>, <code>LocaleGridRow</code>, <code>Diagnostic</code></td>
+          </tr>
+          <tr>
+            <td>settings</td>
+            <td>프로젝트 단위 설정 저장 및 설정 화면 제공</td>
+            <td><code>LocaleGridSettingsState</code>, <code>LocaleGridSettingsConfigurable</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>데이터 흐름</h3>
+      <div class="flow" aria-label="데이터 흐름">
+        <div class="flow-step">
+          <span>1</span>
+          <strong>파일 식별</strong>
+          <p>현재 JSON 파일에서 locale, category, root 경로를 계산합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>2</span>
+          <strong>JSON 로드</strong>
+          <p>locale별 JSON을 dot path 기반 flat value로 변환합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>3</span>
+          <strong>테이블 구성</strong>
+          <p>모든 key의 union을 만들고 locale별 value를 매핑합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>4</span>
+          <strong>검증</strong>
+          <p>중복, 충돌, 빈 값, unsupported value를 진단합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>5</span>
+          <strong>저장</strong>
+          <p>변경 사항을 root entry로 재구성해 JSON 파일에 반영합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>5. 주요 기능 소개</h2>
+      <div class="cards">
+        <div class="card">
+          <strong>다국어 에디터</strong>
+          같은 category의 locale JSON을 key 기준으로 병합해 한 화면에서 비교하고 문자열 value를 직접 편집합니다.
+        </div>
+        <div class="card">
+          <strong>검색/상태 필터</strong>
+          key와 value를 검색하고, 추가/편집/삭제/경고/에러 상태별로 행을 필터링합니다.
+        </div>
+        <div class="card">
+          <strong>현황 스크롤맵</strong>
+          에러, 삭제, 추가, 편집, 경고 상태의 행 위치를 세로 마커로 표시하고 클릭/드래그 이동을 지원합니다.
+        </div>
+        <div class="card">
+          <strong>추가/수정/삭제</strong>
+          key 추가, 이름 변경, 값 수정, 범위 선택 삭제, 삭제 취소를 제공합니다. 다중 선택 시 단일 편집은 비활성화됩니다.
+        </div>
+        <div class="card">
+          <strong>검증과 적용 미리보기</strong>
+          적용 전 변경 요약, 생성 파일, 경고/에러 수를 보여주며 에러가 있으면 적용을 차단합니다.
+        </div>
+        <div class="card">
+          <strong>Excel 내보내기</strong>
+          그리드 내용을 Excel 형식으로 내보내 번역 검수나 공유 자료로 활용할 수 있습니다.
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>기능</th>
+            <th>사용자가 얻는 효과</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>상단 검색 입력</td>
+            <td>좁은 에디터 폭에서도 검색 입력 영역이 잘리지 않도록 반응형 레이아웃을 적용했습니다.</td>
+          </tr>
+          <tr>
+            <td>상태 렌더링</td>
+            <td>행 단위로 추가, 편집, 삭제, 경고, 에러 상태를 구분해 작업 우선순위를 판단할 수 있습니다.</td>
+          </tr>
+          <tr>
+            <td>삭제 상태 관리</td>
+            <td>기존 key는 즉시 제거하지 않고 삭제 상태로 표시해 적용 전 검토와 삭제 취소가 가능합니다.</td>
+          </tr>
+          <tr>
+            <td>누락 파일 처리</td>
+            <td>locale 파일이 없을 때 생성 대상 여부를 적용 전 확인할 수 있습니다.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="human-error">
+      <h2>6. 검출 가능한 휴먼 에러</h2>
+      <p>
+        LocaleGrid는 사람이 여러 locale JSON 파일을 직접 비교하면서 놓치기 쉬운 오류를 상태와 진단 메시지로 표시합니다.
+        저장을 막아야 하는 항목은 에러로, 확인 후 진행 가능한 항목은 경고로 분리합니다.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>검출 항목</th>
+            <th>예시</th>
+            <th>표시 수준</th>
+            <th>조치 방향</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>중복 key</td>
+            <td>동일 JSON object 안에 <code>"title"</code> key가 두 번 선언된 경우</td>
+            <td><span class="badge danger">에러</span></td>
+            <td>중복 항목 중 잘못된 key를 삭제하거나 하나로 병합합니다.</td>
+          </tr>
+          <tr>
+            <td>dot path 충돌</td>
+            <td><code>device.title</code>과 <code>device.title.short</code>가 동시에 leaf/object로 충돌하는 경우</td>
+            <td><span class="badge danger">에러</span></td>
+            <td>key 구조를 재정의해 leaf와 object 경로가 겹치지 않게 합니다.</td>
+          </tr>
+          <tr>
+            <td>빈 번역 값</td>
+            <td><code>"menu.save": ""</code>처럼 value가 비어 있는 경우</td>
+            <td><span class="badge warn">경고</span></td>
+            <td>번역 값을 입력하거나 의도적으로 비워둔 값인지 확인합니다.</td>
+          </tr>
+          <tr>
+            <td>누락 locale 파일</td>
+            <td><code>locales/ja/menu.json</code>만 없는 경우</td>
+            <td><span class="badge warn">경고</span></td>
+            <td>적용 시 생성 여부를 확인하고 필요한 locale 파일을 생성합니다.</td>
+          </tr>
+          <tr>
+            <td>JSON parse 실패</td>
+            <td>쉼표 누락, 따옴표 불일치 등으로 JSON을 읽을 수 없는 경우</td>
+            <td><span class="badge danger">에러</span></td>
+            <td>원본 JSON 문법을 수정한 뒤 다시 로드합니다.</td>
+          </tr>
+          <tr>
+            <td>readonly value</td>
+            <td>문자열이 아닌 number, boolean, array, object leaf 값</td>
+            <td><span class="badge warn">경고</span></td>
+            <td>직접 편집 대상인지 확인하고 필요 시 원본 JSON에서 구조를 조정합니다.</td>
+          </tr>
+          <tr>
+            <td>적용 전 오류 차단</td>
+            <td>에러 진단이 남아 있는데 적용 버튼을 누른 경우</td>
+            <td><span class="badge danger">차단</span></td>
+            <td>에러를 먼저 해소한 뒤 적용합니다.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="device-cases">
+      <h2>7. 장비별 검출 사례</h2>
+      <p>
+        아래 사례는 실제 운영 장비명을 특정하지 않은 보고용 예시입니다. 각 장비/프로젝트 환경에서 발생할 수 있는 대표적인
+        key 값 중복, 빈 값, dot path 충돌을 LocaleGrid가 어떻게 보여주고 조치 흐름으로 연결하는지 설명합니다.
+      </p>
+      <div class="case-grid">
+        <article class="case-card">
+          <h3>장비 A: key 값 중복</h3>
+          <span class="badge danger">중복 key</span>
+          <div class="case-row">
+            <strong>발생 원인</strong>
+            <p><code>locales/ko/menu.json</code>에서 동일 object 안에 <code>"save"</code> key가 두 번 선언되었습니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>LocaleGrid 검출 방식</strong>
+            <p>JSON 로드 시 duplicated JSON key를 에러로 진단하고, 해당 key 행을 에러 상태로 표시합니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>사용자 조치</strong>
+            <p>중복 항목 중 잘못된 항목을 삭제 상태로 변경하거나 올바른 key로 이름을 변경합니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>기대 효과</strong>
+            <p>같은 object 안에 중복 key가 있으면 마지막 값만 남을 수 있으므로, 번역이 의도와 다르게 적용되는 문제를 사전에 줄입니다.</p>
+          </div>
+        </article>
+
+        <article class="case-card">
+          <h3>장비 B: 빈 값 검출</h3>
+          <span class="badge warn">빈 번역</span>
+          <div class="case-row">
+            <strong>발생 원인</strong>
+            <p><code>locales/en/menu.json</code>의 <code>menu.delete</code> value가 빈 문자열로 남아 있습니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>LocaleGrid 검출 방식</strong>
+            <p>빈 값 진단을 경고로 표시하고, 경고 필터와 스크롤맵에서 해당 위치를 보여줍니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>사용자 조치</strong>
+            <p>영문 번역 값을 입력하거나, 의도적으로 비워둔 값이면 적용 미리보기에서 경고를 확인하고 진행합니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>기대 효과</strong>
+            <p>화면에 빈 라벨이 노출되거나 기본 locale만 표시되는 문제를 조기 발견합니다.</p>
+          </div>
+        </article>
+
+        <article class="case-card">
+          <h3>장비 C: dot path 충돌</h3>
+          <span class="badge danger">구조 충돌</span>
+          <div class="case-row">
+            <strong>발생 원인</strong>
+            <p><code>locales/ja/menu.json</code>에 <code>device.title</code>과 <code>device.title.short</code>가 함께 존재합니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>LocaleGrid 검출 방식</strong>
+            <p>JSON 재생성 검증에서 leaf와 object 경로가 충돌하는 key를 에러로 표시하고 적용을 차단합니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>사용자 조치</strong>
+            <p><code>device.title</code>을 <code>device.title.text</code>처럼 구조에 맞는 key로 변경합니다.</p>
+          </div>
+          <div class="case-row">
+            <strong>기대 효과</strong>
+            <p>저장 시 JSON 구조가 깨지거나 일부 번역이 손실되는 위험을 줄입니다.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="setup">
+      <h2>8. 초기 설정 및 사용 가이드</h2>
+      <h3>설치 방법</h3>
+      <ol>
+        <li>PyCharm 또는 IntelliJ에서 <code>Settings &gt; Plugins</code>로 이동합니다.</li>
+        <li>기어 아이콘을 선택하고 <code>Install Plugin from Disk</code>를 실행합니다.</li>
+        <li><code>release/LocaleGrid-0.7.0.zip</code> 파일을 선택해 설치합니다.</li>
+        <li>IDE를 재시작한 뒤 JSON 파일을 열어 <code>다국어 에디터</code> 탭을 확인합니다.</li>
+      </ol>
+
+      <h3>프로젝트 설정</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>설정 항목</th>
+            <th>기본값/예시</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>locale 루트 경로</td>
+            <td><code>locales</code></td>
+            <td>locale 디렉터리가 위치한 프로젝트 상대 경로입니다.</td>
+          </tr>
+          <tr>
+            <td>locale 표시 순서</td>
+            <td><code>ko,en,ja,vi</code></td>
+            <td>그리드에서 locale 열을 표시할 순서입니다. 비워두면 자동 감지를 사용합니다.</td>
+          </tr>
+          <tr>
+            <td>예외 key</td>
+            <td><code>__section__</code></td>
+            <td>root-level entry로 보존해야 하는 예외 key입니다.</td>
+          </tr>
+          <tr>
+            <td>JSON 들여쓰기</td>
+            <td><code>2</code></td>
+            <td>적용 시 JSON 파일에 사용할 indent 크기입니다.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>기본 사용 흐름</h3>
+      <div class="flow" aria-label="사용 흐름">
+        <div class="flow-step">
+          <span>1</span>
+          <strong>파일 열기</strong>
+          <p><code>locales/ko/menu.json</code> 같은 JSON 파일을 엽니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>2</span>
+          <strong>탭 선택</strong>
+          <p>상단 에디터 탭에서 <code>다국어 에디터</code>를 선택합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>3</span>
+          <strong>편집</strong>
+          <p>key와 locale별 value를 추가, 수정, 삭제합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>4</span>
+          <strong>검증 확인</strong>
+          <p>필터와 스크롤맵으로 경고/에러를 확인합니다.</p>
+        </div>
+        <div class="flow-step">
+          <span>5</span>
+          <strong>적용</strong>
+          <p>변경 요약을 확인하고 JSON 파일에 반영합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="build">
+      <h2>9. 빌드/배포</h2>
+      <h3>개발 환경 및 도구</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>값</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gradle 플러그인</td>
+            <td><code>org.jetbrains.intellij 1.15.0</code>, <code>java</code>, <code>kotlin.jvm 1.9.0</code></td>
+          </tr>
+          <tr>
+            <td>IntelliJ Platform</td>
+            <td><code>2023.3.5</code>, 타입 <code>PY</code></td>
+          </tr>
+          <tr>
+            <td>Java</td>
+            <td>Source/Target Compatibility <code>17</code></td>
+          </tr>
+          <tr>
+            <td>주요 의존성</td>
+            <td><code>org.json:json:20210307</code>, <code>JUnit Jupiter 5.10.2</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>빌드 명령어</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>목적</th>
+            <th>명령어</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>개발 IDE 실행</td>
+            <td><code>.\gradlew.bat runIde --console=plain</code></td>
+          </tr>
+          <tr>
+            <td>플러그인 ZIP 생성</td>
+            <td><code>.\gradlew.bat buildPlugin --console=plain</code></td>
+          </tr>
+          <tr>
+            <td>마이너 버전 릴리스 생성</td>
+            <td><code>.\bump-minor-release.ps1 -Bump minor -Notes "변경 사항 요약"</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>배포 산출물</h3>
+      <div class="cards">
+        <div class="card small">
+          <strong>설치 파일</strong>
+          <code>release/LocaleGrid-0.7.0.zip</code>
+        </div>
+        <div class="card small">
+          <strong>릴리스 노트</strong>
+          <code>release/release.md</code>
+        </div>
+        <div class="card small">
+          <strong>버전 태그</strong>
+          <code>0.7.0</code>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">
+      LocaleGrid 플러그인 산출물 보고서 · 단일 HTML 문서 · 2026-06-01
+    </p>
+  </main>
+</body>
+</html>
