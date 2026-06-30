@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 class LocaleGridTableModel extends AbstractTableModel {
@@ -25,6 +26,7 @@ class LocaleGridTableModel extends AbstractTableModel {
     private final List<LocaleGridRow> visibleRows = new ArrayList<>();
     private final List<String> visibleLocales = new ArrayList<>();
     private boolean bundleVisible;
+    private String searchTerm = "";
 
     void setTable(TranslationTable table) {
         this.table = table;
@@ -33,6 +35,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             visibleLocales.addAll(table.getLocales());
         }
         bundleVisible = false;
+        searchTerm = "";
         rebuildVisibleRows("", false, false, false, false, false);
         fireTableStructureChanged();
     }
@@ -65,8 +68,13 @@ class LocaleGridTableModel extends AbstractTableModel {
         return new ArrayList<>(visibleLocales);
     }
 
+    String getSearchTerm() {
+        return searchTerm;
+    }
+
     void applyFilter(String search, boolean addedOnly, boolean warningOnly, boolean modifiedOnly, boolean deletedOnly, boolean errorOnly) {
-        rebuildVisibleRows(search, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly);
+        searchTerm = normalizeSearchTerm(search);
+        rebuildVisibleRows(searchTerm, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly);
         fireTableDataChanged();
     }
 
@@ -76,7 +84,7 @@ class LocaleGridTableModel extends AbstractTableModel {
             return;
         }
 
-        String term = search == null ? "" : search.toLowerCase();
+        String term = normalizeSearchTerm(search);
         for (LocaleGridRow row : table.getRows()) {
             if (!matchesSearch(row, term)) {
                 continue;
@@ -280,14 +288,18 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     private boolean matchesSearch(LocaleGridRow row, String term) {
-        if (term.isEmpty() || row.getKey().toLowerCase().contains(term)) {
+        if (term.isEmpty() || row.getKey().toLowerCase(Locale.ROOT).contains(term)) {
             return true;
         }
         for (LocaleValue value : row.getValues().values()) {
-            if (LocaleTextEscaper.escapeForEditor(value.getDisplayText()).toLowerCase().contains(term)) {
+            if (LocaleTextEscaper.escapeForEditor(value.getDisplayText()).toLowerCase(Locale.ROOT).contains(term)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String normalizeSearchTerm(String search) {
+        return search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
     }
 }

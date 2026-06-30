@@ -61,6 +61,7 @@ login.button
 - 중첩 JSON을 dot path key로 펼쳐 표시
 - 문자열 value 직접 편집
 - key 추가, rename, 삭제 후보 표시
+- 검색어와 매칭된 텍스트를 셀 안에서 강조 표시
 - 빈 value warning 표시
 - dot path 충돌 및 중복 key error 검증
 - 누락 locale 파일 감지

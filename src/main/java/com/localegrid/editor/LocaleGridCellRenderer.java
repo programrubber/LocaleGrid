@@ -4,8 +4,14 @@ import com.localegrid.model.LocaleGridRow;
 import com.localegrid.model.LocaleValue;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
     private static final Color ERROR_BG = new Color(255, 226, 226);
@@ -14,8 +20,10 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
     private static final Color EXCEPTION_KEY_BG = new Color(235, 242, 255);
     private static final Color READONLY_BG = new Color(245, 245, 245);
     private static final Color MISSING_BG = new Color(255, 250, 230);
-
-    private final JTextArea text = new JTextArea();
+    private static final Color SEARCH_HIGHLIGHT_BG = new Color(37, 99, 235);
+    private final SearchHighlightTextArea text = new SearchHighlightTextArea();
+    private final Highlighter.HighlightPainter searchHighlightPainter =
+        new DefaultHighlighter.DefaultHighlightPainter(SEARCH_HIGHLIGHT_BG);
 
     LocaleGridCellRenderer() {
         super(new BorderLayout(6, 0));
@@ -48,12 +56,24 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         text.setBackground(background);
         text.setForeground(foreground);
 
-        if (keyColumn) {
-            text.setText(gridRow.getKey());
-        } else {
-            text.setText(value == null ? "" : String.valueOf(value));
-        }
+        String cellText = keyColumn ? gridRow.getKey() : value == null ? "" : String.valueOf(value);
+        text.setText(cellText);
+        applySearchHighlights(cellText, model.getSearchTerm());
         return this;
+    }
+
+    private void applySearchHighlights(String cellText, String searchTerm) {
+        Highlighter highlighter = text.getHighlighter();
+        highlighter.removeAllHighlights();
+        List<HighlightRange> ranges = findHighlightRanges(cellText, searchTerm);
+        text.setSearchHighlightRanges(ranges);
+        for (HighlightRange range : ranges) {
+            try {
+                highlighter.addHighlight(range.start(), range.end(), searchHighlightPainter);
+            } catch (BadLocationException ignored) {
+                // Renderer text was just assigned; invalid ranges should be impossible.
+            }
+        }
     }
 
     private Color resolveBackground(
@@ -92,4 +112,26 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         return viewRow % 2 == 0 ? Color.WHITE : new Color(250, 251, 252);
     }
 
+    static List<HighlightRange> findHighlightRanges(String text, String searchTerm) {
+        List<HighlightRange> ranges = new ArrayList<>();
+        if (text == null || text.isEmpty() || searchTerm == null || searchTerm.trim().isEmpty()) {
+            return ranges;
+        }
+
+        String normalizedText = text.toLowerCase(Locale.ROOT);
+        String normalizedSearchTerm = searchTerm.trim().toLowerCase(Locale.ROOT);
+        int fromIndex = 0;
+        while (fromIndex < normalizedText.length()) {
+            int index = normalizedText.indexOf(normalizedSearchTerm, fromIndex);
+            if (index < 0) {
+                break;
+            }
+            ranges.add(new HighlightRange(index, index + normalizedSearchTerm.length()));
+            fromIndex = index + normalizedSearchTerm.length();
+        }
+        return ranges;
+    }
+
+    record HighlightRange(int start, int end) {
+    }
 }
