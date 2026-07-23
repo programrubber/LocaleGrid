@@ -18,6 +18,8 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
     public String manualLocales = "";
     public String exceptionKeys = "__section__";
     public int jsonIndent = 2;
+    public boolean localeScriptValidationEnabled = true;
+    public String localeScriptViolationSeverity = "WARNING";
 
     public static LocaleGridSettingsState getInstance(Project project) {
         LocaleGridSettingsState state = project.getService(LocaleGridSettingsState.class);
@@ -50,6 +52,10 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
     public void setExceptionKeysFromCsv(String value) {
         List<String> keys = splitCsv(value);
         exceptionKeys = keys.isEmpty() ? "__section__" : String.join(",", keys);
+    }
+
+    public boolean isLocaleScriptViolationError() {
+        return "ERROR".equalsIgnoreCase(localeScriptViolationSeverity);
     }
 
     private static List<String> splitCsv(String value) {

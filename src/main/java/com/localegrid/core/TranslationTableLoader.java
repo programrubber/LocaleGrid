@@ -79,7 +79,7 @@ public class TranslationTableLoader {
         }
 
         table.getDiagnostics().addAll(table.getSourceDiagnostics());
-        TableValidator.validate(table);
+        TableValidator.validate(table, settings);
         return table;
     }
 

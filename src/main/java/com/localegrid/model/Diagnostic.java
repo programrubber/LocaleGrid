@@ -9,11 +9,17 @@ public class Diagnostic {
     private final Severity severity;
     private final String message;
     private final String key;
+    private final String locale;
 
     public Diagnostic(Severity severity, String message, String key) {
+        this(severity, message, key, null);
+    }
+
+    public Diagnostic(Severity severity, String message, String key, String locale) {
         this.severity = severity;
         this.message = message;
         this.key = key;
+        this.locale = locale;
     }
 
     public Severity getSeverity() {
@@ -26,5 +32,9 @@ public class Diagnostic {
 
     public String getKey() {
         return key;
+    }
+
+    public String getLocale() {
+        return locale;
     }
 }

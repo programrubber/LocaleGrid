@@ -63,6 +63,7 @@ login.button
 - key 추가, rename, 삭제 후보 표시
 - 검색어와 매칭된 텍스트를 셀 안에서 강조 표시
 - 빈 value warning 표시
+- ko/en/ja/vi 고정 규칙과 CLDR 보완 규칙 기반 예상 문자 체계 위반 진단 표시
 - dot path 충돌 및 중복 key error 검증
 - 누락 locale 파일 감지
 - 저장 시 누락 locale 파일 생성 여부 확인
@@ -88,9 +89,37 @@ LocaleGrid는 별도 메뉴 액션이 아니라 JSON 파일의 커스텀 에디�
 - `locale 표시 순서`: 쉼표로 구분한 locale 목록. 비어 있으면 자동 감지
 - `예외키`: 쉼표로 구분한 root-level 예외키 목록. 기본값 `__section__`
 - `JSON 들여쓰기`: 저장 시 JSON indent. 기본값 `2`
+- `문자 체계 검사`: 지원 locale 값 검사 사용 여부. `검사 사용` 기본값은 켬
+- `문자 위반 처리`: 기본값 `경고 (저장 가능)`, 선택값 `에러 (저장 차단)`
+
+`locale 루트 경로`, `locale 표시 순서`, `예외키`는 테이블 구성을 바꾸는 구조 설정입니다. 열린 LocaleGrid 에디터에 미저장 변경이 있으면 구조 설정 적용을 차단합니다. 적용에 성공하면 프로젝트의 열린 LocaleGrid 에디터를 모두 새 설정으로 재로드하며, 재로드에 실패한 에디터는 이전 테이블을 제거하고 로드 실패 상태를 표시합니다. JSON 들여쓰기와 문자 체계 검사 같은 비구조 설정은 테이블을 유지한 채 진단을 다시 계산합니다.
 
 예외키는 `Settings > Tools > LocaleGrid` 또는 다국어 에디터 상단의 `예외키 설정` 버튼에서 프로젝트별로 설정합니다.
 예외키는 중복될 수 있으며 각 Locale 파일별 위치를 기준으로 저장합니다. 구분 또는 설명을 위한 entry에 사용합니다.
+
+## 번역 문자 검사
+
+LocaleGrid는 문자열 value에 다른 문자 체계가 섞였는지 확인하는 검사를 제공합니다. ko/en/ja/vi에는 확정 내장 규칙을 우선 적용하고, 그 외 올바른 BCP 47 locale에는 CLDR likely-subtags가 제공하는 예상 native Script로 보완 규칙을 만듭니다.
+
+| locale | 허용 문자 |
+| --- | --- |
+| 한국어 `ko` | 한글 + 라틴 문자(Latin) + 공통 문자(Common) + 상속/결합 문자(Inherited) |
+| 영어 `en` | 라틴 문자(Latin) + 공통 문자(Common) + 상속/결합 문자(Inherited) |
+| 일본어 `ja` | 히라가나 + 가타카나 + 한자 + 라틴 문자(Latin) + 공통 문자(Common) + 상속/결합 문자(Inherited) |
+| 베트남어 `vi` | 라틴 문자(Latin) + 공통 문자(Common) + 상속/결합 문자(Inherited) |
+
+- locale 태그는 대소문자와 `_`/`-`를 정규화해 BCP 47 형식으로 해석합니다. 지역 변형에는 고정 규칙을 우선 적용하고, `ja-Latn`, `sr-Latn`처럼 명시된 Script subtag는 존중합니다.
+- ko/en/ja/vi 외 locale은 명시 Script가 없을 때 CLDR likely-subtags에서 예상 native Script를 구하며, 결정된 Script와 Latin/Common/Inherited를 허용해 검사합니다.
+- 모든 Unicode 숫자, Common 범주의 공백·문장부호·기호, Inherited 결합 문자를 허용합니다.
+- 런타임 Unicode 버전보다 새로운 보조 평면 이모지를 위해 U+1F000–U+1FAFF 범위만 제한적 호환 fallback으로 허용합니다.
+- Java 정규표현식으로 잠재 위반을 빠르게 찾고, Java 17이 `UNKNOWN`으로 보는 코드포인트만 IDE 번들 ICU의 `UScript`/`UCharacter`로 허용 Script와 숫자 여부를 다시 확인합니다. 따라서 Toto/Nagm/Kawi/Vith 같은 신규 Script와 신규 Arabic/Latin/Han 문자·숫자를 런타임 Unicode 버전 차이로 오탐하지 않습니다.
+- 허용 범위를 벗어난 문자는 선택한 처리 수준에 따라 해당 locale 셀의 `경고` 또는 `에러`로 표시합니다.
+- 기본 설정에서는 문자 체계 위반을 `경고 (저장 가능)`로 표시하며, 사용자가 확인한 뒤 계속 저장할 수 있습니다.
+- 프로젝트 설정에서 `에러 (저장 차단)`로 변경하면 위반 문자가 남아 있는 동안 저장할 수 없습니다.
+- `문자 체계 검사`를 끄면 이 검사를 수행하지 않습니다.
+- CLDR에서 예상 Script를 구할 수 없거나 locale 태그가 malformed이면 검사를 건너뜁니다.
+
+CLDR는 locale을 예상 Script에 매핑하는 용도로만 사용하며 value의 자연어를 판별하지 않습니다. 모든 고정·자동 생성 규칙은 라틴 문자(Latin)를 허용하므로, 베트남어·프랑스어처럼 라틴 기반인 문장은 `ko`/`ja` 값에서도 통과할 수 있습니다. 일본어와 중국어의 한자도 문자만으로는 구분할 수 없습니다.
 
 ## LocaleGrid 확인 프로세스
 
@@ -103,9 +132,10 @@ LocaleGrid는 별도 메뉴 액션이 아니라 JSON 파일의 커스텀 에디�
 7. 문자열 value는 편집 가능 상태로 표시합니다.
 8. number, boolean, array, object leaf 등 MVP에서 지원하지 않는 value는 readonly로 표시합니다.
 9. 빈 value는 warning으로 표시합니다.
-10. 중복 key와 dot path 충돌은 error로 표시합니다.
-11. 저장 시 메모리에서 JSON을 먼저 재생성하고 검증합니다.
-12. error가 없으면 변경 요약과 누락 locale 파일 생성 여부를 확인한 뒤 저장합니다.
+10. 설정이 켜져 있으면 ko/en/ja/vi 고정 규칙 또는 CLDR에서 예상 Script를 구한 보완 규칙으로 문자열 value를 검사하고, 선택한 문자 위반 처리 수준으로 표시합니다.
+11. 중복 key와 dot path 충돌은 error로 표시합니다.
+12. 저장 시 메모리에서 JSON을 먼저 재생성하고 검증합니다.
+13. error가 없으면 변경 요약과 누락 locale 파일 생성 여부를 확인한 뒤 저장합니다.
 
 ## LocaleGrid 팝업
 
@@ -117,7 +147,8 @@ LocaleGrid MVP에서 사용하는 팝업은 다음 흐름에 맞춰 동작합니
 - `저장`: 변경 요약 표시 및 저장
 - 누락 locale 파일이 있고 입력된 값이 있으면 파일 생성 여부 확인
 - 저장 차단 error가 있으면 error 메시지 표시
-- 빈 value warning은 표시하되 사용자가 계속 진행하면 저장 가능
+- 빈 value 및 기본 설정의 예상 문자 체계 warning은 표시하되 사용자가 계속 진행하면 저장 가능
+- 예상 문자 체계 위반을 error로 설정한 경우 저장 차단
 
 저장 변경 요약 항목:
 
@@ -204,6 +235,8 @@ src/main/java/com/localegrid/settings
 [O] 7. key 추가, rename, 삭제 후보 기능 추가
 
 [O] 8. 빈 value warning 및 dot path 충돌 error 검증 추가
+
+[O] 8-1. ko/en/ja/vi 고정 규칙과 CLDR likely-subtags fallback 기반 예상 문자 체계 검증 및 warning/error 설정 추가
 
 [O] 9. 프로젝트 설정 화면 추가
 

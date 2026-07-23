@@ -1,22 +1,34 @@
 package com.localegrid.settings;
 
 import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.HideableTitledPanel;
+import com.localegrid.editor.LocaleGridFileEditor;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 public class LocaleGridSettingsConfigurable implements Configurable {
+    private static final String SCRIPT_WARNING_LABEL = "경고 (저장 가능)";
+    private static final String SCRIPT_ERROR_LABEL = "에러 (저장 차단)";
+
+    private final Project project;
     private final LocaleGridSettingsState state;
     private JTextField localesRootField;
     private com.intellij.ui.components.JBTextField manualLocalesField;
     private JTextField exceptionKeysField;
     private JComboBox<Integer> indentComboBox;
+    private JCheckBox localeScriptValidationCheckBox;
+    private JComboBox<String> localeScriptSeverityComboBox;
 
     public LocaleGridSettingsConfigurable(Project project) {
+        this.project = project;
         this.state = LocaleGridSettingsState.getInstance(project);
     }
 
@@ -89,12 +101,33 @@ public class LocaleGridSettingsConfigurable implements Configurable {
             "<html>번역 항목에서 제외할 최상위 키를 쉼표로 구분해 입력하세요. (예: __section__, __comment__)<br>예외키는 중복될 수 있으며, 저장 시 각 Locale 파일에서의 위치를 유지합니다.</html>");
 
         indentComboBox = new JComboBox<>(new Integer[]{2, 4});
+        indentComboBox.setSelectedItem(state.jsonIndent);
         // 콤보박스가 가로로 꽉 차서 어색하지 않도록 왼쪽 정렬된 래퍼 패널 이용
         JPanel indentComboPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         indentComboPanel.setOpaque(false);
         indentComboPanel.add(indentComboBox);
         JComponent indentWrapper = createFieldWithHint(indentComboPanel,
             "적용 시 저장되는 JSON 들여쓰기 칸 수입니다. 기본값은 2입니다.");
+
+        localeScriptValidationCheckBox = new JCheckBox("검사 사용", state.localeScriptValidationEnabled);
+        JComponent localeScriptValidationWrapper = createFieldWithHint(
+            localeScriptValidationCheckBox,
+            "<html>ko, en, ja, vi는 내장 규칙으로, 그 외 표준 locale은 CLDR의 예상 문자 체계로 검사합니다.<br>숫자, 문장부호, 이모지와 라틴 문자는 허용합니다.</html>"
+        );
+
+        localeScriptSeverityComboBox = new JComboBox<>(new String[]{SCRIPT_WARNING_LABEL, SCRIPT_ERROR_LABEL});
+        localeScriptSeverityComboBox.setSelectedItem(
+            state.isLocaleScriptViolationError() ? SCRIPT_ERROR_LABEL : SCRIPT_WARNING_LABEL
+        );
+        localeScriptValidationCheckBox.addActionListener(event -> updateScriptSeverityEnabled());
+        updateScriptSeverityEnabled();
+        JPanel localeScriptSeverityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        localeScriptSeverityPanel.setOpaque(false);
+        localeScriptSeverityPanel.add(localeScriptSeverityComboBox);
+        JComponent localeScriptSeverityWrapper = createFieldWithHint(
+            localeScriptSeverityPanel,
+            "경고는 저장할 수 있고, 에러는 허용되지 않은 문자가 남아 있으면 저장을 차단합니다."
+        );
 
         ac.gridwidth = 1;
         ac.gridy = 0;
@@ -112,6 +145,22 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         ac.gridx = 1;
         ac.weightx = 1.0;
         advancedContent.add(indentWrapper, ac);
+
+        ac.gridy = 2;
+        ac.gridx = 0;
+        ac.weightx = 0;
+        advancedContent.add(new JLabel("문자 체계 검사"), ac);
+        ac.gridx = 1;
+        ac.weightx = 1.0;
+        advancedContent.add(localeScriptValidationWrapper, ac);
+
+        ac.gridy = 3;
+        ac.gridx = 0;
+        ac.weightx = 0;
+        advancedContent.add(new JLabel("문자 위반 처리"), ac);
+        ac.gridx = 1;
+        ac.weightx = 1.0;
+        advancedContent.add(localeScriptSeverityWrapper, ac);
 
         // 6. 고급 설정 접이식 패널 (HideableTitledPanel)
         HideableTitledPanel advancedPanel = new HideableTitledPanel("고급 설정", advancedContent, true);
@@ -156,18 +205,43 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         return !localesRootField.getText().equals(state.localesRoot)
             || !manualLocalesField.getText().equals(state.manualLocales)
             || !normalizeExceptionKeys(exceptionKeysField.getText()).equals(String.join(",", state.getExceptionKeyList()))
-            || (selectedIndent != null && selectedIndent != state.jsonIndent);
+            || (selectedIndent != null && selectedIndent != state.jsonIndent)
+            || localeScriptValidationCheckBox.isSelected() != state.localeScriptValidationEnabled
+            || !selectedScriptSeverity().equals(normalizeScriptSeverity(state.localeScriptViolationSeverity));
     }
 
     @Override
-    public void apply() {
-        state.localesRoot = localesRootField.getText().trim().isEmpty() ? "locales" : localesRootField.getText().trim();
-        state.manualLocales = manualLocalesField.getText().trim();
-        state.setExceptionKeysFromCsv(exceptionKeysField.getText());
+    public void apply() throws ConfigurationException {
+        String nextLocalesRoot = localesRootField.getText().trim().isEmpty()
+            ? "locales"
+            : localesRootField.getText().trim();
+        String nextManualLocales = manualLocalesField.getText().trim();
+        LocaleGridSettingsState normalizedNextState = new LocaleGridSettingsState();
+        normalizedNextState.localesRoot = nextLocalesRoot;
+        normalizedNextState.manualLocales = nextManualLocales;
+        normalizedNextState.setExceptionKeysFromCsv(exceptionKeysField.getText());
+
+        boolean structuralSettingsChanged = !StructuralSettingsSnapshot.capture(state)
+            .equals(StructuralSettingsSnapshot.capture(normalizedNextState));
+        if (structuralSettingsChanged && hasModifiedLocaleGridEditor()) {
+            throw new ConfigurationException(
+                "열린 다국어 에디터에 저장되지 않은 변경 사항이 있습니다. "
+                    + "변경 사항을 먼저 적용하거나 취소한 뒤 locale 루트, 표시 순서 또는 예외 키 설정을 변경하세요."
+            );
+        }
+
+        state.localesRoot = nextLocalesRoot;
+        state.manualLocales = nextManualLocales;
+        state.exceptionKeys = normalizedNextState.exceptionKeys;
         Integer selectedIndent = (Integer) indentComboBox.getSelectedItem();
         if (selectedIndent != null) {
             state.jsonIndent = selectedIndent;
         }
+        state.localeScriptValidationEnabled = localeScriptValidationCheckBox.isSelected();
+        state.localeScriptViolationSeverity = selectedScriptSeverity();
+        project.getMessageBus()
+            .syncPublisher(LocaleGridSettingsListener.TOPIC)
+            .settingsChanged(structuralSettingsChanged);
     }
 
     @Override
@@ -176,11 +250,56 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         manualLocalesField.setText(state.manualLocales);
         exceptionKeysField.setText(String.join(", ", state.getExceptionKeyList()));
         indentComboBox.setSelectedItem(state.jsonIndent);
+        localeScriptValidationCheckBox.setSelected(state.localeScriptValidationEnabled);
+        localeScriptSeverityComboBox.setSelectedItem(
+            state.isLocaleScriptViolationError() ? SCRIPT_ERROR_LABEL : SCRIPT_WARNING_LABEL
+        );
+        updateScriptSeverityEnabled();
     }
 
     private static String normalizeExceptionKeys(String text) {
         LocaleGridSettingsState state = new LocaleGridSettingsState();
         state.setExceptionKeysFromCsv(text);
         return String.join(",", state.getExceptionKeyList());
+    }
+
+    private String selectedScriptSeverity() {
+        return SCRIPT_ERROR_LABEL.equals(localeScriptSeverityComboBox.getSelectedItem()) ? "ERROR" : "WARNING";
+    }
+
+    private static String normalizeScriptSeverity(String severity) {
+        return "ERROR".equalsIgnoreCase(severity) ? "ERROR" : "WARNING";
+    }
+
+    private void updateScriptSeverityEnabled() {
+        if (localeScriptSeverityComboBox != null && localeScriptValidationCheckBox != null) {
+            localeScriptSeverityComboBox.setEnabled(localeScriptValidationCheckBox.isSelected());
+        }
+    }
+
+    private boolean hasModifiedLocaleGridEditor() {
+        for (FileEditor editor : FileEditorManager.getInstance(project).getAllEditors()) {
+            if (editor instanceof LocaleGridFileEditor localeGridEditor && localeGridEditor.isModified()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private record StructuralSettingsSnapshot(
+        String localesRoot,
+        List<String> manualLocales,
+        List<String> exceptionKeys
+    ) {
+        private static StructuralSettingsSnapshot capture(LocaleGridSettingsState settings) {
+            String root = settings.localesRoot == null || settings.localesRoot.isBlank()
+                ? "locales"
+                : settings.localesRoot.trim();
+            return new StructuralSettingsSnapshot(
+                root,
+                List.copyOf(settings.getManualLocaleList()),
+                List.copyOf(settings.getExceptionKeyList())
+            );
+        }
     }
 }

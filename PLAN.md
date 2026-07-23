@@ -25,6 +25,7 @@
 - key rename은 셀 직접 편집이 아니라 Rename 팝업으로만 수행한다.
 - 예외키는 사용자가 설정할 수 있고, 원본 root-level 예외키는 hidden marker로 보존한다.
 - 빈 value는 허용하고, key 셀 배경 표시와 저장 시 warning으로만 알린다.
+- 문자열 value는 locale별 예상 문자 체계를 검사한다. 기본은 `경고 (저장 가능)`이며, 프로젝트 설정에서 `에러 (저장 차단)`로 변경할 수 있다.
 - 중복 번역 key와 dot path 충돌은 error로 취급하고 저장을 차단한다.
 - 저장 전 line diff 대신 변경 요약 팝업을 제공한다.
 - 플러그인 자체 rollback/backup은 MVP에서 제외하고 SVN 복구를 전제로 한다.
@@ -72,6 +73,42 @@ locales/
 ```
 
 사용자가 프로젝트 설정에서 locale 목록을 직접 지정하면 수동 설정을 우선한다. 수동 설정은 표시 여부와 컬럼 순서를 제어한다.
+
+## locale별 예상 문자 체계 검사
+
+문자열 value에 다른 문자 체계가 섞였는지 확인하기 위해 ko/en/ja/vi 고정 내장 규칙과 CLDR likely-subtags 기반 보완 규칙을 적용한다. 이 검사는 실제 언어를 판별하는 기능이 아니라, locale에서 예상되는 Unicode Script를 정해 예상하지 않은 문자를 찾는 보조 검증이다.
+
+확정 내장 규칙(CLDR보다 우선):
+
+| locale | 허용 문자 체계 |
+| --- | --- |
+| `ko` | 한글(Hangul) + 라틴(Latin) + 공통(Common) + 상속(Inherited) |
+| `en` | 라틴(Latin) + 공통(Common) + 상속(Inherited) |
+| `ja` | 히라가나(Hiragana) + 가타카나(Katakana) + 한자(Han) + 라틴(Latin) + 공통(Common) + 상속(Inherited) |
+| `vi` | 라틴(Latin) + 공통(Common) + 상속(Inherited) |
+
+적용 규칙:
+
+- locale 태그는 대소문자와 `_`/`-` 구분자를 정규화한 뒤 BCP 47 형식으로 해석한다. `ko-KR`, `en-US`, `ja_JP`, `vi-VN` 같은 지역 변형에는 고정 내장 규칙을 우선 적용한다.
+- `ja-Latn`, `sr-Latn`처럼 Script subtag가 명시되면 해당 Script를 존중한다.
+- ko/en/ja/vi 외의 올바른 BCP 47 locale은 명시 Script가 없을 때 CLDR likely-subtags가 제공하는 예상 native Script로 규칙을 자동 생성한다.
+- 고정·자동 생성 규칙 모두 결정된 Script와 라틴(Latin), 공통(Common), 상속(Inherited) 문자를 허용한다.
+- Unicode 숫자 범주(`\p{N}`) 전체를 Script와 관계없이 허용하고, Common에 속하는 공백·문장부호·기호와 Inherited에 속하는 결합 문자를 허용한다.
+- 런타임 Unicode 버전보다 새로운 보조 평면 이모지와의 호환을 위해 U+1F000–U+1FAFF 범위만 제한적 fallback으로 허용한다.
+- 허용 Script에서 만든 Java 정규표현식으로 잠재 위반을 빠르게 찾고 Pattern을 재사용한다. Java 17이 코드포인트를 `UNKNOWN`으로 분류한 경우에만 IDE 번들 ICU의 `UScript`/`UCharacter`로 허용 Script 또는 숫자인지 교차 확인한 뒤 진단한다.
+- 이 ICU fallback으로 Toto/Nagm/Kawi/Vith 같은 신규 Script와 신규 Arabic/Latin/Han 문자 및 Unicode 숫자를 Java 17의 Unicode 데이터 차이로 오탐하지 않는다.
+- CLDR에서 예상 Script를 구할 수 없거나 locale 태그가 BCP 47 형식에 맞지 않으면 검사하지 않으며 진단도 만들지 않는다.
+- 허용 범위를 벗어난 문자가 있으면 해당 locale 셀에 진단을 표시한다.
+- `문자 체계 검사`는 기본으로 켜며 프로젝트 설정에서 끌 수 있다.
+- `문자 위반 처리` 기본값은 `경고 (저장 가능)`이다.
+- 프로젝트 설정에서 `에러 (저장 차단)`를 선택하면 위반 문자가 남아 있는 동안 저장을 차단한다.
+
+한계:
+
+- CLDR는 locale을 예상 Script에 매핑하는 용도로만 사용하며, value의 자연어를 판별하지 않는다.
+- 같은 문자 체계를 사용하는 언어끼리는 구분하지 못한다. 모든 생성 규칙이 라틴 문자를 허용하므로 베트남어·프랑스어 같은 라틴 기반 문장은 ko/ja 값에서도 통과할 수 있다.
+- 일본어의 한자와 중국어의 한자는 모두 Han 문자 체계이므로 한자만으로 언어를 구분할 수 없다.
+- 브랜드명, 제품명, API 명칭 등을 위해 모든 고정·자동 생성 규칙에서 라틴 문자를 허용한다.
 
 ## key 병합 규칙
 
@@ -265,6 +302,19 @@ Rename:
 - Save 실행 시 빈 value warning을 보여주되, 사용자가 계속 진행하면 저장한다.
 - 빈 value는 error가 아니라 warning으로 취급한다.
 
+## 예상 문자 체계 위반 처리
+
+locale별 고정 내장 규칙 또는 CLDR 파생 규칙의 허용 범위를 벗어난 문자는 기본적으로 warning으로 취급한다.
+
+- Validate 실행 시 위반한 locale, key, 문자 정보를 설정된 경고 또는 에러로 보여준다.
+- Save 실행 시 warning을 보여주되, 사용자가 계속 진행하면 저장한다.
+- 프로젝트 설정의 `문자 위반 처리`가 `에러 (저장 차단)`이면 error로 표시하고 저장을 차단한다.
+- `문자 체계 검사`를 끄면 이 검사를 수행하지 않는다.
+- ko/en/ja/vi 외 locale은 명시 Script를 사용하거나, 미지정 시 CLDR likely-subtags로 예상 Script를 구해 검사한다. Script를 구할 수 없거나 malformed locale이면 건너뛴다.
+- 이 검사는 자연어 언어 판별이 아니라 Unicode Script 검사다.
+- 모든 고정·자동 생성 규칙은 라틴(Latin) 문자를 허용하므로 베트남어, 프랑스어 등 라틴 기반 문장은 ko/ja 값에 들어가도 통과할 수 있다.
+- 동일한 문자 체계를 사용하는 언어 간의 오입력과 일본어/중국어의 한자 구분은 검출 대상이 아니다.
+
 ## 중복 key 처리
 
 일반 번역 key의 중복은 error로 취급하고 저장을 막는다.
@@ -293,8 +343,8 @@ locales/vi/login.json  없음
 
 - 저장 전 Validate를 수행한다.
 - 저장 전 변경 요약 팝업을 표시한다.
-- 중복 key, dot path 충돌, JSON 직렬화 실패가 있으면 저장하지 않는다.
-- 빈 value warning과 누락 locale 파일 생성은 사용자 확인 후 저장할 수 있다.
+- 중복 key, dot path 충돌, JSON 직렬화 실패 또는 error로 설정된 예상 문자 체계 위반이 있으면 저장하지 않는다.
+- 빈 value 및 예상 문자 체계 위반 warning과 누락 locale 파일 생성은 사용자 확인 후 저장할 수 있다.
 - 기존 key 순서는 최대한 보존한다.
 - formatting은 설정된 들여쓰기(2-space 또는 4-space indent) 기준의 표준 JSON으로 다시 쓴다.
 - 플러그인 자체 rollback/backup은 제공하지 않는다.
@@ -307,7 +357,7 @@ locales/vi/login.json  없음
 - rename key 수
 - 삭제 key 수
 - 생성될 locale 파일 목록
-- 빈 value warning 수
+- warning 수(빈 value 및 예상 문자 체계 위반 포함)
 - 저장 차단 error 여부
 
 쓰기 전 최소 검증:
@@ -315,6 +365,7 @@ locales/vi/login.json  없음
 - 모든 대상 JSON을 메모리에서 먼저 생성한다.
 - JSON 직렬화가 모두 성공하는지 확인한다.
 - 중복 key와 dot path 충돌 error가 없는지 확인한다.
+- 지원 locale의 문자열 value에 예상 문자 체계 위반이 있는지 확인한다.
 
 ## 프로젝트 설정
 
@@ -326,6 +377,16 @@ MVP의 설정은 프로젝트 단위로 저장한다.
 - locale 목록/순서: 기본값 자동 탐지
 - 예외키 목록
 - JSON formatting: 기본값 2-space indent (2 또는 4 선택 가능)
+- 문자 체계 검사: 기본값 사용
+- 문자 위반 처리: 기본값 `경고 (저장 가능)`, 선택값 `에러 (저장 차단)`
+
+설정 반영 규칙:
+
+- 구조 설정은 locales root 경로, locale 목록/순서, 예외키 목록이다.
+- 열린 LocaleGrid 에디터에 미저장 변경이 하나라도 있으면 구조 설정 적용을 차단하고 먼저 적용하거나 취소하도록 안내한다.
+- 구조 설정 적용에 성공하면 프로젝트 message bus로 모든 열린 LocaleGrid 에디터에 알리고 새 설정으로 테이블을 재로드한다.
+- 새 설정으로 재로드하지 못하면 이전 테이블을 계속 보여주지 않고 stale table을 제거한 뒤 로드 실패 상태를 표시한다.
+- JSON 들여쓰기와 문자 체계 검사 설정 같은 비구조 설정은 열린 테이블을 재로드하지 않고 현재 진단을 다시 계산한다.
 
 ## 데이터 모델 초안
 
@@ -359,6 +420,9 @@ MVP에서는 핵심 로직 단위 테스트를 작성하고, UI 자동화 테스
 - dot path 문법 검증
 - dot path 충돌 검증
 - locale 자동 탐지
+- BCP 47 locale 정규화, 명시 Script 존중, ko/en/ja/vi 고정 규칙과 CLDR likely-subtags fallback 검사
+- Unicode 숫자 전체와 제한적 이모지 fallback 허용, malformed 또는 Script 미확정 locale 검사 생략
+- Java 정규표현식 1차 탐지와 Java 17 `UNKNOWN` 코드포인트의 ICU Script/숫자 fallback
 - category 추론
 - 예외키 판별
 - add/rename/delete 반영
@@ -370,6 +434,15 @@ MVP에서는 핵심 로직 단위 테스트를 작성하고, UI 자동화 테스
 - 같은 category의 locale 파일들이 그리드로 묶이는지
 - locale별로 서로 다른 key가 union으로 표시되는지
 - 빈 value 행의 key 셀 배경이 바뀌는지
+- ko/en/ja/vi 값의 예상 문자 체계 위반이 기본 경고로 표시되고 저장은 가능한지
+- ru/ar/hi 등 CLDR에서 native Script를 결정할 수 있는 locale도 예상 문자 체계가 검사되는지
+- 명시한 Script subtag가 존중되고, 모든 Unicode 숫자와 제한적 이모지 fallback이 허용되는지
+- Toto/Nagm/Kawi/Vith와 신규 Arabic/Latin/Han 문자·숫자가 ICU fallback으로 오탐 없이 통과하고, 허용하지 않은 신규 Script는 진단되는지
+- `문자 위반 처리`를 에러로 바꾸면 위반 문자가 남아 있을 때 저장이 차단되는지
+- `문자 체계 검사`를 끄면 위반 진단이 생성되지 않는지
+- CLDR에서 Script를 구할 수 없는 locale 또는 malformed locale 값은 문자 체계 검사를 건너뛰는지
+- 미저장 LocaleGrid 에디터가 있으면 구조 설정 적용이 차단되는지
+- 구조 설정 적용 시 열린 에디터가 모두 재로드되고, 재로드 실패 시 이전 테이블이 제거되는지
 - Add Row, Rename Key, Delete Row가 의도대로 동작하는지
 - Save 전 변경 요약 팝업이 표시되는지
 - 누락 locale 파일 생성 확인이 동작하는지

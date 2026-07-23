@@ -260,19 +260,115 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     boolean hasError(LocaleGridRow row) {
-        if (table == null) {
-            return false;
-        }
-        return table.getDiagnostics().stream()
-            .anyMatch(d -> row.getKey().equals(d.getKey()) && d.getSeverity() == Diagnostic.Severity.ERROR);
+        return hasDiagnostic(row, Diagnostic.Severity.ERROR);
     }
 
     boolean hasWarning(LocaleGridRow row) {
+        return hasDiagnostic(row, Diagnostic.Severity.WARNING);
+    }
+
+    boolean hasError(LocaleGridRow row, int column) {
+        return hasDiagnostic(row, column, Diagnostic.Severity.ERROR);
+    }
+
+    boolean hasWarning(LocaleGridRow row, int column) {
+        return hasDiagnostic(row, column, Diagnostic.Severity.WARNING);
+    }
+
+    List<Diagnostic> getCellDiagnostics(LocaleGridRow row, int column) {
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        if (table == null) {
+            return diagnostics;
+        }
+        for (Diagnostic diagnostic : table.getDiagnostics()) {
+            if (appliesToCell(diagnostic, row, column)) {
+                diagnostics.add(diagnostic);
+            }
+        }
+        return diagnostics;
+    }
+
+    String getCellDiagnosticTooltip(LocaleGridRow row, int column) {
+        return diagnosticTooltip(getCellDiagnostics(row, column));
+    }
+
+    List<Diagnostic> getLocaleDiagnostics(LocaleGridRow row, String locale) {
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        if (table == null) {
+            return diagnostics;
+        }
+        for (Diagnostic diagnostic : table.getDiagnostics()) {
+            if (appliesToLocale(diagnostic, row, locale)) {
+                diagnostics.add(diagnostic);
+            }
+        }
+        return diagnostics;
+    }
+
+    String getLocaleDiagnosticTooltip(LocaleGridRow row, String locale) {
+        return diagnosticTooltip(getLocaleDiagnostics(row, locale));
+    }
+
+    List<Diagnostic> getRowDiagnostics(LocaleGridRow row) {
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        if (table == null) {
+            return diagnostics;
+        }
+        for (Diagnostic diagnostic : table.getDiagnostics()) {
+            if (row.getKey().equals(diagnostic.getKey())) {
+                diagnostics.add(diagnostic);
+            }
+        }
+        return diagnostics;
+    }
+
+    String getRowDiagnosticTooltip(LocaleGridRow row) {
+        return diagnosticTooltip(getRowDiagnostics(row));
+    }
+
+    private static String diagnosticTooltip(List<Diagnostic> diagnostics) {
+        StringBuilder tooltip = new StringBuilder();
+        for (Diagnostic diagnostic : diagnostics) {
+            if (diagnostic.getMessage() == null || diagnostic.getMessage().isBlank()) {
+                continue;
+            }
+            if (tooltip.length() > 0) {
+                tooltip.append(" / ");
+            }
+            tooltip.append(diagnostic.getMessage());
+        }
+        return tooltip.length() == 0 ? null : tooltip.toString();
+    }
+
+    private boolean hasDiagnostic(LocaleGridRow row, Diagnostic.Severity severity) {
         if (table == null) {
             return false;
         }
         return table.getDiagnostics().stream()
-            .anyMatch(d -> row.getKey().equals(d.getKey()) && d.getSeverity() == Diagnostic.Severity.WARNING);
+            .anyMatch(d -> row.getKey().equals(d.getKey()) && d.getSeverity() == severity);
+    }
+
+    private boolean hasDiagnostic(LocaleGridRow row, int column, Diagnostic.Severity severity) {
+        if (table == null) {
+            return false;
+        }
+        return table.getDiagnostics().stream()
+            .anyMatch(diagnostic -> diagnostic.getSeverity() == severity && appliesToCell(diagnostic, row, column));
+    }
+
+    private boolean appliesToCell(Diagnostic diagnostic, LocaleGridRow row, int column) {
+        return appliesToLocale(diagnostic, row, getLocaleForColumn(column));
+    }
+
+    private boolean appliesToLocale(Diagnostic diagnostic, LocaleGridRow row, String locale) {
+        if (!row.getKey().equals(diagnostic.getKey())) {
+            return false;
+        }
+        String diagnosticLocale = diagnostic.getLocale();
+        if (diagnosticLocale == null || diagnosticLocale.isBlank()) {
+            return true;
+        }
+        return diagnosticLocale.equals(locale);
     }
 
     boolean isReadonlyCell(LocaleGridRow row, int column) {

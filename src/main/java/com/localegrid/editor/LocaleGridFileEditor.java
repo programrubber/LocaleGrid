@@ -43,6 +43,7 @@ import com.localegrid.model.LocaleTextEscaper;
 import com.localegrid.model.LocaleValue;
 import com.localegrid.model.TranslationTable;
 import com.localegrid.settings.LocaleGridSettingsState;
+import com.localegrid.settings.LocaleGridSettingsListener;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,6 +85,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final JPanel columnChecksPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
     private final JPanel rowActionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 2));
     private final JPanel detailFields = new JPanel();
+    private final List<DetailFieldBinding> detailFieldBindings = new ArrayList<>();
     private final JLabel detailTitle = new JLabel("편집할 Row를 선택하세요.");
     private final LocaleGridTableModel model = new LocaleGridTableModel();
     private final JBTable grid = new JBTable(model) {
@@ -104,7 +106,11 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                     cell.width,
                     cell.height
                 )) {
-                    return LocaleGridStatusRenderer.tooltipText(value);
+                    LocaleGridRow row = model.getRow(convertRowIndexToModel(viewRow));
+                    return joinTooltips(
+                        LocaleGridStatusRenderer.tooltipText(value),
+                        model.getRowDiagnosticTooltip(row)
+                    );
                 }
                 return null;
             }
@@ -139,6 +145,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private boolean dragTargetBefore = true;
     private boolean dragMoved;
     private boolean updatingDetail;
+    private boolean suppressDetailSelectionRefresh;
     private boolean updatingColumnControls;
     private boolean skipNextSelectReload;
     private boolean suppressUnsavedPrompt;
@@ -154,7 +161,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void installClosePrompt() {
-        project.getMessageBus().connect(this).subscribe(FileEditorManagerListener.Before.FILE_EDITOR_MANAGER, new FileEditorManagerListener.Before() {
+        var connection = project.getMessageBus().connect(this);
+        connection.subscribe(LocaleGridSettingsListener.TOPIC, this::handleSettingsChanged);
+        connection.subscribe(FileEditorManagerListener.Before.FILE_EDITOR_MANAGER, new FileEditorManagerListener.Before() {
             @Override
             public void beforeFileClosed(@NotNull FileEditorManager source, @NotNull VirtualFile closingFile) {
                 if (!file.equals(closingFile) || !isModified() || suppressUnsavedPrompt) {
@@ -319,7 +328,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 LocaleGridRow row = selectedRow();
-                updateDetailPanel(selectedRowCount() == 1 ? row : null);
+                if (!suppressDetailSelectionRefresh) {
+                    updateDetailPanel(selectedRowCount() == 1 ? row : null);
+                }
                 updateRowActionButtons();
                 repaintStatusScrollMap();
             }
@@ -418,8 +429,11 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
 
         int viewColumn = lastClickedViewColumn >= 0 ? lastClickedViewColumn : grid.getSelectedColumn();
-        if (viewColumn < 0) {
-            viewColumn = LocaleGridTableModel.KEY_COLUMN;
+        if (grid.getColumnCount() == 0) {
+            return;
+        }
+        if (viewColumn < 0 || viewColumn >= grid.getColumnCount()) {
+            viewColumn = Math.min(LocaleGridTableModel.KEY_COLUMN, grid.getColumnCount() - 1);
         }
 
         Object value = grid.getValueAt(viewRow, viewColumn);
@@ -585,23 +599,19 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         ShowSettingsUtil.getInstance().showSettingsDialog(project, "LocaleGrid");
     }
 
-    private void openExceptionKeySettingsDialog() {
-        if (isModified()) {
-            boolean confirmed = WideConfirmDialog.show(
-                project,
-                "예외키 설정",
-                "예외키 설정을 변경하면 현재 다국어 에디터를 다시 불러옵니다.\n"
-                    + "저장되지 않은 변경 사항은 사라집니다.\n"
-                    + "예외키 설정을 변경할까요?",
-                "설정 변경",
-                "닫기",
-                Messages.getWarningIcon()
-            );
-            if (!confirmed) {
-                return;
-            }
+    private void handleSettingsChanged(boolean structuralSettingsChanged) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> handleSettingsChanged(structuralSettingsChanged));
+            return;
         }
+        if (structuralSettingsChanged) {
+            reload(captureViewState());
+        } else if (translationTable != null) {
+            validateCurrentTable();
+        }
+    }
 
+    private void openExceptionKeySettingsDialog() {
         LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
         String exceptionKeys = Messages.showInputDialog(
             project,
@@ -615,8 +625,34 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             return;
         }
 
-        settings.setExceptionKeysFromCsv(exceptionKeys);
-        reload(captureViewState());
+        LocaleGridSettingsState normalizedNextState = new LocaleGridSettingsState();
+        normalizedNextState.setExceptionKeysFromCsv(exceptionKeys);
+        if (normalizedNextState.getExceptionKeyList().equals(settings.getExceptionKeyList())) {
+            return;
+        }
+        if (hasModifiedLocaleGridEditor()) {
+            Messages.showWarningDialog(
+                project,
+                "열린 다국어 에디터에 저장되지 않은 변경 사항이 있습니다.\n"
+                    + "변경 사항을 먼저 적용하거나 취소한 뒤 예외키 설정을 변경하세요.",
+                "예외키 설정"
+            );
+            return;
+        }
+
+        settings.exceptionKeys = normalizedNextState.exceptionKeys;
+        project.getMessageBus()
+            .syncPublisher(LocaleGridSettingsListener.TOPIC)
+            .settingsChanged(true);
+    }
+
+    private boolean hasModifiedLocaleGridEditor() {
+        for (FileEditor editor : FileEditorManager.getInstance(project).getAllEditors()) {
+            if (editor instanceof LocaleGridFileEditor localeGridEditor && localeGridEditor.isModified()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String exceptionKeySettingsMessage() {
@@ -632,7 +668,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private void reload(@Nullable ViewState state) {
         try {
-            translationTable = new TranslationTableLoader().load(project, file);
+            TranslationTable loadedTable = new TranslationTableLoader().load(project, file);
+            translationTable = loadedTable;
+            lastClickedViewColumn = -1;
             model.setTable(translationTable);
             rebuildColumnControls();
             restoreColumnControls(state);
@@ -644,8 +682,25 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             repaintStatusScrollMap();
             updateModifiedState();
         } catch (RuntimeException ex) {
-            statusLabel.setText("로드 실패: " + ex.getMessage());
+            clearUnavailableTable("로드 실패: " + ex.getMessage());
         }
+    }
+
+    private void clearUnavailableTable(String message) {
+        translationTable = null;
+        lastClickedViewColumn = -1;
+        model.setTable(null);
+        grid.clearSelection();
+        rebuildColumnControls();
+        applyColumnVisibility();
+        applyFilter();
+        installTableRenderer();
+        resizeColumns();
+        updateDetailPanel(null);
+        updateRowActionButtons();
+        statusLabel.setText(message);
+        repaintStatusScrollMap();
+        updateModifiedState();
     }
 
     private void cancelChangesWithConfirm() {
@@ -711,7 +766,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         updatingColumnControls = true;
         try {
             for (Map.Entry<String, JCheckBox> entry : localeColumnChecks.entrySet()) {
-                entry.getValue().setSelected(state.visibleLocales.contains(entry.getKey()));
+                boolean knownLocale = state.knownLocales.contains(entry.getKey());
+                entry.getValue().setSelected(!knownLocale || state.visibleLocales.contains(entry.getKey()));
             }
             bundleColumnCheck.setSelected(state.bundleVisible);
         } finally {
@@ -731,6 +787,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void applyFilter() {
+        applyActiveFilterToModel();
+        LocaleGridRow row = selectedRow();
+        updateDetailPanel(selectedRowCount() == 1 ? row : null);
+        updateRowActionButtons();
+        grid.repaint();
+        repaintStatusScrollMap();
+    }
+
+    private void applyActiveFilterToModel() {
         model.applyFilter(
             searchField.getText(),
             addedOnly.isSelected(),
@@ -739,11 +804,6 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             deletedOnly.isSelected(),
             errorOnly.isSelected()
         );
-        LocaleGridRow row = selectedRow();
-        updateDetailPanel(selectedRowCount() == 1 ? row : null);
-        updateRowActionButtons();
-        grid.repaint();
-        repaintStatusScrollMap();
     }
 
     private void repaintStatusScrollMap() {
@@ -760,7 +820,12 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             }
         }
         LocaleGridRow row = selectedRow();
-        return new ViewState(visibleLocales, bundleColumnCheck.isSelected(), row == null ? null : row.getKey());
+        return new ViewState(
+            visibleLocales,
+            new HashSet<>(localeColumnChecks.keySet()),
+            bundleColumnCheck.isSelected(),
+            row == null ? null : row.getKey()
+        );
     }
 
     private void restoreSelection(@Nullable ViewState state) {
@@ -783,6 +848,10 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void addRow() {
+        if (translationTable == null) {
+            Messages.showErrorDialog(project, "현재 설정에서 이 파일을 다국어 테이블로 불러올 수 없습니다.", "다국어 추가");
+            return;
+        }
         String key = Messages.showInputDialog(project, keyInputMessage(), "다국어 추가", Messages.getQuestionIcon());
         if (key == null) {
             return;
@@ -1012,6 +1081,10 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void applyChanges() {
+        if (translationTable == null) {
+            Messages.showErrorDialog(project, "현재 설정에서 이 파일을 다국어 테이블로 불러올 수 없어 적용할 수 없습니다.", "LocaleGrid 적용");
+            return;
+        }
         validateCurrentTable();
         if (translationTable.hasErrors()) {
             Messages.showErrorDialog(project, "검증 오류가 남아 있어 적용할 수 없습니다.", "LocaleGrid 적용");
@@ -1083,7 +1156,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private void validateCurrentTable() {
         translationTable.getDiagnostics().clear();
         translationTable.getDiagnostics().addAll(translationTable.getActiveSourceDiagnostics());
-        TableValidator.validate(translationTable);
+        TableValidator.validate(translationTable, LocaleGridSettingsState.getInstance(project));
         applyFilter();
         updateDetailPanel(selectedRow());
         updateStatus();
@@ -1177,7 +1250,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private boolean isOrderMoveAvailable() {
-        return searchField.getText().trim().isEmpty()
+        return translationTable != null
+            && searchField.getText().trim().isEmpty()
             && !addedOnly.isSelected()
             && !warningOnly.isSelected()
             && !modifiedOnly.isSelected()
@@ -1696,6 +1770,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private void updateDetailPanel(LocaleGridRow row) {
         updatingDetail = true;
         detailFields.removeAll();
+        detailFieldBindings.clear();
         if (row == null || translationTable == null) {
             int selectedCount = selectedRowCount();
             detailTitle.setText(selectedCount > 1 ? selectedCount + "개 Row가 선택되었습니다." : "편집할 Row를 선택하세요.");
@@ -1724,7 +1799,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             installTextAreaFocusTraversal(editor);
             editor.setEditable(!row.isDeleted() && value.isEditable());
             editor.setEnabled(editor.isEditable());
-            editor.setToolTipText(value.isEditable() ? null : "읽기 전용 value 타입입니다.");
+            updateDetailFieldTooltips(row, locale, value, localeLabel, editor);
             editor.getDocument().addDocumentListener(new SimpleDocumentListener(() -> {
                 if (updatingDetail) {
                     return;
@@ -1732,6 +1807,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 value.setText(LocaleTextEscaper.unescapeFromEditor(editor.getText()));
                 refreshAfterEdit(row);
             }));
+            detailFieldBindings.add(new DetailFieldBinding(locale, value, localeLabel, editor));
 
             JPanel rowPanel = new JPanel(new BorderLayout(8, 0));
             rowPanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
@@ -1747,14 +1823,75 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         updatingDetail = false;
     }
 
+    private void updateDetailFieldTooltips(
+        LocaleGridRow row,
+        String locale,
+        LocaleValue value,
+        JLabel localeLabel,
+        JTextArea editor
+    ) {
+        String diagnosticTooltip = model.getLocaleDiagnosticTooltip(row, locale);
+        String readonlyTooltip = null;
+        if (row.isDeleted()) {
+            readonlyTooltip = "삭제된 Row는 편집할 수 없습니다.";
+        } else if (!value.isEditable()) {
+            readonlyTooltip = "읽기 전용 value 타입입니다.";
+        }
+        String tooltip = joinTooltips(readonlyTooltip, diagnosticTooltip);
+        localeLabel.setToolTipText(tooltip);
+        editor.setToolTipText(tooltip);
+    }
+
+    private static String joinTooltips(@Nullable String first, @Nullable String second) {
+        if (first == null || first.isBlank()) {
+            return second;
+        }
+        if (second == null || second.isBlank()) {
+            return first;
+        }
+        return first + " / " + second;
+    }
+
     private void refreshAfterEdit(LocaleGridRow row) {
         translationTable.getDiagnostics().clear();
         translationTable.getDiagnostics().addAll(translationTable.getActiveSourceDiagnostics());
-        TableValidator.validate(translationTable);
-        model.refreshRow(row);
+        TableValidator.validate(translationTable, LocaleGridSettingsState.getInstance(project));
+        refreshDetailFieldTooltips(row);
+        suppressDetailSelectionRefresh = true;
+        try {
+            applyActiveFilterToModel();
+            int visibleIndex = model.indexOf(row);
+            ListSelectionModel selectionModel = grid.getSelectionModel();
+            selectionModel.setValueIsAdjusting(true);
+            try {
+                if (visibleIndex >= 0) {
+                    selectionModel.setSelectionInterval(visibleIndex, visibleIndex);
+                } else {
+                    selectionModel.clearSelection();
+                }
+            } finally {
+                selectionModel.setValueIsAdjusting(false);
+            }
+        } finally {
+            suppressDetailSelectionRefresh = false;
+        }
+        updateRowActionButtons();
+        grid.repaint();
         updateStatus();
         repaintStatusScrollMap();
         updateModifiedState();
+    }
+
+    private void refreshDetailFieldTooltips(LocaleGridRow row) {
+        for (DetailFieldBinding binding : detailFieldBindings) {
+            updateDetailFieldTooltips(
+                row,
+                binding.locale(),
+                binding.value(),
+                binding.localeLabel(),
+                binding.editor()
+            );
+        }
     }
 
     private void discardUnsavedGridChanges() {
@@ -1814,19 +1951,23 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void resizeColumns() {
-        if (grid.getColumnModel().getColumnCount() == 0) {
+        int columnCount = grid.getColumnModel().getColumnCount();
+        if (columnCount == 0) {
             return;
         }
-        grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setPreferredWidth(30);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setMinWidth(28);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setMaxWidth(34);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setPreferredWidth(96);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setMaxWidth(132);
-        grid.getColumnModel().getColumn(LocaleGridTableModel.KEY_COLUMN).setPreferredWidth(280);
-        for (int i = LocaleGridTableModel.KEY_COLUMN; i < grid.getColumnModel().getColumnCount(); i++) {
-            if (i == LocaleGridTableModel.KEY_COLUMN) {
-                continue;
-            }
+        if (columnCount > LocaleGridTableModel.HANDLE_COLUMN) {
+            grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setPreferredWidth(30);
+            grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setMinWidth(28);
+            grid.getColumnModel().getColumn(LocaleGridTableModel.HANDLE_COLUMN).setMaxWidth(34);
+        }
+        if (columnCount > LocaleGridTableModel.STATUS_COLUMN) {
+            grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setPreferredWidth(96);
+            grid.getColumnModel().getColumn(LocaleGridTableModel.STATUS_COLUMN).setMaxWidth(132);
+        }
+        if (columnCount > LocaleGridTableModel.KEY_COLUMN) {
+            grid.getColumnModel().getColumn(LocaleGridTableModel.KEY_COLUMN).setPreferredWidth(280);
+        }
+        for (int i = LocaleGridTableModel.KEY_COLUMN + 1; i < columnCount; i++) {
             String columnName = grid.getColumnName(i);
             grid.getColumnModel().getColumn(i).setPreferredWidth(
                 LocaleGridTableModel.BUNDLE_COLUMN_NAME.equals(columnName) ? 360 : 220
@@ -2041,6 +2182,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             return;
         }
         if (isModified()) {
+            if (translationTable != null) {
+                validateCurrentTable();
+            }
             return;
         }
         reload(captureViewState());
@@ -2163,14 +2307,29 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private static final class ViewState {
         private final Set<String> visibleLocales;
+        private final Set<String> knownLocales;
         private final boolean bundleVisible;
         private final String selectedKey;
 
-        private ViewState(Set<String> visibleLocales, boolean bundleVisible, @Nullable String selectedKey) {
+        private ViewState(
+            Set<String> visibleLocales,
+            Set<String> knownLocales,
+            boolean bundleVisible,
+            @Nullable String selectedKey
+        ) {
             this.visibleLocales = visibleLocales;
+            this.knownLocales = knownLocales;
             this.bundleVisible = bundleVisible;
             this.selectedKey = selectedKey;
         }
+    }
+
+    private record DetailFieldBinding(
+        String locale,
+        LocaleValue value,
+        JLabel localeLabel,
+        JTextArea editor
+    ) {
     }
 
     private static final class SimpleDocumentListener implements DocumentListener {

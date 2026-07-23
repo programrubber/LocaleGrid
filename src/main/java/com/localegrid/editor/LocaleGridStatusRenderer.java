@@ -157,11 +157,11 @@ class LocaleGridStatusRenderer extends JComponent implements TableCellRenderer {
     private static String statusDescription(String code) {
         switch (code) {
             case "에러":
-                return "에러 - 중복 key 또는 dot path 충돌로 적용이 차단됩니다.";
+                return "에러 - 적용을 차단하는 검증 오류가 있어 확인이 필요합니다.";
             case "추가":
                 return "추가 - 적용 시 새로 추가될 Row입니다.";
             case "경고":
-                return "경고 - 빈 값 또는 누락된 번역이 있어 확인이 필요합니다.";
+                return "경고 - 번역 값에 확인이 필요한 검증 경고가 있습니다.";
             case "삭제":
                 return "삭제 - 적용 시 제거될 Row입니다.";
             case "편집":

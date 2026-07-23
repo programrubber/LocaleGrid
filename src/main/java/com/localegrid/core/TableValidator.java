@@ -4,15 +4,34 @@ import com.localegrid.model.Diagnostic;
 import com.localegrid.model.LocaleGridRow;
 import com.localegrid.model.LocaleValue;
 import com.localegrid.model.TranslationTable;
+import com.localegrid.settings.LocaleGridSettingsState;
 
 import java.util.HashSet;
 import java.util.Set;
 
 public final class TableValidator {
+    private static final LocaleScriptValidator LOCALE_SCRIPT_VALIDATOR = new LocaleScriptValidator();
+
     private TableValidator() {
     }
 
     public static void validate(TranslationTable table) {
+        validate(table, true, Diagnostic.Severity.WARNING);
+    }
+
+    public static void validate(TranslationTable table, LocaleGridSettingsState settings) {
+        boolean localeScriptValidationEnabled = settings == null || settings.localeScriptValidationEnabled;
+        Diagnostic.Severity localeScriptViolationSeverity = settings != null && settings.isLocaleScriptViolationError()
+            ? Diagnostic.Severity.ERROR
+            : Diagnostic.Severity.WARNING;
+        validate(table, localeScriptValidationEnabled, localeScriptViolationSeverity);
+    }
+
+    static void validate(
+        TranslationTable table,
+        boolean localeScriptValidationEnabled,
+        Diagnostic.Severity localeScriptViolationSeverity
+    ) {
         Set<String> seen = new HashSet<>();
         Set<String> normalKeys = new HashSet<>();
 
@@ -41,6 +60,20 @@ public final class TableValidator {
                 }
                 if (value.isPresent() && !value.isEditable()) {
                     table.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.WARNING, "Unsupported non-string value is readonly: " + key, key));
+                }
+                if (localeScriptValidationEnabled && value.isEditable() && !value.getDisplayText().isEmpty()) {
+                    LocaleScriptValidator.ValidationResult result = LOCALE_SCRIPT_VALIDATOR.validate(
+                        locale,
+                        value.getDisplayText()
+                    );
+                    if (result.isChecked() && !result.isValid()) {
+                        table.getDiagnostics().add(new Diagnostic(
+                            localeScriptViolationSeverity,
+                            locale + " 값에 " + result.summarize(),
+                            key,
+                            locale
+                        ));
+                    }
                 }
             }
             if (missing) {

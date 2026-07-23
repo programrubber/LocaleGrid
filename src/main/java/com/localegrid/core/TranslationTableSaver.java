@@ -28,12 +28,12 @@ public class TranslationTableSaver {
     public SavePreview preview(Project project, TranslationTable table, boolean createMissingFiles) {
         SavePreview preview = new SavePreview();
         preview.setOrderChanged(table.isOrderChanged());
-        prepareValidation(table, preview.getDiagnostics());
+        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
+        prepareValidation(table, settings, preview.getDiagnostics());
         if (preview.hasErrors()) {
             return preview;
         }
 
-        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
         for (String locale : table.getLocales()) {
             File file = table.getFilesByLocale().get(locale);
             if (file == null) {
@@ -61,12 +61,12 @@ public class TranslationTableSaver {
     public SaveResult save(Project project, TranslationTable table, boolean createMissingFiles) {
         SaveResult result = new SaveResult();
         result.setOrderChanged(table.isOrderChanged());
-        prepareValidation(table, result.getDiagnostics());
+        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
+        prepareValidation(table, settings, result.getDiagnostics());
         if (table.hasErrors()) {
             return result;
         }
 
-        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
         WriteCommandAction.runWriteCommandAction(project, "LocaleGrid 저장", null, () -> {
             for (String locale : table.getLocales()) {
                 File file = table.getFilesByLocale().get(locale);
@@ -101,10 +101,14 @@ public class TranslationTableSaver {
         return result;
     }
 
-    private static void prepareValidation(TranslationTable table, List<Diagnostic> diagnostics) {
+    private static void prepareValidation(
+        TranslationTable table,
+        LocaleGridSettingsState settings,
+        List<Diagnostic> diagnostics
+    ) {
         table.getDiagnostics().clear();
         table.getDiagnostics().addAll(table.getActiveSourceDiagnostics());
-        TableValidator.validate(table);
+        TableValidator.validate(table, settings);
         diagnostics.addAll(table.getDiagnostics());
     }
 

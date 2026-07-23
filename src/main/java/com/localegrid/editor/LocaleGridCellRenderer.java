@@ -55,6 +55,7 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         setBackground(background);
         text.setBackground(background);
         text.setForeground(foreground);
+        setToolTipText(model.getCellDiagnosticTooltip(gridRow, column));
 
         String cellText = keyColumn ? gridRow.getKey() : value == null ? "" : String.valueOf(value);
         text.setText(cellText);
@@ -90,13 +91,13 @@ class LocaleGridCellRenderer extends JPanel implements TableCellRenderer {
         if (row.isDeleted()) {
             return DELETED_BG;
         }
-        if (model.hasError(row)) {
+        if (model.hasError(row, column)) {
             return ERROR_BG;
         }
         if (row.isExceptionKey()) {
             return EXCEPTION_KEY_BG;
         }
-        if (model.hasWarning(row)) {
+        if (model.hasWarning(row, column)) {
             return WARNING_BG;
         }
         if (!model.isKeyColumn(column) && !model.isBundleColumn(column)) {
