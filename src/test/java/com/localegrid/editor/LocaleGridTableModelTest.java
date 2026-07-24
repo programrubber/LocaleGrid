@@ -203,6 +203,37 @@ class LocaleGridTableModelTest {
     }
 
     @Test
+    void statusFiltersMatchAnySelectedStatus() {
+        TranslationTable table = createTable();
+        table.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.WARNING, "확인이 필요합니다.", "login.title"));
+        table.getRows().get(1).getValue("ko").setText("홈 수정");
+
+        LocaleGridTableModel model = new LocaleGridTableModel();
+        model.setTable(table);
+
+        model.applyFilter("", false, true, true, false, false);
+
+        assertEquals(2, model.getRowCount());
+        assertEquals("login.title", model.getRow(0).getKey());
+        assertEquals("home.title", model.getRow(1).getKey());
+    }
+
+    @Test
+    void searchStillNarrowsStatusFilterResults() {
+        TranslationTable table = createTable();
+        table.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.WARNING, "확인이 필요합니다.", "login.title"));
+        table.getRows().get(1).getValue("ko").setText("홈 수정");
+
+        LocaleGridTableModel model = new LocaleGridTableModel();
+        model.setTable(table);
+
+        model.applyFilter("login", false, true, true, false, false);
+
+        assertEquals(1, model.getRowCount());
+        assertEquals("login.title", model.getRow(0).getKey());
+    }
+
+    @Test
     void highlightRangesFindAllCaseInsensitiveMatches() {
         List<LocaleGridCellRenderer.HighlightRange> ranges =
             LocaleGridCellRenderer.findHighlightRanges("Login login LOGIN", "login");

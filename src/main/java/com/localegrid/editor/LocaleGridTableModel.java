@@ -89,23 +89,26 @@ class LocaleGridTableModel extends AbstractTableModel {
             if (!matchesSearch(row, term)) {
                 continue;
             }
-            if (addedOnly && !row.isAdded()) {
-                continue;
-            }
-            if (warningOnly && !hasWarning(row)) {
-                continue;
-            }
-            if (modifiedOnly && (row.isAdded() || row.isDeleted() || !row.isModified())) {
-                continue;
-            }
-            if (deletedOnly && !row.isDeleted()) {
-                continue;
-            }
-            if (errorOnly && !hasError(row)) {
+            if (!matchesStatusFilter(row, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly)) {
                 continue;
             }
             visibleRows.add(row);
         }
+    }
+
+    private boolean matchesStatusFilter(LocaleGridRow row, boolean addedOnly, boolean warningOnly, boolean modifiedOnly, boolean deletedOnly, boolean errorOnly) {
+        if (!addedOnly && !warningOnly && !modifiedOnly && !deletedOnly && !errorOnly) {
+            return true;
+        }
+        return addedOnly && row.isAdded()
+            || warningOnly && hasWarning(row)
+            || modifiedOnly && isEditedRow(row)
+            || deletedOnly && row.isDeleted()
+            || errorOnly && hasError(row);
+    }
+
+    private static boolean isEditedRow(LocaleGridRow row) {
+        return !row.isAdded() && !row.isDeleted() && row.isModified();
     }
 
     TranslationTable getTranslationTable() {
