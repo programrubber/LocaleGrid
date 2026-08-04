@@ -61,7 +61,9 @@ login.button
 - 중첩 JSON을 dot path key로 펼쳐 표시
 - 문자열 value 직접 편집
 - key 추가, rename, 삭제 후보 표시
-- 검색어와 매칭된 텍스트를 셀 안에서 강조 표시
+- 검색어와 매칭된 텍스트를 셀 안에서 강조하고 `현재 / 전체` 건수와 이전·다음 결과 탐색 제공
+- 검색창의 필터 버튼을 켠 경우에만 검색 결과 Row만 표시
+- 상세 value 연속 입력 시 debounce를 적용해 검증과 테이블 갱신 부하 완화
 - 빈 value warning 표시
 - ko/en/ja/vi 고정 규칙과 CLDR 보완 규칙 기반 예상 문자 체계 위반 진단 표시
 - dot path 충돌 및 중복 key error 검증

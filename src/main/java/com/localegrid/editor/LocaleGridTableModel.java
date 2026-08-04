@@ -24,8 +24,10 @@ class LocaleGridTableModel extends AbstractTableModel {
 
     private TranslationTable table;
     private final List<LocaleGridRow> visibleRows = new ArrayList<>();
+    private final List<LocaleGridRow> searchMatches = new ArrayList<>();
     private final List<String> visibleLocales = new ArrayList<>();
     private boolean bundleVisible;
+    private boolean searchFilterEnabled;
     private String searchTerm = "";
 
     void setTable(TranslationTable table) {
@@ -35,8 +37,9 @@ class LocaleGridTableModel extends AbstractTableModel {
             visibleLocales.addAll(table.getLocales());
         }
         bundleVisible = false;
+        searchFilterEnabled = false;
         searchTerm = "";
-        rebuildVisibleRows("", false, false, false, false, false);
+        rebuildVisibleRows(false, false, false, false, false);
         fireTableStructureChanged();
     }
 
@@ -72,24 +75,55 @@ class LocaleGridTableModel extends AbstractTableModel {
         return searchTerm;
     }
 
-    void applyFilter(String search, boolean addedOnly, boolean warningOnly, boolean modifiedOnly, boolean deletedOnly, boolean errorOnly) {
+    boolean isSearchFilterActive() {
+        return searchFilterEnabled && !searchTerm.isEmpty();
+    }
+
+    List<LocaleGridRow> getSearchMatches() {
+        return List.copyOf(searchMatches);
+    }
+
+    int getSearchMatchCount() {
+        return searchMatches.size();
+    }
+
+    void applyFilter(
+        String search,
+        boolean searchFilterEnabled,
+        boolean addedOnly,
+        boolean warningOnly,
+        boolean modifiedOnly,
+        boolean deletedOnly,
+        boolean errorOnly
+    ) {
         searchTerm = normalizeSearchTerm(search);
-        rebuildVisibleRows(searchTerm, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly);
+        this.searchFilterEnabled = searchFilterEnabled;
+        rebuildVisibleRows(addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly);
         fireTableDataChanged();
     }
 
-    private void rebuildVisibleRows(String search, boolean addedOnly, boolean warningOnly, boolean modifiedOnly, boolean deletedOnly, boolean errorOnly) {
+    private void rebuildVisibleRows(
+        boolean addedOnly,
+        boolean warningOnly,
+        boolean modifiedOnly,
+        boolean deletedOnly,
+        boolean errorOnly
+    ) {
         visibleRows.clear();
+        searchMatches.clear();
         if (table == null) {
             return;
         }
 
-        String term = normalizeSearchTerm(search);
         for (LocaleGridRow row : table.getRows()) {
-            if (!matchesSearch(row, term)) {
+            if (!matchesStatusFilter(row, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly)) {
                 continue;
             }
-            if (!matchesStatusFilter(row, addedOnly, warningOnly, modifiedOnly, deletedOnly, errorOnly)) {
+            boolean searchMatch = matchesSearch(row, searchTerm);
+            if (searchMatch) {
+                searchMatches.add(row);
+            }
+            if (isSearchFilterActive() && !searchMatch) {
                 continue;
             }
             visibleRows.add(row);
@@ -387,7 +421,10 @@ class LocaleGridTableModel extends AbstractTableModel {
     }
 
     private boolean matchesSearch(LocaleGridRow row, String term) {
-        if (term.isEmpty() || row.getKey().toLowerCase(Locale.ROOT).contains(term)) {
+        if (term.isEmpty()) {
+            return false;
+        }
+        if (row.getKey().toLowerCase(Locale.ROOT).contains(term)) {
             return true;
         }
         for (LocaleValue value : row.getValues().values()) {

@@ -77,6 +77,8 @@ import java.util.Set;
 public class LocaleGridFileEditor extends UserDataHolderBase implements FileEditor {
     private static final String EDITOR_NAME = "다국어 에디터";
     private static final String EDITING_EDITOR_NAME = "다국어 에디터 (편집중)";
+    private static final int SEARCH_DEBOUNCE_MILLIS = 200;
+    private static final int DETAIL_EDIT_DEBOUNCE_MILLIS = 300;
 
     private final Project project;
     private final VirtualFile file;
@@ -124,6 +126,28 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     };
     private final JBTextField searchField = new JBTextField();
+    private final JLabel searchMatchLabel = new JLabel("0 / 0");
+    private final JButton previousSearchMatchButton = new SearchControlButton(
+        AllIcons.Actions.PreviousOccurence,
+        "이전 검색 결과"
+    );
+    private final JButton nextSearchMatchButton = new SearchControlButton(
+        AllIcons.Actions.NextOccurence,
+        "다음 검색 결과"
+    );
+    private final JToggleButton searchFilterToggle = new SearchFilterToggleButton(
+        AllIcons.General.Filter,
+        "검색 결과만 보기"
+    );
+    private final SearchNavigationState searchNavigation = new SearchNavigationState();
+    private final SwingDebouncer searchInputDebouncer = new SwingDebouncer(
+        SEARCH_DEBOUNCE_MILLIS,
+        this::applyDebouncedSearch
+    );
+    private final SwingDebouncer detailEditDebouncer = new SwingDebouncer(
+        DETAIL_EDIT_DEBOUNCE_MILLIS,
+        this::refreshAfterEdit
+    );
     private final StatusFilterButton addedOnly = new StatusFilterButton("추가");
     private final StatusFilterButton warningOnly = new StatusFilterButton("경고");
     private final StatusFilterButton modifiedOnly = new StatusFilterButton("편집");
@@ -226,13 +250,17 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         searchField.getEmptyText().setText("검색");
         searchField.setMinimumSize(new Dimension(80, 26));
         searchField.setPreferredSize(new Dimension(240, 26));
+        searchMatchLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        searchMatchLabel.setForeground(new JBColor(new Color(75, 85, 99), new Color(190, 195, 200)));
+        searchMatchLabel.setPreferredSize(new Dimension(48, 24));
+        searchMatchLabel.setMinimumSize(new Dimension(48, 24));
 
         JPanel searchRoundRectWrapper = new JPanel(new BorderLayout(6, 0)) {
             {
                 setOpaque(false);
-                setMinimumSize(new Dimension(140, 32));
-                setPreferredSize(new Dimension(360, 32));
-                setMaximumSize(new Dimension(520, 32));
+                setMinimumSize(new Dimension(280, 32));
+                setPreferredSize(new Dimension(460, 32));
+                setMaximumSize(new Dimension(660, 32));
             }
 
             @Override
@@ -259,8 +287,17 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JLabel searchIconLabel = new JLabel(com.intellij.util.IconUtil.colorize(AllIcons.Actions.Find, new Color(180, 180, 180)));
         searchIconLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
 
+        JPanel searchControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 4));
+        searchControls.setOpaque(false);
+        searchControls.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 6));
+        searchControls.add(searchMatchLabel);
+        searchControls.add(previousSearchMatchButton);
+        searchControls.add(nextSearchMatchButton);
+        searchControls.add(searchFilterToggle);
+
         searchRoundRectWrapper.add(searchIconLabel, BorderLayout.WEST);
         searchRoundRectWrapper.add(searchField, BorderLayout.CENTER);
+        searchRoundRectWrapper.add(searchControls, BorderLayout.EAST);
 
         searchField.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
@@ -328,6 +365,10 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         grid.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 LocaleGridRow row = selectedRow();
+                if (selectedRowCount() == 1) {
+                    searchNavigation.syncToSelection(row, model.getSearchMatches());
+                }
+                updateSearchControls();
                 if (!suppressDetailSelectionRefresh) {
                     updateDetailPanel(selectedRowCount() == 1 ? row : null);
                 }
@@ -380,17 +421,20 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         applyButton.addActionListener(e -> applyChanges());
         cancelButton.addActionListener(e -> cancelChangesWithConfirm());
 
-        DocumentListener filterListener = new SimpleDocumentListener(this::applyFilter);
-        searchField.getDocument().addDocumentListener(filterListener);
-        addedOnly.addActionListener(e -> applyFilter());
-        warningOnly.addActionListener(e -> applyFilter());
-        modifiedOnly.addActionListener(e -> applyFilter());
-        deletedOnly.addActionListener(e -> applyFilter());
-        errorOnly.addActionListener(e -> applyFilter());
+        searchField.getDocument().addDocumentListener(new SimpleDocumentListener(searchInputDebouncer::restart));
+        previousSearchMatchButton.addActionListener(e -> navigateSearchMatches(-1));
+        nextSearchMatchButton.addActionListener(e -> navigateSearchMatches(1));
+        searchFilterToggle.addActionListener(e -> applyFilterFromControl());
+        addedOnly.addActionListener(e -> applyFilterFromControl());
+        warningOnly.addActionListener(e -> applyFilterFromControl());
+        modifiedOnly.addActionListener(e -> applyFilterFromControl());
+        deletedOnly.addActionListener(e -> applyFilterFromControl());
+        errorOnly.addActionListener(e -> applyFilterFromControl());
         bundleColumnCheck.addActionListener(e -> applyColumnVisibility());
         installOrderDragHandler();
         installGridClipboardHandler();
         updateRowActionButtons();
+        updateSearchControls();
     }
 
     private void rememberClickedCell(MouseEvent event) {
@@ -667,6 +711,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void reload(@Nullable ViewState state) {
+        searchInputDebouncer.cancel();
+        detailEditDebouncer.cancel();
         try {
             TranslationTable loadedTable = new TranslationTableLoader().load(project, file);
             translationTable = loadedTable;
@@ -787,9 +833,38 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void applyFilter() {
-        applyActiveFilterToModel();
-        LocaleGridRow row = selectedRow();
-        updateDetailPanel(selectedRowCount() == 1 ? row : null);
+        applyFilter(false, false);
+    }
+
+    private void applyDebouncedSearch() {
+        detailEditDebouncer.flush();
+        applyFilter(true, true);
+    }
+
+    private void applyFilterFromControl() {
+        searchInputDebouncer.flush();
+        detailEditDebouncer.flush();
+        applyFilter(false, !model.getSearchTerm().isEmpty());
+    }
+
+    private void applyFilter(boolean resetSearchNavigation, boolean selectSearchMatch) {
+        List<LocaleGridRow> selectedBefore = selectedRows();
+        suppressDetailSelectionRefresh = true;
+        try {
+            applyActiveFilterToModel();
+            searchNavigation.update(model.getSearchMatches(), resetSearchNavigation);
+            LocaleGridRow searchMatch = searchNavigation.getCurrent();
+            if (selectSearchMatch && searchMatch != null) {
+                selectRow(searchMatch);
+            } else {
+                restoreSelectionAfterModelChange(selectedBefore);
+            }
+        } finally {
+            suppressDetailSelectionRefresh = false;
+        }
+        updateSearchControls();
+        LocaleGridRow selected = selectedRow();
+        updateDetailPanel(selectedRowCount() == 1 ? selected : null);
         updateRowActionButtons();
         grid.repaint();
         repaintStatusScrollMap();
@@ -798,12 +873,51 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private void applyActiveFilterToModel() {
         model.applyFilter(
             searchField.getText(),
+            searchFilterToggle.isSelected(),
             addedOnly.isSelected(),
             warningOnly.isSelected(),
             modifiedOnly.isSelected(),
             deletedOnly.isSelected(),
             errorOnly.isSelected()
         );
+    }
+
+    private void navigateSearchMatches(int direction) {
+        searchInputDebouncer.flush();
+        detailEditDebouncer.flush();
+        LocaleGridRow row = searchNavigation.move(model.getSearchMatches(), direction);
+        if (row != null) {
+            selectRow(row);
+        }
+        updateSearchControls();
+    }
+
+    private void updateSearchControls() {
+        List<LocaleGridRow> matches = model.getSearchMatches();
+        int currentIndex = searchNavigation.getCurrentIndex(matches);
+        int total = matches.size();
+        searchMatchLabel.setText(total == 0 || currentIndex < 0 ? "0 / " + total : (currentIndex + 1) + " / " + total);
+        boolean navigationEnabled = total > 0;
+        previousSearchMatchButton.setEnabled(navigationEnabled);
+        nextSearchMatchButton.setEnabled(navigationEnabled);
+    }
+
+    private void restoreSelectionAfterModelChange(List<LocaleGridRow> rows) {
+        List<Integer> indexes = rows.stream()
+            .map(model::indexOf)
+            .filter(index -> index >= 0)
+            .sorted()
+            .toList();
+        ListSelectionModel selectionModel = grid.getSelectionModel();
+        selectionModel.setValueIsAdjusting(true);
+        try {
+            selectionModel.clearSelection();
+            for (int index : indexes) {
+                selectionModel.addSelectionInterval(index, index);
+            }
+        } finally {
+            selectionModel.setValueIsAdjusting(false);
+        }
     }
 
     private void repaintStatusScrollMap() {
@@ -1081,6 +1195,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void applyChanges() {
+        searchInputDebouncer.flush();
+        detailEditDebouncer.flush();
         if (translationTable == null) {
             Messages.showErrorDialog(project, "현재 설정에서 이 파일을 다국어 테이블로 불러올 수 없어 적용할 수 없습니다.", "LocaleGrid 적용");
             return;
@@ -1251,7 +1367,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private boolean isOrderMoveAvailable() {
         return translationTable != null
-            && searchField.getText().trim().isEmpty()
+            && !model.isSearchFilterActive()
             && !addedOnly.isSelected()
             && !warningOnly.isSelected()
             && !modifiedOnly.isSelected()
@@ -1805,8 +1921,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                     return;
                 }
                 value.setText(LocaleTextEscaper.unescapeFromEditor(editor.getText()));
-                refreshAfterEdit(row);
+                updateModifiedState();
+                detailEditDebouncer.restart();
             }));
+            editor.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusLost(java.awt.event.FocusEvent event) {
+                    detailEditDebouncer.flush();
+                }
+            });
             detailFieldBindings.add(new DetailFieldBinding(locale, value, localeLabel, editor));
 
             JPanel rowPanel = new JPanel(new BorderLayout(8, 0));
@@ -1852,29 +1975,28 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         return first + " / " + second;
     }
 
-    private void refreshAfterEdit(LocaleGridRow row) {
+    private void refreshAfterEdit() {
+        if (translationTable == null) {
+            return;
+        }
+        List<LocaleGridRow> selectedBefore = selectedRows();
         translationTable.getDiagnostics().clear();
         translationTable.getDiagnostics().addAll(translationTable.getActiveSourceDiagnostics());
         TableValidator.validate(translationTable, LocaleGridSettingsState.getInstance(project));
-        refreshDetailFieldTooltips(row);
         suppressDetailSelectionRefresh = true;
         try {
             applyActiveFilterToModel();
-            int visibleIndex = model.indexOf(row);
-            ListSelectionModel selectionModel = grid.getSelectionModel();
-            selectionModel.setValueIsAdjusting(true);
-            try {
-                if (visibleIndex >= 0) {
-                    selectionModel.setSelectionInterval(visibleIndex, visibleIndex);
-                } else {
-                    selectionModel.clearSelection();
-                }
-            } finally {
-                selectionModel.setValueIsAdjusting(false);
-            }
+            searchNavigation.update(model.getSearchMatches(), false);
+            restoreSelectionAfterModelChange(selectedBefore);
         } finally {
             suppressDetailSelectionRefresh = false;
         }
+        LocaleGridRow selected = selectedRowCount() == 1 ? selectedRow() : null;
+        if (selected != null) {
+            refreshDetailFieldTooltips(selected);
+            searchNavigation.syncToSelection(selected, model.getSearchMatches());
+        }
+        updateSearchControls();
         updateRowActionButtons();
         grid.repaint();
         updateStatus();
@@ -2303,6 +2425,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     @Override
     public void dispose() {
+        searchInputDebouncer.cancel();
+        detailEditDebouncer.cancel();
     }
 
     private static final class ViewState {
@@ -2394,6 +2518,74 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 g.dispose();
             }
             super.paintComponent(graphics);
+        }
+    }
+
+    private static final class SearchControlButton extends JButton {
+        private SearchControlButton(Icon icon, String tooltip) {
+            super(icon);
+            configureSearchControl(this, tooltip);
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            paintSearchControlBackground(this, graphics, false);
+            super.paintComponent(graphics);
+        }
+    }
+
+    private static final class SearchFilterToggleButton extends JToggleButton {
+        private SearchFilterToggleButton(Icon icon, String tooltip) {
+            super(icon);
+            configureSearchControl(this, tooltip);
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            paintSearchControlBackground(this, graphics, isSelected());
+            super.paintComponent(graphics);
+        }
+    }
+
+    private static void configureSearchControl(AbstractButton button, String tooltip) {
+        button.setToolTipText(tooltip);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setFocusable(false);
+        button.setRolloverEnabled(true);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(24, 24));
+        button.setMinimumSize(new Dimension(24, 24));
+        button.setMaximumSize(new Dimension(24, 24));
+    }
+
+    private static void paintSearchControlBackground(AbstractButton button, Graphics graphics, boolean selected) {
+        Graphics2D g = (Graphics2D) graphics.create();
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            ButtonModel state = button.getModel();
+            Color fill;
+            if (!button.isEnabled()) {
+                fill = new Color(68, 72, 74, 90);
+            } else if (selected) {
+                fill = state.isPressed() ? new Color(29, 78, 216) : new Color(37, 99, 235);
+            } else if (state.isPressed()) {
+                fill = new Color(65, 70, 74);
+            } else if (state.isRollover()) {
+                fill = new Color(80, 85, 88);
+            } else {
+                fill = new Color(0, 0, 0, 0);
+            }
+            g.setColor(fill);
+            g.fillRoundRect(1, 1, button.getWidth() - 2, button.getHeight() - 2, 6, 6);
+            if (selected) {
+                g.setColor(new Color(96, 165, 250));
+                g.drawRoundRect(1, 1, button.getWidth() - 3, button.getHeight() - 3, 6, 6);
+            }
+        } finally {
+            g.dispose();
         }
     }
 

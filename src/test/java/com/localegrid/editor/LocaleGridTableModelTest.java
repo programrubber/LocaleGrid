@@ -41,7 +41,7 @@ class LocaleGridTableModelTest {
         LocaleGridTableModel model = new LocaleGridTableModel();
         model.setTable(createTable());
 
-        model.applyFilter("  LOGIN  ", false, false, false, false, false);
+        model.applyFilter("  LOGIN  ", false, false, false, false, false, false);
 
         assertEquals("login", model.getSearchTerm());
     }
@@ -177,29 +177,54 @@ class LocaleGridTableModelTest {
         LocaleGridTableModel model = new LocaleGridTableModel();
         model.setTable(createTable());
 
-        model.applyFilter("login", false, false, false, false, false);
-        model.applyFilter("   ", false, false, false, false, false);
+        model.applyFilter("login", false, false, false, false, false, false);
+        model.applyFilter("   ", false, false, false, false, false, false);
 
         assertEquals("", model.getSearchTerm());
         assertEquals(3, model.getRowCount());
     }
 
     @Test
-    void filterMatchesKeyValueAndIgnoresCase() {
+    void searchHighlightsWithoutFilteringRows() {
         LocaleGridTableModel model = new LocaleGridTableModel();
         model.setTable(createTable());
 
-        model.applyFilter("LOGIN", false, false, false, false, false);
+        model.applyFilter("LOGIN", false, false, false, false, false, false);
+
+        assertEquals(3, model.getRowCount());
+        assertEquals(1, model.getSearchMatchCount());
+        assertEquals("login.title", model.getSearchMatches().get(0).getKey());
+    }
+
+    @Test
+    void searchFilterMatchesKeyValueAndIgnoresCase() {
+        LocaleGridTableModel model = new LocaleGridTableModel();
+        model.setTable(createTable());
+
+        model.applyFilter("LOGIN", true, false, false, false, false, false);
         assertEquals(1, model.getRowCount());
         assertEquals("login.title", model.getRow(0).getKey());
 
-        model.applyFilter("DASHBOARD", false, false, false, false, false);
+        model.applyFilter("DASHBOARD", true, false, false, false, false, false);
         assertEquals(1, model.getRowCount());
         assertEquals("home.title", model.getRow(0).getKey());
 
-        model.applyFilter("설정", false, false, false, false, false);
+        model.applyFilter("설정", true, false, false, false, false, false);
         assertEquals(1, model.getRowCount());
         assertEquals("settings.title", model.getRow(0).getKey());
+    }
+
+    @Test
+    void searchMatchesHiddenLocaleValues() {
+        LocaleGridTableModel model = new LocaleGridTableModel();
+        model.setTable(createTable());
+        model.setVisibleLocales(List.of("ko"));
+
+        model.applyFilter("dashboard", false, false, false, false, false, false);
+
+        assertEquals(3, model.getRowCount());
+        assertEquals(1, model.getSearchMatchCount());
+        assertEquals("home.title", model.getSearchMatches().get(0).getKey());
     }
 
     @Test
@@ -211,11 +236,27 @@ class LocaleGridTableModelTest {
         LocaleGridTableModel model = new LocaleGridTableModel();
         model.setTable(table);
 
-        model.applyFilter("", false, true, true, false, false);
+        model.applyFilter("", false, false, true, true, false, false);
 
         assertEquals(2, model.getRowCount());
         assertEquals("login.title", model.getRow(0).getKey());
         assertEquals("home.title", model.getRow(1).getKey());
+    }
+
+    @Test
+    void searchCountUsesRowsRemainingAfterStatusFilters() {
+        TranslationTable table = createTable();
+        table.getDiagnostics().add(new Diagnostic(Diagnostic.Severity.WARNING, "확인이 필요합니다.", "login.title"));
+        table.getRows().get(1).getValue("ko").setText("홈 수정");
+
+        LocaleGridTableModel model = new LocaleGridTableModel();
+        model.setTable(table);
+
+        model.applyFilter("login", false, false, true, true, false, false);
+
+        assertEquals(2, model.getRowCount());
+        assertEquals(1, model.getSearchMatchCount());
+        assertEquals("login.title", model.getSearchMatches().get(0).getKey());
     }
 
     @Test
@@ -227,9 +268,10 @@ class LocaleGridTableModelTest {
         LocaleGridTableModel model = new LocaleGridTableModel();
         model.setTable(table);
 
-        model.applyFilter("login", false, true, true, false, false);
+        model.applyFilter("login", true, false, true, true, false, false);
 
         assertEquals(1, model.getRowCount());
+        assertEquals(1, model.getSearchMatchCount());
         assertEquals("login.title", model.getRow(0).getKey());
     }
 
