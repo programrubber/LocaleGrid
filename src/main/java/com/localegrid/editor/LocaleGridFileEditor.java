@@ -77,7 +77,7 @@ import java.util.Set;
 public class LocaleGridFileEditor extends UserDataHolderBase implements FileEditor {
     private static final String EDITOR_NAME = "다국어 에디터";
     private static final String EDITING_EDITOR_NAME = "다국어 에디터 (편집중)";
-    private static final int SEARCH_DEBOUNCE_MILLIS = 200;
+    private static final int SEARCH_DEBOUNCE_MILLIS = 500;
     private static final int DETAIL_EDIT_DEBOUNCE_MILLIS = 300;
 
     private final Project project;
@@ -154,11 +154,11 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final StatusFilterButton deletedOnly = new StatusFilterButton("삭제");
     private final StatusFilterButton errorOnly = new StatusFilterButton("에러");
     private final JCheckBox bundleColumnCheck = new JCheckBox(LocaleGridTableModel.BUNDLE_COLUMN_NAME);
-    private final JButton renameButton = new ToolbarTextButton("편집", 66);
-    private final JButton deleteButton = new ToolbarTextButton("삭제", 66);
-    private final JButton undoDeleteButton = new ToolbarTextButton("삭제 취소", 86);
-    private final JButton moveUpButton = new ToolbarIconButton(new MoveArrowIcon(true), "위로 이동");
-    private final JButton moveDownButton = new ToolbarIconButton(new MoveArrowIcon(false), "아래로 이동");
+    private final JButton renameButton = new ToolbarTextButton("편집", AllIcons.Actions.Edit, 66);
+    private final JButton deleteButton = new ToolbarTextButton("삭제", AllIcons.General.Remove, 66);
+    private final JButton undoDeleteButton = new ToolbarTextButton("삭제 취소", AllIcons.Actions.Rollback, 104);
+    private final JButton moveUpButton = new ToolbarIconButton(new MoveArrowIcon(true), "위로 이동", false);
+    private final JButton moveDownButton = new ToolbarIconButton(new MoveArrowIcon(false), "아래로 이동", false);
     private final Map<String, JCheckBox> localeColumnChecks = new LinkedHashMap<>();
     private final JLabel statusLabel = new JLabel(" ");
     private JComponent statusScrollMap;
@@ -226,9 +226,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JPanel searchPanel = new JPanel();
         searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.X_AXIS));
         searchPanel.setBorder(BorderFactory.createEmptyBorder(4, 24, 4, 24));
-        JButton addButton = new ToolbarTextButton("추가", 66);
-        JButton settingsButton = createIconButton(com.intellij.util.IconUtil.colorize(AllIcons.General.Gear, java.awt.Color.WHITE), "LocaleGrid 설정 열기");
-        JButton exceptionKeySettingsButton = new ToolbarTextButton("예외키", 72);
+        JButton addButton = new ToolbarTextButton("추가", AllIcons.General.Add, 66);
+        JButton settingsButton = new ToolbarTextButton("설정", AllIcons.General.Gear, 64, 4);
+        JButton exceptionKeySettingsButton = new ToolbarTextButton("예외키", new KeyIcon(), 84, 4);
         JButton excelExportButton = new ToolbarIconButton(new ExcelIcon(), "현재 테이블 Excel 다운로드");
         JButton applyButton = new BottomActionButton(
             "적용",
@@ -633,10 +633,6 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
         separator.setPreferredSize(new Dimension(1, 24));
         return separator;
-    }
-
-    private static JButton createIconButton(Icon icon, String tooltip) {
-        return new ToolbarIconButton(icon, tooltip);
     }
 
     private void openLocaleGridSettings() {
@@ -2608,8 +2604,8 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             setFocusPainted(false);
             setRolloverEnabled(true);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setPreferredSize(new Dimension(54, 24));
-            setMinimumSize(new Dimension(54, 24));
+            setPreferredSize(new Dimension(46, 22));
+            setMinimumSize(new Dimension(46, 22));
         }
 
         @Override
@@ -2772,23 +2768,30 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         private static final Color HOVER_FILL = new Color(82, 91, 97);
         private static final Color PRESSED_FILL = new Color(54, 61, 66);
         private static final Color DISABLED_FILL = new Color(58, 63, 66);
-        private static final Color NORMAL_BORDER = new Color(98, 106, 112);
-        private static final Color HOVER_BORDER = new Color(126, 145, 158);
-        private static final Color DISABLED_BORDER = new Color(78, 84, 88);
         private static final Color NORMAL_TEXT = new Color(224, 231, 237);
         private static final Color DISABLED_TEXT = new Color(133, 140, 145);
 
         private ToolbarTextButton(String text, int width) {
-            super(text);
+            this(text, null, width);
+        }
+
+        private ToolbarTextButton(String text, Icon icon, int width) {
+            this(text, icon, width, 8);
+        }
+
+        private ToolbarTextButton(String text, Icon icon, int width, int horizontalMargin) {
+            super(text, icon);
             setFont(getFont().deriveFont(Font.PLAIN, 12f));
             setForeground(NORMAL_TEXT);
+            setHorizontalTextPosition(SwingConstants.RIGHT);
+            setIconTextGap(5);
             setOpaque(false);
             setContentAreaFilled(false);
             setBorderPainted(false);
             setFocusPainted(false);
             setRolloverEnabled(true);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setMargin(new Insets(0, 8, 0, 8));
+            setMargin(new Insets(0, horizontalMargin, 0, horizontalMargin));
             Dimension size = new Dimension(width, 28);
             setPreferredSize(size);
             setMinimumSize(size);
@@ -2811,9 +2814,6 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 Color fill = !isEnabled()
                     ? DISABLED_FILL
                     : state.isPressed() ? PRESSED_FILL : state.isRollover() ? HOVER_FILL : NORMAL_FILL;
-                Color border = !isEnabled()
-                    ? DISABLED_BORDER
-                    : state.isRollover() ? HOVER_BORDER : NORMAL_BORDER;
 
                 int x = 1;
                 int y = 2;
@@ -2821,8 +2821,6 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 int height = getHeight() - 4;
                 g.setColor(fill);
                 g.fillRoundRect(x, y, width, height, 7, 7);
-                g.setColor(border);
-                g.drawRoundRect(x, y, width, height, 7, 7);
             } finally {
                 g.dispose();
             }
@@ -2861,6 +2859,36 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                     g.drawLine(centerX, arrowY, x + 5, wingY);
                     g.drawLine(centerX, arrowY, x + SIZE - 5, wingY);
                 }
+            } finally {
+                g.dispose();
+            }
+        }
+
+        @Override
+        public int getIconWidth() {
+            return SIZE;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return SIZE;
+        }
+    }
+
+    private static final class KeyIcon implements Icon {
+        private static final int SIZE = 16;
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(component.getForeground());
+                g.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g.drawOval(x + 2, y + 4, 7, 7);
+                g.drawLine(x + 9, y + 7, x + 14, y + 7);
+                g.drawLine(x + 12, y + 7, x + 12, y + 10);
+                g.drawLine(x + 14, y + 7, x + 14, y + 9);
             } finally {
                 g.dispose();
             }
@@ -2971,9 +2999,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         private static final Color NORMAL_BORDER = new Color(99, 108, 115);
         private static final Color HOVER_BORDER = new Color(126, 145, 158);
         private static final Color DISABLED_BORDER = new Color(78, 84, 88);
+        private final boolean showBorder;
 
         private ToolbarIconButton(Icon icon, String tooltip) {
+            this(icon, tooltip, true);
+        }
+
+        private ToolbarIconButton(Icon icon, String tooltip, boolean showBorder) {
             super(icon);
+            this.showBorder = showBorder;
             setToolTipText(tooltip);
             setOpaque(false);
             setContentAreaFilled(false);
@@ -3006,8 +3040,10 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 int height = getHeight() - 4;
                 g.setColor(fill);
                 g.fillRoundRect(x, y, width, height, 7, 7);
-                g.setColor(border);
-                g.drawRoundRect(x, y, width, height, 7, 7);
+                if (showBorder) {
+                    g.setColor(border);
+                    g.drawRoundRect(x, y, width, height, 7, 7);
+                }
 
                 if (isEnabled() && state.isRollover()) {
                     g.setColor(new Color(255, 255, 255, 24));

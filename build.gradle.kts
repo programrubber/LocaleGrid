@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.localegrid"
-version = "0.11.0"
+version = "0.12.0"
 
 repositories {
     mavenCentral()
@@ -13,7 +13,7 @@ repositories {
 
 intellij {
     version.set("2023.3.5")
-    type.set("PY")
+    type.set("PC")
     plugins.set(listOf())
 }
 
