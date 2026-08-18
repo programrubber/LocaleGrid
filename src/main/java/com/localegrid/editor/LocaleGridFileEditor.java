@@ -30,6 +30,7 @@ import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.tabs.TabInfo;
+import com.intellij.util.ui.JBUI;
 import com.localegrid.core.DotPath;
 import com.localegrid.core.SavePreview;
 import com.localegrid.core.SavePreviewFile;
@@ -91,6 +92,13 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final JLabel detailTitle = new JLabel("편집할 Row를 선택하세요.");
     private final LocaleGridTableModel model = new LocaleGridTableModel();
     private final JBTable grid = new JBTable(model) {
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            Container parent = SwingUtilities.getUnwrappedParent(this);
+            return parent instanceof JViewport viewport
+                && shouldTrackViewportWidth(getPreferredSize().width, viewport.getExtentSize().width);
+        }
+
         @Override
         public String getToolTipText(MouseEvent event) {
             int viewRow = rowAtPoint(event.getPoint());
@@ -2093,6 +2101,10 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     }
 
+    static boolean shouldTrackViewportWidth(int preferredWidth, int viewportWidth) {
+        return viewportWidth > 0 && preferredWidth <= viewportWidth;
+    }
+
     private static String escapeHtml(String text) {
         return text == null ? "" : text
             .replace("&", "&amp;")
@@ -2763,39 +2775,52 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
     }
 
-    private static final class ToolbarTextButton extends JButton {
+    static final class ToolbarTextButton extends JButton {
         private static final Color NORMAL_FILL = new Color(68, 74, 78);
         private static final Color HOVER_FILL = new Color(82, 91, 97);
         private static final Color PRESSED_FILL = new Color(54, 61, 66);
         private static final Color DISABLED_FILL = new Color(58, 63, 66);
         private static final Color NORMAL_TEXT = new Color(224, 231, 237);
         private static final Color DISABLED_TEXT = new Color(133, 140, 145);
+        private static final int MINIMUM_HEIGHT = 28;
+        private final int minimumWidth;
 
-        private ToolbarTextButton(String text, int width) {
-            this(text, null, width);
+        ToolbarTextButton(String text, int minimumWidth) {
+            this(text, null, minimumWidth);
         }
 
-        private ToolbarTextButton(String text, Icon icon, int width) {
-            this(text, icon, width, 8);
+        ToolbarTextButton(String text, Icon icon, int minimumWidth) {
+            this(text, icon, minimumWidth, 8);
         }
 
-        private ToolbarTextButton(String text, Icon icon, int width, int horizontalMargin) {
+        ToolbarTextButton(String text, Icon icon, int minimumWidth, int horizontalMargin) {
             super(text, icon);
-            setFont(getFont().deriveFont(Font.PLAIN, 12f));
+            this.minimumWidth = minimumWidth;
+            setFont(getFont().deriveFont(Font.PLAIN));
             setForeground(NORMAL_TEXT);
             setHorizontalTextPosition(SwingConstants.RIGHT);
-            setIconTextGap(5);
+            setIconTextGap(JBUI.scale(5));
             setOpaque(false);
             setContentAreaFilled(false);
             setBorderPainted(false);
             setFocusPainted(false);
             setRolloverEnabled(true);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setMargin(new Insets(0, horizontalMargin, 0, horizontalMargin));
-            Dimension size = new Dimension(width, 28);
-            setPreferredSize(size);
-            setMinimumSize(size);
-            setMaximumSize(size);
+            setMargin(JBUI.insets(0, horizontalMargin));
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension contentSize = super.getPreferredSize();
+            return new Dimension(
+                Math.max(contentSize.width, JBUI.scale(minimumWidth)),
+                Math.max(contentSize.height, JBUI.scale(MINIMUM_HEIGHT))
+            );
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return getPreferredSize();
         }
 
         @Override

@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>com.localegrid</id>
     <name>LocaleGrid</name>
-    <version>0.12.0</version>
+    <version>0.13.0</version>
     <vendor>LocaleGrid</vendor>
 
     <description><![CDATA[
