@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>새로고침 처리 개선 기능 산출 보고서</title>
+  <style>
+    :root {
+      --navy: #233447;
+      --navy-2: #34495e;
+      --ink: #202a35;
+      --muted: #5f6974;
+      --line: #cbd2d9;
+      --line-dark: #9ca7b2;
+      --fill: #f1f3f5;
+      --fill-2: #fafbfc;
+      --paper: #ffffff;
+      --canvas: #e8ebee;
+      --blue: #2f6f9f;
+      --blue-soft: #eaf4fb;
+      --green: #28754f;
+      --green-soft: #edf7f1;
+      --amber: #9b6800;
+      --amber-soft: #fff7e2;
+      --red: #a93333;
+      --red-soft: #fff1f0;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.58;
+      word-break: keep-all;
+    }
+    .report {
+      width: min(210mm, calc(100% - 24px));
+      margin: 20px auto;
+      padding: 18mm 16mm;
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+    .front-matter { padding-top: 13mm; border-top: 7px solid var(--navy); }
+    .doc-type {
+      margin: 0 0 5mm;
+      color: var(--navy-2);
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 25pt;
+      line-height: 1.25;
+      letter-spacing: -.035em;
+    }
+    .subtitle {
+      margin: 4mm 0 9mm;
+      max-width: 155mm;
+      color: var(--muted);
+      font-size: 11pt;
+    }
+    h2 {
+      margin: 14mm 0 5mm;
+      padding-bottom: 2.5mm;
+      border-bottom: 2px solid var(--navy);
+      color: var(--navy);
+      font-size: 15pt;
+      line-height: 1.35;
+      letter-spacing: -.02em;
+    }
+    h3 {
+      margin: 8mm 0 3mm;
+      color: var(--navy);
+      font-size: 11.5pt;
+      line-height: 1.4;
+    }
+    p { margin: 0 0 3.5mm; }
+    a { color: var(--navy); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+    code, .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code {
+      padding: .05em .28em;
+      border: 1px solid var(--line);
+      background: var(--fill);
+      color: var(--ink);
+      font-size: .92em;
+      overflow-wrap: anywhere;
+    }
+    .summary {
+      margin: 7mm 0 8mm;
+      padding: 5mm 6mm;
+      border-left: 4px solid var(--navy);
+      background: var(--fill);
+    }
+    .summary-title {
+      margin: 0 0 3mm;
+      color: var(--navy);
+      font-size: 12pt;
+    }
+    .summary ol { margin: 0; padding-left: 6mm; }
+    .summary li { margin: 2mm 0; }
+    .summary strong { color: var(--navy); }
+    .toc { margin-top: 8mm; padding-top: 6mm; border-top: 1px solid var(--line-dark); }
+    .toc h2 {
+      margin: 0 0 3mm;
+      padding: 0;
+      border: 0;
+      color: var(--ink);
+      font-size: 12pt;
+    }
+    .toc ol { columns: 2; column-gap: 12mm; margin: 0; padding-left: 6mm; }
+    .toc li { margin: 1.7mm 0; break-inside: avoid; }
+    .section-intro { margin: -1.5mm 0 5mm; color: var(--muted); }
+    .table-wrap { width: 100%; margin: 4mm 0 7mm; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 9.2pt;
+      line-height: 1.48;
+    }
+    caption {
+      padding-bottom: 2mm;
+      color: var(--navy);
+      font-weight: 700;
+      text-align: left;
+      caption-side: top;
+    }
+    th, td {
+      padding: 2.4mm 2.7mm;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    thead th { color: #ffffff; background: var(--navy); font-weight: 700; }
+    tbody th { color: var(--ink); background: var(--fill); font-weight: 700; }
+    tbody tr:nth-child(even) td { background: var(--fill-2); }
+    .meta-table { font-size: 9.5pt; }
+    .state-normal { color: var(--green); font-weight: 700; }
+    .state-confirm { color: var(--amber); font-weight: 700; }
+    .state-block { color: var(--red); font-weight: 700; }
+    .note {
+      margin: 4mm 0 6mm;
+      padding: 3.5mm 4mm;
+      border: 1px solid var(--line);
+      background: var(--fill-2);
+      font-size: 9.3pt;
+    }
+    .note strong { color: var(--navy); }
+    .note.warning { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+    .note.limit { border-left: 4px solid var(--red); background: var(--red-soft); }
+    .decision-flow {
+      margin: 4mm 0 8mm;
+      padding: 5mm;
+      border: 1px solid var(--line);
+      background: var(--fill-2);
+    }
+    .flow-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 3mm;
+      align-items: stretch;
+    }
+    .flow-box {
+      position: relative;
+      min-height: 24mm;
+      padding: 3.5mm;
+      border: 1px solid var(--line-dark);
+      background: #ffffff;
+    }
+    .flow-box:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -3mm;
+      z-index: 1;
+      width: 3mm;
+      color: var(--navy);
+      font-weight: 800;
+      text-align: center;
+      transform: translateY(-50%);
+    }
+    .flow-step { display: block; margin-bottom: 1mm; color: var(--navy); font-size: 8.5pt; font-weight: 800; }
+    .branches {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 3mm;
+      margin-top: 3mm;
+    }
+    .branch {
+      padding: 3mm;
+      border-top: 4px solid var(--blue);
+      background: var(--blue-soft);
+      font-size: 8.8pt;
+    }
+    .branch.allow { border-color: var(--green); background: var(--green-soft); }
+    .branch.confirm { border-color: var(--amber); background: var(--amber-soft); }
+    .branch.block { border-color: var(--red); background: var(--red-soft); }
+    .branch strong { display: block; margin-bottom: 1mm; color: var(--navy); }
+    .condition {
+      margin: 4mm 0 7mm;
+      padding: 4mm 5mm;
+      border: 1px solid var(--line-dark);
+      background: var(--fill);
+      overflow-x: auto;
+    }
+    .condition pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 8.9pt;
+      line-height: 1.55;
+    }
+    .compact-list { margin: 0; padding-left: 5.5mm; }
+    .compact-list li { margin: 1.3mm 0; }
+    .section-number {
+      display: inline-block;
+      min-width: 8mm;
+      color: var(--navy-2);
+      font-size: .78em;
+      letter-spacing: .04em;
+      vertical-align: .08em;
+    }
+    .back-to-top { margin-top: 9mm; text-align: right; font-size: 9pt; }
+    footer {
+      margin-top: 14mm;
+      padding-top: 4mm;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 8.5pt;
+    }
+    @media (max-width: 760px) {
+      body { font-size: 13px; }
+      .report { width: calc(100% - 12px); margin: 6px auto; padding: 9mm 6mm; }
+      .toc ol { columns: 1; }
+      .flow-row, .branches { grid-template-columns: 1fr; }
+      .flow-box:not(:last-child)::after { content: "↓"; top: auto; right: 50%; bottom: -4.5mm; transform: translateX(50%); }
+    }
+    @media print {
+      @page { size: A4 portrait; margin: 14mm 13mm 15mm; }
+      html, body { background: #ffffff; }
+      body {
+        font-size: 9.5pt;
+        line-height: 1.45;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .report { width: auto; margin: 0; padding: 0; border: 0; }
+      .front-matter { break-after: page; }
+      h2, h3, caption { break-after: avoid-page; }
+      p, li { orphans: 3; widows: 3; }
+      table { break-inside: auto; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid-page; page-break-inside: avoid; }
+      .table-wrap { overflow: visible; }
+      .summary, .note, .decision-flow, .condition, .branch { break-inside: avoid-page; }
+      .back-to-top { display: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+<article class="report" id="top">
+  <header class="front-matter">
+    <p class="doc-type">Feature Improvement Design Report</p>
+    <h1>새로고침 처리 개선<br>기능 산출 보고서</h1>
+    <p class="subtitle">작업 상태를 보존하면서 새로고침 의도를 제어하고, 취소 가능한 요청에만 취소 API를 호출하기 위한 구현 전 설계안</p>
+
+    <div class="table-wrap">
+      <table class="meta-table">
+        <caption>문서 통제 정보</caption>
+        <tbody>
+          <tr>
+            <th scope="row">작성 기준일</th>
+            <td>2026-09-01</td>
+            <th scope="row">문서 상태</th>
+            <td>구현 전 설계안</td>
+          </tr>
+          <tr>
+            <th scope="row">대상 영역</th>
+            <td><code>footer-comp.vue</code>, Pinia, 키 이벤트, API 요청 상태</td>
+            <th scope="row">검증 경계</th>
+            <td>제공된 요구사항 기준. 대상 소스와 실행 결과는 미검증</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="summary" aria-labelledby="decision-title">
+      <h2 class="summary-title" id="decision-title">결론</h2>
+      <ol>
+        <li><strong>키보드 새로고침은 먼저 제어한다.</strong> <code>F5</code>, <code>Ctrl+R</code>, <code>Cmd+R</code> 입력을 감지해 현재 상태를 확인한 뒤 확인 또는 제한 안내를 표시한다.</li>
+        <li><strong>취소 API는 다섯 조건이 모두 참일 때 한 번만 호출한다.</strong> 사용자 확인, 변경 존재, 취소 가능 상태, 취소 대상 식별자 존재, 취소 요청 대기 상태가 모두 필요하다.</li>
+        <li><strong><code>pagehide</code>에서는 로그아웃·취소 API를 호출하지 않는다.</strong> 로그아웃은 사용자가 로그아웃을 명시적으로 선택한 경로에서만 수행한다.</li>
+      </ol>
+    </section>
+
+    <nav class="toc" aria-label="목차">
+      <h2>목차</h2>
+      <ol>
+        <li><a href="#purpose">목적과 결정 범위</a></li>
+        <li><a href="#current">현재 동작과 문제</a></li>
+        <li><a href="#change">변경안과 처리 흐름</a></li>
+        <li><a href="#states">상태별 처리 기준</a></li>
+        <li><a href="#impact">개발 영향</a></li>
+        <li><a href="#exceptions">예외와 리스크</a></li>
+        <li><a href="#acceptance">개발 범위와 인수 기준</a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <main>
+    <section id="purpose">
+      <h2><span class="section-number">01</span>목적과 결정 범위</h2>
+      <p class="section-intro">새로고침으로 세션이나 진행 중 작업이 비정상 종료되는 문제를 막기 위해, 입력 경로와 상태별 행동을 하나의 정책으로 고정한다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>문서를 작성하는 이유</caption>
+          <colgroup><col style="width: 20%"><col style="width: 80%"></colgroup>
+          <tbody>
+            <tr>
+              <th scope="row">배경</th>
+              <td>페이지에는 로컬 변경, 취소 가능한 요청, 취소할 수 없는 비동기 처리, 적용 작업이 함께 존재할 수 있다. 새로고침은 이 상태를 확인한 뒤 수행해야 한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">현재 문제</th>
+              <td>제공된 현행 설명에서는 <code>pagehide</code>가 발생할 때 로그아웃 API를 호출한다. 새로고침과 페이지 종료를 구분하지 못하면 새 문서가 로드되기 전에 세션이 종료될 수 있다.</td>
+            </tr>
+            <tr>
+              <th scope="row">결정 사항</th>
+              <td>키보드 새로고침 처리, 상태 우선순위, 취소 API 호출식, <code>pagehide</code> 책임, 실패 시 이동 여부를 이 문서의 기준으로 사용한다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <strong>문서의 한계.</strong> 현재 저장소에서 <code>footer-comp.vue</code>와 관련 Pinia 구현을 확인하지 못했으므로, 아래 내용은 코드 반영 결과가 아니라 구현 판단을 위한 설계 기준이다.
+      </div>
+    </section>
+
+    <section id="current">
+      <h2><span class="section-number">02</span>현재 동작과 문제</h2>
+      <p class="section-intro">문제의 핵심은 브라우저 수명주기 이벤트와 사용자 의도를 같은 것으로 취급하는 데 있다.</p>
+
+      <h3>2.1 현재 처리</h3>
+      <div class="decision-flow" role="img" aria-label="현재 새로고침 처리 흐름">
+        <div class="flow-row">
+          <div class="flow-box"><span class="flow-step">01</span>사용자가 새로고침 또는 페이지 이동을 시작</div>
+          <div class="flow-box"><span class="flow-step">02</span><code>pagehide</code> 발생</div>
+          <div class="flow-box"><span class="flow-step">03</span>로그아웃 API 호출</div>
+          <div class="flow-box"><span class="flow-step">04</span>세션 종료 후 새 문서 로드 시도</div>
+        </div>
+      </div>
+
+      <h3>2.2 구체적인 문제</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>현행 문제와 발생 결과</caption>
+          <colgroup><col style="width: 22%"><col style="width: 39%"><col style="width: 39%"></colgroup>
+          <thead><tr><th>문제</th><th>원인</th><th>발생 결과</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row">의도 구분 실패</th>
+              <td><code>pagehide</code>만으로 새로고침, 탭 닫기, 뒤로 가기를 안정적으로 구분할 수 없다.</td>
+              <td>단순 새로고침에도 로그아웃이 실행될 수 있다.</td>
+            </tr>
+            <tr>
+              <th scope="row">작업 상태 무시</th>
+              <td>로컬 변경, 비동기 처리, 적용 상태를 확인하기 전에 문서 이탈이 시작된다.</td>
+              <td>변경 유실 또는 처리 중단 가능성이 생긴다.</td>
+            </tr>
+            <tr>
+              <th scope="row">API 목적 혼합</th>
+              <td>페이지 수명주기와 사용자 로그아웃을 같은 API 경로에 연결한다.</td>
+              <td>새로고침이 세션 종료 행위로 바뀐다.</td>
+            </tr>
+            <tr>
+              <th scope="row">완료 순서 경쟁</th>
+              <td>네트워크 요청 완료 시점과 새 문서 이동 시점이 경쟁한다.</td>
+              <td>서버와 화면의 상태가 서로 다를 수 있다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="change">
+      <h2><span class="section-number">03</span>변경안과 처리 흐름</h2>
+      <p class="section-intro">사용자 입력을 먼저 감지하고 Pinia의 상태 스냅샷으로 행동을 결정한다. 페이지 수명주기 이벤트는 보조 경고에만 사용한다.</p>
+
+      <h3>3.1 Before / After</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>처리 방식 비교</caption>
+          <colgroup><col style="width: 22%"><col style="width: 39%"><col style="width: 39%"></colgroup>
+          <thead><tr><th>비교 항목</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row">판단 시점</th>
+              <td><code>pagehide</code> 이후</td>
+              <td>키보드 새로고침 입력 직후, 이동이 시작되기 전</td>
+            </tr>
+            <tr>
+              <th scope="row">판단 근거</th>
+              <td>페이지 이탈 이벤트</td>
+              <td>Pinia의 변경·요청·적용·취소 상태</td>
+            </tr>
+            <tr>
+              <th scope="row">API 호출</th>
+              <td>이탈 시 로그아웃 API 호출</td>
+              <td>명시적 조건을 만족한 취소 API만 호출</td>
+            </tr>
+            <tr>
+              <th scope="row">실패 처리</th>
+              <td>이동과 API 완료 순서가 불명확</td>
+              <td>취소 실패 또는 시간 초과 시 새로고침하지 않고 현재 상태 유지</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3.2 목표 처리 흐름</h3>
+      <div class="decision-flow" role="img" aria-label="개선된 새로고침 처리 흐름">
+        <div class="flow-row">
+          <div class="flow-box"><span class="flow-step">01</span><code>F5</code>, <code>Ctrl+R</code>, <code>Cmd+R</code> 감지</div>
+          <div class="flow-box"><span class="flow-step">02</span><code>preventDefault()</code> 실행</div>
+          <div class="flow-box"><span class="flow-step">03</span>Pinia 상태를 우선순위대로 판정</div>
+          <div class="flow-box"><span class="flow-step">04</span>상태별 확인·취소·제한 처리</div>
+        </div>
+        <div class="branches" aria-label="상태별 분기 결과">
+          <div class="branch allow"><strong>일반</strong>확인 후 새로고침<br>API 호출 없음</div>
+          <div class="branch confirm"><strong>변경사항 있음</strong>확인 후 필요할 때만 취소 API<br>성공 뒤 새로고침</div>
+          <div class="branch block"><strong>비동기 처리 중</strong>새로고침 제한<br>진행 상태 안내</div>
+          <div class="branch block"><strong>적용 중</strong>새로고침 제한<br>현재 상태 유지</div>
+        </div>
+      </div>
+
+      <div class="note warning">
+        <strong>브라우저 메뉴·도구 모음·모바일 제스처.</strong> 키 이벤트를 거치지 않는 새로고침에는 조건부 <code>beforeunload</code>를 사용한다. 이 경로에서는 브라우저가 제공하는 기본 확인창만 사용할 수 있으며, 사용자가 이탈을 승인한 뒤까지 애플리케이션이 이동을 강제로 막을 수는 없다.
+      </div>
+    </section>
+
+    <section id="states">
+      <h2><span class="section-number">04</span>상태별 처리 기준</h2>
+      <p class="section-intro">동시에 여러 상태가 참이면 <strong>적용 중 → 비동기 처리 중 → 변경사항 있음 → 일반</strong> 순서로 하나의 분기를 선택한다.</p>
+
+      <h3>4.1 상태 결정표</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>새로고침 및 API 처리</caption>
+          <colgroup><col style="width: 17%"><col style="width: 25%"><col style="width: 17%"><col style="width: 41%"></colgroup>
+          <thead><tr><th>상태</th><th>판정식</th><th>새로고침</th><th>처리</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row">일반</th>
+              <td><code>hasUnsavedChanges === false</code><br><code>requestPhase === 'IDLE'</code></td>
+              <td class="state-normal">확인 후 허용</td>
+              <td>키보드 경로에서는 확인창을 표시한다. 사용자가 승인하면 즉시 새로고침하며 API는 호출하지 않는다.</td>
+            </tr>
+            <tr>
+              <th scope="row">변경사항 있음</th>
+              <td><code>hasUnsavedChanges === true</code></td>
+              <td class="state-confirm">조건부 허용</td>
+              <td><code>canCancel === true</code>이면 취소 성공 뒤 새로고침한다. 로컬 변경만 있고 취소 대상이 없으면 폐기 확인 뒤 API 없이 새로고침한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">비동기 처리 중</th>
+              <td><code>requestPhase === 'RUNNING'</code></td>
+              <td class="state-block">제한</td>
+              <td>키보드 새로고침을 막고 “처리가 끝난 뒤 다시 시도해 주세요.”를 표시한다. 취소 API는 호출하지 않는다.</td>
+            </tr>
+            <tr>
+              <th scope="row">적용 중</th>
+              <td><code>requestPhase === 'APPLYING'</code></td>
+              <td class="state-block">제한</td>
+              <td>키보드 새로고침을 막고 “변경사항을 적용하고 있습니다.”를 표시한다. 취소 API는 호출하지 않고 상태를 유지한다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>4.2 취소 API 호출 조건</h3>
+      <p>아래 조건이 모두 참일 때만 취소 액션을 한 번 실행한다. 하나라도 거짓이면 취소 API를 호출하지 않는다.</p>
+      <div class="condition" aria-label="취소 API 호출 조건식">
+        <pre><code>shouldCallCancel =
+  userConfirmed === true &amp;&amp;
+  hasUnsavedChanges === true &amp;&amp;
+  canCancel === true &amp;&amp;
+  cancelTargetId !== null &amp;&amp;
+  cancelRequestPhase === 'IDLE'</code></pre>
+      </div>
+      <ul class="compact-list">
+        <li>호출 직전에 Pinia 상태를 다시 읽어 <code>shouldCallCancel</code>을 재계산한다.</li>
+        <li>호출 시작과 동시에 <code>cancelRequestPhase</code>를 <code>PENDING</code>으로 바꾸고 반복 키 입력을 무시한다.</li>
+        <li>서버 취소가 확인되면 <code>cancelRequestPhase</code>를 <code>SUCCEEDED</code>로 바꾼 뒤 한 번만 새로고침한다.</li>
+        <li>실패 또는 시간 초과 시 <code>FAILED</code>로 바꾸고 새로고침하지 않는다. 오류 안내와 작업 상태를 그대로 유지한다.</li>
+      </ul>
+
+      <h3>4.3 Pinia 상태 계약</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>필수 상태와 의미</caption>
+          <colgroup><col style="width: 31%"><col style="width: 24%"><col style="width: 45%"></colgroup>
+          <thead><tr><th>상태</th><th>값</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>hasUnsavedChanges</code></th><td><code>boolean</code></td><td>화면에 서버 반영 전 변경이 하나 이상 있는지 표시한다.</td></tr>
+            <tr><th scope="row"><code>requestPhase</code></th><td><code>IDLE | CANCELLABLE | RUNNING | APPLYING</code></td><td>현재 작업의 취소 가능 여부와 새로고침 제한 단계를 나타낸다.</td></tr>
+            <tr><th scope="row"><code>cancelTargetId</code></th><td><code>string | null</code></td><td>취소할 서버 작업 식별자다. 값이 없으면 취소 API를 호출하지 않는다.</td></tr>
+            <tr><th scope="row"><code>cancelRequestPhase</code></th><td><code>IDLE | PENDING | SUCCEEDED | FAILED</code></td><td>중복 취소 요청과 성공 전 새로고침을 막는다.</td></tr>
+            <tr><th scope="row"><code>canCancel</code></th><td>파생 <code>boolean</code></td><td><code>requestPhase === 'CANCELLABLE' &amp;&amp; cancelTargetId !== null</code>로 계산한다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="impact">
+      <h2><span class="section-number">05</span>개발 영향</h2>
+      <p class="section-intro">변경은 UI 이벤트, 전역 상태, API 수명주기, 세션 종료 책임에 걸쳐 있다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>구성요소별 변경 내용</caption>
+          <colgroup><col style="width: 24%"><col style="width: 46%"><col style="width: 30%"></colgroup>
+          <thead><tr><th>대상</th><th>변경</th><th>완료 판단</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>footer-comp.vue</code></th>
+              <td>키 이벤트 등록·해제와 확인·제한 안내를 연결한다. <code>pagehide</code>의 로그아웃 호출을 제거한다.</td>
+              <td>컴포넌트가 해제된 뒤 이벤트 핸들러가 남지 않는다.</td>
+            </tr>
+            <tr>
+              <th scope="row">Pinia 상태</th>
+              <td>4.3의 상태와 우선순위 getter, 취소 액션, 새로고침 가능 여부 getter를 추가한다.</td>
+              <td>화면별 임시 값 없이 하나의 상태 판정 결과를 사용한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">새로고침 키 이벤트</th>
+              <td><code>F5</code>, <code>Ctrl+R</code>, <code>Cmd+R</code>을 캡처하고 기본 동작을 먼저 막는다.</td>
+              <td>동일 입력 한 번에 확인창 또는 제한 안내가 하나만 표시된다.</td>
+            </tr>
+            <tr>
+              <th scope="row">API 요청 상태</th>
+              <td>취소 요청을 <code>IDLE → PENDING → SUCCEEDED/FAILED</code>로 관리한다.</td>
+              <td><code>PENDING</code> 동안 같은 취소 API가 추가로 호출되지 않는다.</td>
+            </tr>
+            <tr>
+              <th scope="row">로그아웃 경로</th>
+              <td>로그아웃 API를 사용자 명시 동작에만 연결한다.</td>
+              <td>새로고침, 탭 닫기, 뒤로 가기에서 로그아웃 API 호출 건수가 0이다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="exceptions">
+      <h2><span class="section-number">06</span>예외와 리스크</h2>
+      <p class="section-intro">브라우저가 보장하지 않는 영역은 애플리케이션 제어와 네이티브 경고의 경계를 분리해 대응한다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>예외 상황과 대응 기준</caption>
+          <colgroup><col style="width: 22%"><col style="width: 35%"><col style="width: 43%"></colgroup>
+          <thead><tr><th>상황</th><th>리스크</th><th>대응</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row">브라우저 메뉴 새로고침</th>
+              <td>키 이벤트가 발생하지 않는다.</td>
+              <td>보호 상태에서만 <code>beforeunload</code>를 등록하고 브라우저 기본 확인창을 사용한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">Firefox 뒤로/앞으로 캐시</th>
+              <td><code>beforeunload</code> 리스너가 성능과 캐시 사용에 영향을 줄 수 있다.</td>
+              <td>일반 상태에서는 리스너를 제거하고 변경·처리·적용 상태에서만 등록한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">모바일 앱 전환·종료</th>
+              <td><code>beforeunload</code>와 <code>pagehide</code>가 항상 발생한다고 보장할 수 없다.</td>
+              <td>필수 저장·로그아웃·취소를 수명주기 이벤트에 맡기지 않는다. 상태 복구는 별도 저장 전략으로 다룬다.</td>
+            </tr>
+            <tr>
+              <th scope="row">취소 중 반복 입력</th>
+              <td>취소 API가 중복 호출될 수 있다.</td>
+              <td><code>cancelRequestPhase === 'PENDING'</code>이면 추가 키 입력과 취소 호출을 무시한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">판정 직후 상태 변경</th>
+              <td>비동기 작업이 <code>RUNNING</code> 또는 <code>APPLYING</code>으로 바뀔 수 있다.</td>
+              <td>확인 직후와 API 호출 직전에 우선순위와 취소 조건을 다시 계산한다.</td>
+            </tr>
+            <tr>
+              <th scope="row">취소 API 실패</th>
+              <td>서버 작업은 남고 화면만 새로고침될 수 있다.</td>
+              <td>실패·시간 초과에서는 새로고침하지 않고 오류와 재시도 경로를 표시한다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note limit">
+        <strong>제어 한계.</strong> <code>beforeunload</code> 확인창의 문구는 브라우저가 결정하며 사용자 지정 문구를 보장할 수 없다. 사용자 활성화가 없으면 확인창이 표시되지 않을 수 있으므로, 키보드 경로의 애플리케이션 확인창과 브라우저 기본 경고를 같은 기능으로 간주하지 않는다.
+      </div>
+
+      <p><strong>공식 참고자료:</strong>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event">MDN · beforeunload</a>,
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/pagehide_event">MDN · pagehide</a>,
+        <a href="https://html.spec.whatwg.org/dev/browsing-the-web.html">WHATWG HTML · Browsing the web</a>
+      </p>
+    </section>
+
+    <section id="acceptance">
+      <h2><span class="section-number">07</span>개발 범위와 인수 기준</h2>
+      <p class="section-intro">구현 완료 여부는 상태별 결과와 API 호출 횟수로 판정한다.</p>
+
+      <h3>7.1 개발 범위</h3>
+      <ul class="compact-list">
+        <li><code>footer-comp.vue</code>: 키 이벤트, 확인·제한 안내, 수명주기 이벤트 정리</li>
+        <li>Pinia: 변경·요청·적용·취소 상태와 우선순위 getter</li>
+        <li>새로고침 처리기: 단일 진입점, 반복 입력 잠금, 성공 뒤 한 번만 이동</li>
+        <li>API 요청 관리: 취소 대상 식별자, 요청 상태, 실패·시간 초과 처리</li>
+      </ul>
+
+      <h3>7.2 인수 테스트</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>필수 검증 시나리오</caption>
+          <colgroup><col style="width: 12%"><col style="width: 31%"><col style="width: 38%"><col style="width: 19%"></colgroup>
+          <thead><tr><th>ID</th><th>조건</th><th>기대 결과</th><th>API 호출</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">R-01</th><td>일반 상태, 새로고침 승인</td><td>확인창을 닫은 뒤 새로고침</td><td>0회</td></tr>
+            <tr><th scope="row">R-02</th><td>일반 상태, 새로고침 취소</td><td>현재 화면과 상태 유지</td><td>0회</td></tr>
+            <tr><th scope="row">R-03</th><td>로컬 변경만 존재, 폐기 승인</td><td>취소 API 없이 새로고침</td><td>0회</td></tr>
+            <tr><th scope="row">R-04</th><td>변경 존재, 취소 가능, 대상 ID 존재</td><td>취소 성공 뒤 새로고침</td><td>취소 1회</td></tr>
+            <tr><th scope="row">R-05</th><td>취소 API 실패 또는 시간 초과</td><td>새로고침하지 않고 오류·작업 상태 유지</td><td>취소 1회</td></tr>
+            <tr><th scope="row">R-06</th><td>비동기 처리 중</td><td>키보드 새로고침 제한과 안내 표시</td><td>0회</td></tr>
+            <tr><th scope="row">R-07</th><td>적용 중</td><td>키보드 새로고침 제한과 상태 유지</td><td>0회</td></tr>
+            <tr><th scope="row">R-08</th><td>취소 요청 중 키 반복 입력</td><td>추가 확인창·API·새로고침 없음</td><td>총 1회</td></tr>
+            <tr><th scope="row">R-09</th><td><code>pagehide</code> 발생</td><td>로그아웃·취소 API를 호출하지 않음</td><td>0회</td></tr>
+            <tr><th scope="row">R-10</th><td>명시적 로그아웃 선택</td><td>로그아웃 성공 뒤 정의된 화면으로 이동</td><td>로그아웃 1회</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <strong>완료 조건.</strong> 위 10개 시나리오의 자동 또는 수동 검증 결과와 네트워크 호출 횟수를 기록해야 구현 완료로 판정한다. 이 문서 작성 시점에는 대상 코드 반영과 브라우저 실행 검증을 수행하지 않았다.
+      </div>
+    </section>
+
+    <p class="back-to-top"><a href="#top">문서 상단으로 이동</a></p>
+  </main>
+
+  <footer>
+    새로고침 처리 개선 기능 산출 보고서 · 2026-09-01 · 구현 전 설계안
+  </footer>
+</article>
+</body>
+</html>

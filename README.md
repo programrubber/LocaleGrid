@@ -254,4 +254,5 @@ src/main/java/com/localegrid/settings
 
 ## 참고 문서
 
-상세 MVP 범위와 구현 기준은 [PLAN.md](PLAN.md)를 참고합니다.
+- 작성일별 보고서 목록은 [doc/문서_목록.md](doc/문서_목록.md)를 참고합니다.
+- 상세 MVP 범위와 구현 기준은 [PLAN.md](PLAN.md)를 참고합니다.

@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LocaleGrid 개발 산출 보고서</title>
+  <style>
+    :root {
+      --ink:#172033; --muted:#5a667a; --line:#d9dfe8; --soft:#f5f7fa;
+      --blue:#2f6f9f; --blue-soft:#eaf4fb; --green:#328259; --green-soft:#edf8f0;
+      --amber:#b87700; --amber-soft:#fff7e2; --red:#c53d3d; --red-soft:#fff1f0;
+      --gray:#686868; --gray-soft:#f0f1f3; --purple:#7d4b94; --purple-soft:#f7effa;
+      --shadow:0 12px 32px rgba(23,32,51,.08);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);background:#eef1f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;font-size:15px;line-height:1.64;word-break:keep-all}
+    a{color:#1d6096;text-underline-offset:3px} a:hover{color:#123f64}
+    code{padding:.1em .38em;border:1px solid #dfe4ec;border-radius:5px;background:#f7f8fa;color:#28364d;font-family:"SFMono-Regular",Consolas,monospace;font-size:.9em;word-break:break-all}
+    .report{width:min(1240px,calc(100% - 32px));margin:28px auto 56px;background:#fff;border:1px solid #e0e5ed;border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .cover{padding:58px 68px 52px;color:#fff;background:radial-gradient(circle at 90% 10%,rgba(94,204,155,.24),transparent 30%),radial-gradient(circle at 5% 100%,rgba(87,155,214,.22),transparent 34%),linear-gradient(135deg,#172033 0%,#223b55 62%,#245e62 100%)}
+    .cover-head{display:flex;align-items:flex-start;justify-content:space-between;gap:32px}.cover-copy{max-width:850px}
+    .eyebrow{margin:0 0 12px;color:#aee7ce;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+    h1{margin:0;font-size:clamp(34px,5vw,58px);line-height:1.13;letter-spacing:-.035em}.cover-lead{margin:22px 0 0;max-width:820px;color:#dce9f5;font-size:19px}
+    .meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,240px));gap:10px;margin-top:30px}.meta-item{min-height:74px;padding:12px 14px;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:rgba(255,255,255,.08)}
+    .meta-label{display:block;margin-bottom:4px;color:#b9cadb;font-size:11px;font-weight:700;letter-spacing:.06em}.meta-value{display:block;color:#fff;font-size:14px;font-weight:750;word-break:break-word}
+    .contents{padding:25px 68px;border-bottom:1px solid var(--line);background:#fbfcfd}.contents strong{margin-right:16px}.contents a{display:inline-block;margin:4px 14px 4px 0;color:#455269;font-size:13px;text-decoration:none}
+    main{padding:8px 68px 64px}section{padding:52px 0 14px;border-bottom:1px solid #e7ebf1}section:last-child{border-bottom:0}.section-no{display:block;margin-bottom:5px;color:var(--blue);font-size:12px;font-weight:850;letter-spacing:.13em}
+    h2{margin:0 0 10px;font-size:30px;line-height:1.25;letter-spacing:-.025em}h3{margin:32px 0 10px;font-size:21px;line-height:1.35}h4{margin:20px 0 8px;font-size:16px}.section-lead{margin:0 0 24px;max-width:970px;color:#46546b;font-size:17px}p{margin:8px 0}ul,ol{margin:10px 0 10px 22px;padding:0}li{margin:6px 0}
+    .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:24px 0}.metric{padding:20px;border:1px solid var(--line);border-radius:12px;background:#fff}.metric strong{display:block;margin-bottom:2px;color:#183e5f;font-size:28px;line-height:1.2}.metric span{color:var(--muted);font-size:13px}
+    .two-col,.three-col,.five-col,.overview-grid{display:grid;gap:16px;margin:20px 0}.two-col{grid-template-columns:repeat(2,minmax(0,1fr))}.three-col,.overview-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.five-col{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .overview-item{padding:20px;border:1px solid #bfd8eb;border-radius:12px;background:linear-gradient(145deg,#f7fbff,#eaf4fb)}.overview-item strong{display:block;margin-bottom:6px;color:#17466b;font-size:17px}.overview-item span{color:#526177;font-size:13px}
+    .card{padding:20px 22px;border:1px solid var(--line);border-radius:12px;background:#fff}.card h3,.card h4{margin-top:0}.card p:last-child,.card ul:last-child{margin-bottom:0}.outcome{border-color:#bcd9ca;background:var(--green-soft)}.attention{border-color:#ecd39b;background:var(--amber-soft)}.risk{border-color:#efb8b3;background:var(--red-soft)}.info{border-color:#bfd8eb;background:var(--blue-soft)}.purple{border-color:#d6bde0;background:var(--purple-soft)}
+    .tag,.status-pill{display:inline-flex;align-items:center;justify-content:center;margin:2px 5px 2px 0;padding:4px 10px;border:1px solid #d1d7e0;border-radius:999px;background:#fff;color:#39465a;font-size:12px;font-weight:800}.tag.ok{border-color:#abd4bd;color:#246a47;background:#f1faf5}.tag.warn{border-color:#e4c479;color:#865b00;background:#fff9eb}.tag.block{border-color:#e4aaa5;color:#9c2e2e;background:#fff5f4}
+    .s-error{color:var(--red);background:var(--red-soft)}.s-add{color:var(--green);background:var(--green-soft)}.s-warn{color:var(--amber);background:var(--amber-soft)}.s-delete{color:var(--gray);background:var(--gray-soft)}.s-edit{color:#1f84b5;background:#eaf7fc}.s-none{color:#647084;background:#f5f6f8}
+    .table-wrap{width:100%;margin:18px 0 26px;overflow-x:auto;border:1px solid var(--line);border-radius:11px}table{width:100%;border-collapse:collapse;background:#fff;font-size:14px}th,td{padding:12px 14px;border-bottom:1px solid #e4e8ef;vertical-align:top;text-align:left}th{color:#314057;background:#f5f7fa;font-size:12px;font-weight:850;letter-spacing:.025em}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#fcfdfe}
+    .diagram-frame{margin:24px 0 12px;padding:16px;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:0 7px 22px rgba(23,32,51,.05)}.diagram{display:block;width:100%;height:auto;border-radius:6px}figcaption{margin-top:11px;color:var(--muted);font-size:12px;text-align:center}
+    .note{margin:18px 0;padding:14px 17px;border-left:4px solid var(--blue);background:var(--blue-soft);color:#29445c}.note.warning{border-left-color:var(--amber);background:var(--amber-soft);color:#654700}.note.danger{border-left-color:var(--red);background:var(--red-soft);color:#742626}
+    .tree,.formula{padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:#f7f8fa;font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;line-height:1.72;white-space:pre;overflow-x:auto}.formula{border-left:4px solid var(--blue);white-space:pre-wrap}
+    .checklist{list-style:none;margin-left:0}.checklist li{position:relative;padding-left:27px}.checklist li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:900}
+    .feature{margin:28px 0 36px;padding:24px;border:1px solid var(--line);border-radius:15px;background:#fff;box-shadow:0 7px 22px rgba(23,32,51,.04)}.feature-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.feature h3{margin:0}.feature-summary{margin:8px 0 18px;color:#46546b;font-size:16px}.feature-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:18px;align-items:start}.scenario{padding:18px;border:1px solid var(--line);border-radius:11px;background:#fbfcfd}.scenario h4{margin-top:0}.scenario ol{margin-left:20px}.support-line{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+    .shot{margin:0;overflow:hidden;border:1px solid #9ba6b4;border-radius:11px;background:#1f242b;color:#e8edf3;box-shadow:0 10px 24px rgba(20,27,38,.16)}.shot-title{display:flex;align-items:center;gap:7px;padding:8px 11px;border-bottom:1px solid #454c56;background:#2b3139;color:#cfd6df;font-size:11px}.dot{width:8px;height:8px;border-radius:50%;background:#68717d}.shot-body{min-height:235px;padding:12px}.shot-caption{padding:8px 11px;border-top:1px solid #454c56;background:#262c34;color:#aeb7c2;font-size:11px}.shot-toolbar{display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap}.shot-btn,.shot-chip,.shot-field{display:inline-flex;align-items:center;min-height:27px;padding:4px 8px;border:1px solid #59636f;border-radius:5px;background:#343b45;color:#eef1f5;font-size:11px;font-weight:700}.shot-field{min-width:180px;color:#c2cad4;font-weight:500}.shot-spacer{flex:1}.shot-chip.red{border-color:#a94b4b;color:#ffaaa3}.shot-chip.green{border-color:#397b51;color:#91ddb2}.shot-chip.amber{border-color:#9a700f;color:#ffd47b}.shot-chip.blue{border-color:#28779e;color:#8ad6f7}.shot-chip.gray{border-color:#686f7b;color:#c7cdd5}
+    .shot-grid{width:100%;border-collapse:collapse;color:#e8edf3;background:#21262d;font-size:11px}.shot-grid th,.shot-grid td{padding:7px 8px;border-right:1px solid #414954;border-bottom:1px solid #3a424c}.shot-grid th{background:#343b44;color:#e1e6ec;font-size:10px}.shot-grid tbody tr:nth-child(even){background:#282e36}.shot-grid .missing{color:#ffd47b;background:rgba(184,119,0,.12)}.shot-grid .readonly{color:#9ba4b0}.shot-grid mark{padding:1px 2px;background:#397eb0;color:#fff}.shot-tabs{display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid #47505b}.shot-tab{padding:7px 12px;color:#aeb7c2;font-size:11px}.shot-tab.active{border-bottom:2px solid #65aee0;color:#fff;font-weight:800}
+    .shot-dialog{width:min(92%,520px);margin:22px auto;padding:15px;border:1px solid #687381;border-radius:8px;background:#303740;box-shadow:0 10px 22px rgba(0,0,0,.3)}.shot-dialog h5{margin:0 0 9px;font-size:13px}.shot-input{display:block;width:100%;min-height:32px;padding:7px 9px;border:1px solid #687381;border-radius:5px;background:#1d2228;color:#e9edf2}.shot-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:12px}.shot-primary{background:#2f6f9f;border-color:#5f9cc8}.tooltip{max-width:390px;margin:12px auto 0;padding:9px 11px;border:1px solid #8d98a5;border-radius:6px;background:#181c21;color:#eef1f5;font-size:11px;box-shadow:0 8px 18px rgba(0,0,0,.28)}
+    .project-tree{padding:4px 8px;font-family:"SFMono-Regular",Consolas,monospace;font-size:11px;line-height:1.8;color:#d6dce4}.tree-active{display:inline-block;padding:0 5px;border-radius:3px;background:#315779;color:#fff}.split-shot{display:grid;grid-template-columns:180px 1fr;gap:10px}.pane{padding:8px;border:1px solid #444d58;border-radius:6px;background:#252b32}.diff{display:grid;grid-template-columns:1fr 1fr;gap:8px}.diff pre{margin:0;min-height:130px;padding:9px;overflow:auto;border:1px solid #4a535e;border-radius:5px;background:#1b2026;color:#dbe1e8;font:10px/1.55 "SFMono-Regular",Consolas,monospace}.minus{color:#ff9c96}.plus{color:#8cdda9}
+    details{margin:10px 0;border:1px solid var(--line);border-radius:9px;background:#fff}summary{cursor:pointer;padding:13px 15px;font-weight:800}details>div{padding:0 15px 15px;color:#46546b}.kpi{font-variant-numeric:tabular-nums}.small{font-size:13px;color:var(--muted)}.nowrap{white-space:nowrap}.break{word-break:break-all}.historical-shot{display:block;max-width:100%;max-height:540px;margin:auto;border-radius:8px;object-fit:contain}
+    .footer{padding:30px 68px 38px;color:#5b6678;background:#f6f8fa;font-size:12px}.footer p{margin:4px 0}.print-only{display:none}
+    @media(max-width:900px){.cover,.contents,main,.footer{padding-left:24px;padding-right:24px}.cover-head{flex-direction:column-reverse}.meta-grid,.metric-grid,.five-col{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col,.three-col,.overview-grid,.feature-layout{grid-template-columns:1fr}.split-shot{grid-template-columns:1fr}.feature-head{display:block}}
+    @media(max-width:560px){.report{width:100%;margin:0;border:0;border-radius:0}.meta-grid,.metric-grid,.five-col{grid-template-columns:1fr}h1{font-size:34px}h2{font-size:25px}.feature{padding:16px}.diff{grid-template-columns:1fr}}
+    @media print{@page{size:A4;margin:13mm}body{background:#fff;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}.report{width:100%;margin:0;border:0;border-radius:0;box-shadow:none}.cover{min-height:250mm;padding:26mm 16mm;page-break-after:always}.contents{page-break-after:always}main{padding:0}section{padding-top:12mm}h2,h3{break-after:avoid}.card,.metric,.diagram-frame,.table-wrap,.feature,.shot,tr{break-inside:avoid}.diagram-frame{padding:5mm;box-shadow:none}.diagram{max-height:245mm;object-fit:contain}a{color:inherit;text-decoration:none}a[href]::after{content:none}.print-only{display:block}}
+  </style>
+</head>
+<body>
+  <article class="report">
+    <header class="cover" id="top">
+      <div class="cover-head">
+        <div class="cover-copy">
+          <p class="eyebrow">Development Deliverable Report</p>
+          <h1>LocaleGrid<br>개발 산출 보고서</h1>
+          <p class="cover-lead">PyCharm 안에서 locale별 JSON을 비교·편집·검증·적용하는 통합 다국어 편집 플러그인</p>
+        </div>
+      </div>
+      <div class="meta-grid" aria-label="보고서 작성 정보">
+        <div class="meta-item"><span class="meta-label">프로젝트</span><span class="meta-value">LocaleGrid</span></div>
+        <div class="meta-item"><span class="meta-label">작성일자</span><span class="meta-value">2026-08-22</span></div>
+      </div>
+    </header>
+
+    <nav class="contents" aria-label="목차">
+      <strong>목차</strong>
+      <a href="#executive">Executive Summary</a>
+      <a href="#chapter1">1. 프로젝트 개요</a>
+      <a href="#chapter2">2. 설계</a>
+      <a href="#chapter3">3. 주요 기능</a>
+      <a href="#chapter4">4. 사용자 문서</a>
+      <a href="#chapter5">5. 기대효과</a>
+      <a href="#appendix">지원 범위</a>
+    </nav>
+
+    <main>
+      <section id="executive">
+        <span class="section-no">EXECUTIVE SUMMARY</span>
+        <h2>프로젝트 주요 기능</h2>
+        <p class="section-lead">다국어 JSON의 비교부터 검증·적용까지 PyCharm 안의 단일 편집 흐름으로 제공.</p>
+        <div class="overview-grid">
+          <div class="overview-item"><strong>통합 비교</strong><span>동일 category의 locale JSON을 key 기준의 한 표로 구성</span></div>
+          <div class="overview-item"><strong>번역 편집</strong><span>locale별 문자열과 key의 추가·변경·삭제·순서 이동</span></div>
+          <div class="overview-item"><strong>검색·필터</strong><span>key·번역 검색, 일치 강조, 상태 필터, 결과 순환 탐색</span></div>
+          <div class="overview-item"><strong>상태·검증</strong><span>추가·편집·삭제 상태와 누락·구조·문자 체계 진단</span></div>
+          <div class="overview-item"><strong>변경 미리보기</strong><span>영향 파일, 변경 건수, 파일별 JSON Diff 확인</span></div>
+          <div class="overview-item"><strong>적용·출력</strong><span>검증 후 JSON 저장, 취소, 현재 화면 기준 XLSX 내보내기</span></div>
+        </div>
+      </section>
+
+      <section id="chapter1">
+        <span class="section-no">01 · 프로젝트 개요</span>
+        <h2>기존 방식과 LocaleGrid 적용 방식 비교</h2>
+        <p class="section-lead">분리된 locale 파일의 작성·검토 절차를 통합 그리드 중심 흐름으로 전환.</p>
+
+        <h3 id="overview">1.1 프로젝트 개요</h3>
+        <div class="two-col">
+          <div class="card info">
+            <h4>개발 배경</h4>
+            <p>언어별로 분리된 메시지 파일: <code>messages_ko.json</code>, <code>messages_en.json</code> 또는 <code>locales/ko/login.json</code>, <code>locales/en/login.json</code></p>
+            <p>기존 JSON 편집기는 단일 파일 중심. locale별 동일 key 비교, 누락 확인, 변경 영향 검토는 수동 작업.</p>
+          </div>
+          <div class="card outcome">
+            <h4>개발 목적</h4>
+            <p>같은 category의 JSON을 key 기준으로 통합. locale별 번역을 한 화면에서 비교·수정.</p>
+            <p>저장 전 누락·구조·문자 체계 진단. 적용 전 영향 파일과 Diff 확인.</p>
+          </div>
+        </div>
+
+        <h3>1.2 다국어 작성 흐름 비교</h3>
+        <figure class="diagram-frame">
+          <img class="diagram" src="./report-assets/localegrid_workflow_comparison.svg" alt="기존 다국어 작성 흐름과 LocaleGrid 적용 흐름 비교">
+          <figcaption>그림 1. 파일별 수동 작성 방식과 통합 그리드 작성 방식 비교</figcaption>
+        </figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>업무 단계</th><th>기존 작성 방식</th><th>LocaleGrid 적용 방식</th></tr></thead>
+            <tbody>
+              <tr><td>파일 열기</td><td>ko·en·ja·vi 파일을 각각 열고 반복 전환</td><td>대상 JSON 하나를 열어 같은 category의 locale 자동 연결</td></tr>
+              <tr><td>key 비교</td><td>파일별 key 목록을 직접 대조</td><td>전체 key 합집합을 한 표에 표시</td></tr>
+              <tr><td>번역 작성</td><td>각 파일에서 동일 key 위치를 찾아 개별 수정</td><td>선택 행의 locale별 값을 상세 패널에서 연속 편집</td></tr>
+              <tr><td>누락·오류 확인</td><td>빈 값, 누락 key, 구조 오류를 육안 검토</td><td>상태 배지, 셀 경고, 오류 툴팁으로 원인 확인</td></tr>
+              <tr><td>변경 검토</td><td>수정 파일과 변경 범위를 직접 확인</td><td>영향 파일, 변경 건수, 파일별 Diff 미리보기</td></tr>
+              <tr><td>저장·공유</td><td>각 JSON 저장 후 별도 자료 작성</td><td>검증 후 일괄 적용 또는 현재 화면을 XLSX로 출력</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>작업 규모 예시</h4>
+        <p>비교 대상은 <code>key 수 × locale 수</code>만큼 증가. 500개 key와 4개 locale은 2,000개 번역 셀에 해당.</p>
+        <div class="formula">가정 기반 기준 시나리오
+검토 셀 수 = 500 key × 4 locale = 2,000
+수동 검토 = 2,000 × 5초 = 166.7분
+Grid 검토 = 2,000 × 2.5초 = 83.3분
+예상 절감 = 83.3분, 50.0%</div>
+        <div class="note warning"><strong>예시 수치.</strong> 50%는 가정 기반 산정값이며 사용자 실측값이 아님. 보수·기준·낙관 시나리오는 5장 참조.</div>
+
+        <h3>1.3 지원 파일 구조</h3>
+        <div class="tree">locales/
+├── ko/
+│   └── login.json
+├── en/
+│   └── login.json
+├── ja/
+│   └── login.json
+└── vi/
+    └── login.json</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>항목</th><th>설정값</th><th>설명</th></tr></thead>
+            <tbody>
+              <tr><td>기본 패턴</td><td><code>locales/{locale}/{category}.json</code></td><td>폴더명으로 locale 결정</td></tr>
+              <tr><td>대체 패턴</td><td><code>locales/{locale}/{category}_{locale}.json</code></td><td>suffix와 폴더 locale 일치 필요</td></tr>
+              <tr><td>기본 locale 순서</td><td>ko → en → ja → vi → 나머지</td><td>수동 순서가 없을 때 적용</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="chapter2">
+        <span class="section-no">02 · 기능 설계</span>
+        <h2>다국어 편집 기능의 동작 구조</h2>
+        <p class="section-lead">파일 인식에서 비교·편집·검증·저장까지의 흐름을 사용자 기능 기준으로 구성.</p>
+
+        <h3 id="uml">2.1 주요 기능 관계도</h3>
+        <p>개발자 한 명의 작업 흐름을 기준으로 주요 기능과 연결 관계를 표현.</p>
+        <figure class="diagram-frame">
+          <img class="diagram" src="./report-assets/localegrid_use_case.svg" alt="개발자 관점의 LocaleGrid 주요 기능 관계도">
+          <figcaption>그림 2. 개발자 관점의 LocaleGrid 주요 기능 관계</figcaption>
+        </figure>
+
+        <h3 id="apply-flow">2.2 변경 적용 흐름</h3>
+        <p>검증 오류는 저장 전에 차단. 정상 변경은 미리보기와 승인 후 프로젝트 JSON에 반영.</p>
+        <figure class="diagram-frame">
+          <img class="diagram" src="./report-assets/localegrid_apply_sequence.svg" alt="LocaleGrid 검증과 변경 적용 흐름">
+          <figcaption>그림 3. 검증·미리보기·저장 순서</figcaption>
+        </figure>
+        <div class="two-col">
+          <div class="card attention">
+            <h4>오류가 있는 경우</h4>
+            <p>오류 위치와 사유 확인 후 편집 화면으로 복귀.</p>
+          </div>
+          <div class="card outcome">
+            <h4>검증을 통과한 경우</h4>
+            <p>영향 파일과 Diff 검토 후 JSON 저장.</p>
+          </div>
+        </div>
+
+        <h3 id="platform-architecture">2.3 기능별 처리 구조</h3>
+        <p>내부 클래스명이 아닌 사용자가 인식하는 기능 단위로 처리 영역을 구분.</p>
+        <figure class="diagram-frame">
+          <img class="diagram" src="./report-assets/localegrid_platform_architecture.svg" alt="LocaleGrid 기능별 처리 구조">
+          <figcaption>그림 4. 파일 인식부터 저장·출력까지의 기능 처리 구조</figcaption>
+        </figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>기능 영역</th><th>사용자 화면·동작</th><th>처리 결과</th></tr></thead>
+            <tbody>
+              <tr><td>대상 파일 인식</td><td>JSON 열기, locale 경로 설정</td><td>같은 category의 locale 파일 연결</td></tr>
+              <tr><td>통합 비교</td><td>key·locale 그리드</td><td>전체 key와 locale별 번역 표시</td></tr>
+              <tr><td>검색·편집</td><td>검색, key 작업, 상세 입력, 순서 이동</td><td>미적용 변경 상태 생성</td></tr>
+              <tr><td>검증·상태</td><td>경고·에러 배지와 툴팁</td><td>저장 가능 여부와 원인 표시</td></tr>
+              <tr><td>미리보기·적용</td><td>영향 파일, 변경 건수, Diff</td><td>승인 후 JSON 저장</td></tr>
+              <tr><td>출력</td><td>표시 행·열 선택, Excel 버튼</td><td>XLSX 파일 생성</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="chapter3">
+        <span class="section-no">03 · 주요 기능</span>
+        <h2>대상 인식부터 파일 적용까지의 기능 구성</h2>
+        <p class="section-lead">주요 기능별 화면 구성과 사용 흐름.</p>
+
+        <article class="feature" id="feature-target">
+          <div class="feature-head"><h3>3.1 다국어 파일 대상 지정</h3><span class="tag ok">자동 인식</span></div>
+          <p class="feature-summary"><strong>대상:</strong> 설정된 locale 루트 바로 아래의 JSON. <strong>편집기:</strong> JSON 원본 탭과 다국어 에디터 탭.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 대상 파일과 에디터 탭</div>
+              <div class="shot-body split-shot">
+                <div class="pane project-tree">▾ locales
+  ▾ ko
+    <span class="tree-active">login.json</span>
+  ▾ en
+    login.json
+  ▾ ja
+    login.json
+  ▾ vi
+    login.json</div>
+                <div class="pane">
+                  <div class="shot-tabs"><span class="shot-tab">JSON</span><span class="shot-tab active">다국어 에디터</span></div>
+                  <div class="shot-toolbar"><span class="shot-chip green">ko</span><span class="shot-chip blue">en</span><span class="shot-chip amber">ja</span><span class="shot-chip gray">vi</span></div>
+                  <p class="small">category: <strong>login</strong></p>
+                  <p class="small">동일 category의 sibling locale 파일 로드</p>
+                </div>
+              </div>
+              <figcaption class="shot-caption">화면 3-1. 대상 파일과 이중 에디터</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li><code>locales/ko/login.json</code> 열기</li><li><strong>다국어 에디터</strong> 탭 선택</li><li>동일 category의 locale 열 확인</li></ol>
+              <div class="support-line"><strong>지원:</strong> <code>{category}.json</code>, <code>{category}_{locale}.json</code><br><strong>비대상:</strong> 루트 밖 JSON, suffix 불일치, JSON 이외 형식</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-editor">
+          <div class="feature-head"><h3>3.2 JSON 파일 에디터</h3><span class="tag ok">이중 에디터</span></div>
+          <p class="feature-summary"><strong>화면 구성:</strong> 필터·검색, 열/행 작업, 그리드, 상세 편집, 적용·취소. <strong>변경 보호:</strong> 탭 이동·닫기 전 확인.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 기본 에디터</div>
+              <div class="shot-body">
+                <div class="shot-tabs"><span class="shot-tab">JSON</span><span class="shot-tab active">다국어 에디터 (편집중)</span></div>
+                <div class="shot-toolbar"><span class="shot-chip green">추가</span><span class="shot-chip amber">경고</span><span class="shot-chip blue">편집</span><span class="shot-chip gray">삭제</span><span class="shot-chip red">에러</span><span class="shot-spacer"></span><span class="shot-field">검색어 입력</span><span class="shot-btn">1 / 4</span><span class="shot-btn">Excel</span><span class="shot-btn">설정</span></div>
+                <div class="shot-toolbar"><span class="shot-btn">↑</span><span class="shot-btn">↓</span><span class="shot-btn">＋ 추가</span><span class="shot-btn">✎ 편집</span><span class="shot-btn">− 삭제</span><span class="shot-btn">↶ 삭제 취소</span></div>
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>en</th><th>ja</th><th>vi</th></tr></thead><tbody><tr><td><span class="shot-chip blue">편집</span></td><td>login.title</td><td>로그인</td><td>Sign in</td><td>ログイン</td><td>Đăng nhập</td></tr><tr><td><span class="shot-chip amber">경고</span></td><td>login.help</td><td>도움말</td><td class="missing">누락</td><td>ヘルプ</td><td>Trợ giúp</td></tr></tbody></table>
+                <div class="shot-toolbar"><span class="shot-btn">적용</span><span class="shot-btn">취소</span><span class="shot-spacer"></span><span class="small">2 rows · 편집 1 · 경고 1</span></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-2. 기본 에디터 구성</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>변경 중 이동 시 동작</h4>
+              <ol><li>값 수정 후 탭명의 <strong>(편집중)</strong> 표시 확인</li><li>JSON 탭 이동 시 미반영 변경 안내</li><li>파일 닫기 시 <strong>닫기·계속 편집</strong> 선택</li><li>취소 승인 시 원본 JSON 재로드</li></ol>
+              <div class="support-line">Grid는 비교 전용. 실제 값 편집은 하단 상세 패널에서 제공.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-crud">
+          <div class="feature-head"><h3>3.3 키 추가·수정·삭제</h3><span class="tag ok">단건 CRUD</span></div>
+          <p class="feature-summary"><strong>key 작업:</strong> dot path 추가, 이름 변경, 삭제, 삭제 취소. 기존 행은 적용 전까지 삭제 후보로 유지.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 행 작업과 입력 팝업</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-btn">＋ 추가</span><span class="shot-btn">✎ 편집</span><span class="shot-btn">− 삭제</span><span class="shot-btn">↶ 삭제 취소</span></div>
+                <div class="shot-dialog"><h5>행 추가</h5><label class="small">새 dot path key</label><input class="shot-input" value="login.rememberMe" aria-label="새 key"><div class="shot-actions"><span class="shot-btn">취소</span><span class="shot-btn shot-primary">추가</span></div></div>
+                <div class="shot-toolbar"><span class="shot-chip green">추가</span><strong>login.rememberMe</strong><span class="shot-spacer"></span><span class="shot-chip gray">삭제 후보</span></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-3. 새 key 입력과 삭제 후보 상태</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li><strong>추가</strong> 선택 후 key 입력</li><li>하단 상세 패널에서 locale 값 입력</li><li><strong>편집</strong> 팝업에서 key 이름 변경</li><li><strong>삭제</strong> 또는 <strong>삭제 취소</strong> 선택</li></ol>
+              <div class="support-line"><strong>차단:</strong> 빈 key, <code>.a</code>, <code>a.</code>, <code>a..b</code>, 중복, leaf/object 충돌<br><strong>미지원:</strong> 벌크 추가, 다중 value 편집, 템플릿 복제</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-search">
+          <div class="feature-head"><h3>3.4 검색 필터·하이라이트·검색 대상 이동</h3><span class="tag ok">순환 탐색</span></div>
+          <p class="feature-summary"><strong>검색 범위:</strong> key와 모든 locale 값. <strong>결과 표시:</strong> 대소문자 구분 없이 일치 문자열 강조.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 검색 결과</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-field">login</span><span class="shot-btn">2 / 4</span><span class="shot-btn">↑ 이전</span><span class="shot-btn">↓ 다음</span><span class="shot-btn">검색 결과만 보기</span></div>
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>en</th></tr></thead><tbody><tr><td></td><td><mark>login</mark>.title</td><td><mark>로그인</mark></td><td>Sign in</td></tr><tr><td><span class="shot-chip blue">편집</span></td><td><mark>login</mark>.button</td><td><mark>로그인</mark>하기</td><td>Continue</td></tr><tr><td></td><td>menu.help</td><td>도움말</td><td>Help</td></tr></tbody></table>
+              </div>
+              <figcaption class="shot-caption">화면 3-4. 하이라이트, 현재/전체 건수, 이전·다음 탐색</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>검색어 입력</li><li>500ms 후 일치 텍스트 강조 확인</li><li>이전·다음으로 결과 순환</li><li>필요 시 <strong>검색 결과만 보기</strong> 선택</li></ol>
+              <div class="support-line">숨긴 locale 값도 검색 대상. 상태 필터는 OR 조합. 검색어는 필터 결과를 다시 제한.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-exception">
+          <div class="feature-head"><h3>3.5 예외키 관리</h3><span class="tag ok">위치 보존</span></div>
+          <p class="feature-summary"><strong>예외키:</strong> <code>__section__</code> 같은 root-level 설명 entry. 원본 위치·값 보존, 적용 후 일반 번역 행에서 숨김.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 예외키 설정</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-btn">🔑 예외키</span><span class="shot-spacer"></span><span class="small">기본값: __section__</span></div>
+                <div class="shot-dialog"><h5>예외키 설정</h5><label class="small">쉼표로 구분한 root-level key</label><input class="shot-input" value="__section__, __description__" aria-label="예외키 목록"><div class="shot-actions"><span class="shot-btn">취소</span><span class="shot-btn shot-primary">저장</span></div></div>
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>en</th></tr></thead><tbody><tr><td></td><td>__section__</td><td>로그인 영역</td><td>Login section</td></tr></tbody></table>
+              </div>
+              <figcaption class="shot-caption">화면 3-5. 적용 전 visible 예외키와 프로젝트 설정</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li><strong>예외키</strong> 버튼 열기</li><li>쉼표 구분 목록 저장</li><li>새 예외키 행 추가 후 값 입력</li><li>적용 후 JSON root 위치와 값 확인</li></ol>
+              <div class="support-line">root-level 정확한 이름만 예외 처리. 중첩된 같은 이름은 일반 key. 미저장 에디터가 있으면 구조 설정 변경 차단.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-order">
+          <div class="feature-head"><h3>3.6 드래그·버튼 이동</h3><span class="tag ok">원본 순서 중심</span></div>
+          <p class="feature-summary"><strong>이동 방식:</strong> 위·아래 버튼 또는 6-dot 핸들. 같은 top-level 안에서는 행 단위, 그룹 사이에서는 최상위 그룹 단위 이동.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 드래그 순서 변경</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-btn">↑</span><span class="shot-btn">↓</span><span class="shot-spacer"></span><span class="small">필터 해제 상태</span></div>
+                <table class="shot-grid"><thead><tr><th>핸들</th><th>key</th><th>ko</th></tr></thead><tbody><tr style="outline:1px solid #d4862d"><td>⠿</td><td>login.title</td><td>로그인</td></tr><tr style="border-top:2px solid #4da3d7"><td>⠿</td><td>login.button</td><td>계속</td></tr><tr><td>⠿</td><td>menu.title</td><td>메뉴</td></tr></tbody></table>
+                <div class="shot-toolbar"><span class="shot-chip amber">원본 행</span><span class="shot-chip blue">드롭 위치</span><span class="shot-spacer"></span><span class="small">순서 변경 있음</span></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-6. 원본 영역과 대상 위치 색상</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>상태 필터와 결과만 보기 해제</li><li>같은 그룹에서 행을 위·아래로 이동</li><li>다른 그룹 경계로 드래그</li><li>적용 미리보기에서 순서 변경 확인</li></ol>
+              <div class="support-line"><strong>정렬 정책:</strong> 현재 연 파일의 원본 순서 우선. 임의 알파벳 정렬 미지원. 예외키 그룹 경계 보존.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-status">
+          <div class="feature-head"><h3>3.7 상태 정의</h3><span class="tag ok">배지·툴팁·스크롤맵</span></div>
+          <p class="feature-summary"><strong>상태 정보:</strong> 추가·편집·삭제·경고·에러. 셀 툴팁에는 key·locale·진단 사유, 스크롤맵에는 상태 위치 표시.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 상태와 툴팁</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-chip green">추가</span><span class="shot-chip blue">편집</span><span class="shot-chip gray">삭제</span><span class="shot-chip amber">경고</span><span class="shot-chip red">에러</span></div>
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>en</th></tr></thead><tbody><tr><td><span class="shot-chip green">추가</span></td><td>login.new</td><td>새 기능</td><td>New</td></tr><tr><td><span class="shot-chip blue">편집</span> <span class="shot-chip amber">경고</span></td><td>login.help</td><td>도움말</td><td class="missing">누락</td></tr><tr><td><span class="shot-chip red">에러</span></td><td>login</td><td colspan="2">dot path 충돌</td></tr></tbody></table>
+                <div class="tooltip">경고 · login.help · en<br>번역 값이 비어 있습니다.</div>
+              </div>
+              <figcaption class="shot-caption">화면 3-7. 상태 조합과 셀 툴팁</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>상태 정의</h4>
+              <ul><li><strong>추가:</strong> 적용 시 새로 기록할 행</li><li><strong>편집:</strong> key 또는 값이 변경된 행</li><li><strong>삭제:</strong> 적용 시 제거할 기존 행</li><li><strong>경고:</strong> 확인이 필요하지만 기본 정책에서 저장 가능한 진단</li><li><strong>에러:</strong> 적용을 차단하는 진단</li></ul>
+              <div class="support-line">삭제는 단독 상태다. 그 외에는 에러 + 추가/편집 + 경고가 함께 표시될 수 있다. 스크롤맵 우선순위는 에러 → 삭제 → 추가 → 편집 → 경고다.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-script">
+          <div class="feature-head"><h3>3.8 부적격 언어 보조 진단</h3><span class="tag warn">예상 문자 체계 검사</span></div>
+          <p class="feature-summary"><strong>검출 기준:</strong> locale별 예상 Unicode Script. <strong>표시 정보:</strong> 위반 문자와 locale. 자연어 의미 판별은 미지원.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 문자 체계 경고</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-btn">문자 체계 검사 ✓</span><span class="shot-btn">경고 (저장 가능)</span></div>
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>ja</th></tr></thead><tbody><tr><td><span class="shot-chip amber">경고</span></td><td>login.title</td><td style="background:rgba(184,119,0,.16)">ログイン 안내</td><td>ログイン Guide</td></tr></tbody></table>
+                <div class="tooltip">예상 문자 체계 위반 · key=login.title · locale=ko<br>허용 범위 밖 문자: ロ グ イ ン</div>
+              </div>
+              <figcaption class="shot-caption">화면 3-8. ko 셀의 일본어 문자 위반 경고와 툴팁</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>ko 값에 일본어 문자 입력</li><li>해당 셀의 경고와 툴팁 확인</li><li>설정에서 처리 수준을 ERROR로 변경</li><li>같은 위반의 적용 차단 확인</li></ol>
+              <div class="support-line">기본 정책은 WARNING. ERROR로 변경 가능. CLDR는 locale → 예상 Script 매핑에만 사용.</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>locale</th><th>명시 허용 Script</th><th>대표 진단 예</th></tr></thead>
+              <tbody>
+                <tr><td>ko</td><td>Hangul + Latin + Common + Inherited</td><td>일본어 Kana, Cyrillic 등</td></tr>
+                <tr><td>en</td><td>Latin + Common + Inherited</td><td>Hangul, Kana, Cyrillic 등</td></tr>
+                <tr><td>ja</td><td>Hiragana + Katakana + Han + Latin + Common + Inherited</td><td>Hangul, Cyrillic 등</td></tr>
+                <tr><td>vi</td><td>Latin + Common + Inherited</td><td>Hangul, Kana, Cyrillic 등</td></tr>
+                <tr><td>기타</td><td>BCP 47 명시 Script 또는 CLDR likely-subtags 예상 Script + Latin/Common/Inherited</td><td>결정된 Script 밖 문자</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note danger"><strong>지원 범위.</strong> 제품명과 기술 용어를 위해 Latin 허용. 영어·프랑스어·베트남어 문장만 있는 ko 또는 ja 값은 통과 가능. 일본어 Han과 중국어 Han도 문자만으로 구분 불가. 잘못된 locale 또는 CLDR에서 Script를 정하지 못한 locale은 검사 제외.</div>
+          <div class="note warning"><strong>현재 검출 범위.</strong> ko는 한글과 Latin을 함께 허용하므로 영어만 입력된 값은 경고 대상이 아님. 의미 기반 검출에는 자연어 판별 또는 locale별 Latin 비율 정책 필요.</div>
+        </article>
+
+        <article class="feature" id="feature-missing">
+          <div class="feature-head"><h3>3.9 누락키 검출</h3><span class="tag warn">저장 가능 경고</span></div>
+          <p class="feature-summary"><strong>누락 기준:</strong> 전체 locale의 key 합집합. 특정 locale의 key 부재, 빈 문자열, locale 파일 부재를 각각 구분.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 누락 key</div>
+              <div class="shot-body">
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>en</th><th>ja</th><th>vi</th></tr></thead><tbody><tr><td><span class="shot-chip amber">경고</span></td><td>login.remember</td><td>로그인 유지</td><td>Remember me</td><td class="missing">key 없음</td><td>Ghi nhớ</td></tr><tr><td><span class="shot-chip amber">경고</span></td><td>login.help</td><td>도움말</td><td class="missing">빈 문자열</td><td>ヘルプ</td><td>Trợ giúp</td></tr></tbody></table>
+                <div class="tooltip">경고 · login.remember · ja<br>해당 locale에 key가 없습니다.</div>
+              </div>
+              <figcaption class="shot-caption">화면 3-9. key 부재와 빈 문자열의 셀 경고</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>한 locale에만 없는 key 준비</li><li>통합 표에서 누락 셀 확인</li><li>해당 행 선택 후 하단 필드에 값 입력</li><li>locale 파일 부재 시 적용 단계의 생성 여부 확인</li></ol>
+              <div class="support-line"><strong>구분:</strong> ① 파일은 있으나 key 없음 ② key는 있으나 빈 값 ③ locale 파일 자체 없음. 기본값은 WARNING이며 적용을 막지 않는다.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-excel">
+          <div class="feature-head"><h3>3.10 엑셀 다운로드</h3><span class="tag ok">XLSX Export</span></div>
+          <p class="feature-summary"><strong>출력 범위:</strong> 현재 화면의 행과 열. <strong>형식:</strong> 단일 시트 XLSX. CSV와 Excel Import는 미지원.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · Excel 내보내기</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-btn">▣ Excel</span><span class="shot-spacer"></span><span class="small">현재 표시: 24 rows · 상태/key/ko/en</span></div>
+                <div class="shot-dialog"><h5>Excel 내보내기</h5><p class="small">현재 필터 결과 24건과 표시 열 4개를 저장합니다.</p><p class="small break">LocaleGrid-login.json-20260821-143500.xlsx</p><div class="shot-actions"><span class="shot-btn">닫기</span><span class="shot-btn">폴더 열기</span><span class="shot-btn shot-primary">파일 열기</span></div></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-10. 현재 subset 내보내기와 완료 대화상자</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>상태 필터와 표시 locale 열 선택</li><li><strong>Excel</strong> 버튼 선택</li><li>저장 건수와 열 확인</li><li>완료 후 파일 또는 폴더 열기</li></ol>
+              <div class="support-line"><strong>형식:</strong> <code>.xlsx</code>, 시트명 LocaleGrid, 첫 행 고정, AutoFilter, 굵은 헤더<br><strong>위치:</strong> Downloads, 없으면 사용자 홈<br><strong>미지원:</strong> CSV, XLSX Import</div>
+            </div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>항목</th><th>출력 규칙</th></tr></thead><tbody><tr><td>행</td><td>현재 필터로 보이는 Row만 포함</td></tr><tr><td>열</td><td>현재 표시 열만 포함. 드래그 핸들 열 제외</td></tr><tr><td>폭</td><td>상태 12, key 36, locale 28</td></tr><tr><td>문자열</td><td>특수 문자를 포함한 셀 값 유지</td></tr><tr><td>중복 파일명</td><td>숫자 suffix 추가</td></tr></tbody></table></div>
+        </article>
+
+        <article class="feature" id="feature-apply-cancel">
+          <div class="feature-head"><h3>3.11 적용 및 취소</h3><span class="tag ok">확인 후 저장</span></div>
+          <p class="feature-summary"><strong>적용:</strong> 대기 입력 반영, 전체 재검증, 미리보기, 저장. <strong>취소:</strong> 확인 후 원본 JSON 재로드.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 팝업 유형</div>
+              <div class="shot-body">
+                <div class="shot-dialog"><h5>변경 취소</h5><p class="small">적용하지 않은 변경을 버리고 원본을 다시 불러오시겠습니까?</p><div class="shot-actions"><span class="shot-btn">계속 편집</span><span class="shot-btn shot-primary">변경 취소</span></div></div>
+                <div class="shot-toolbar"><span class="shot-chip red">ERROR 있음 → 적용 차단</span><span class="shot-chip amber">누락 파일 → 생성 확인</span><span class="shot-chip green">검증 통과 → 미리보기</span></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-11. 취소 확인과 적용 분기</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>팝업 유형</h4>
+              <ol><li>ERROR 발생 시 차단 안내</li><li>값이 있는 누락 locale 파일의 생성 여부 확인</li><li>검증 통과 후 적용 미리보기</li><li><strong>취소</strong> 선택 시 변경 폐기 여부 확인</li><li>JSON 탭 이동·파일 닫기 전 미적용 변경 확인</li></ol>
+              <div class="support-line">파일 생성 또는 저장 취소 시 프로젝트 파일 변경 없음. 편집 상태 유지.</div>
+            </div>
+          </div>
+          <figure class="diagram-frame">
+            <img class="diagram" src="./report-assets/localegrid_save_flow.svg" alt="LocaleGrid 적용 및 저장 업무 흐름도">
+            <figcaption>그림 6. 적용·취소 업무 흐름 · 사용자 결정 분기</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature" id="feature-preview">
+          <div class="feature-head"><h3>3.12 적용 팝업의 변경 및 현황</h3><span class="tag ok">파일별 Diff</span></div>
+          <p class="feature-summary"><strong>적용 팝업:</strong> 변경 예정 건수, 영향 파일, 파일별 변경 전·후 JSON Diff.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 파일 저장 준비</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-chip green">추가 2</span><span class="shot-chip blue">편집 4</span><span class="shot-chip gray">삭제 1</span><span class="shot-chip amber">경고 3</span><span class="shot-spacer"></span><span class="small">영향 파일 4</span></div>
+                <div class="shot-toolbar"><span class="shot-btn">변경 · ko/login.json</span><span class="shot-btn">변경 · en/login.json</span><span class="shot-btn">생성 · ja/login.json</span><span class="shot-btn">변경 없음 · vi/login.json</span></div>
+                <div class="diff"><pre><strong>변경 전</strong>
+{
+  "login": {
+<span class="minus">-   "title": "로그인"</span>
+  }
+}</pre><pre><strong>변경 후</strong>
+{
+  "login": {
+<span class="plus">+   "title": "로그인하기",</span>
+<span class="plus">+   "help": "도움말"</span>
+  }
+}</pre></div>
+                <div class="shot-actions"><span class="shot-btn">취소</span><span class="shot-btn shot-primary">적용</span></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-12. 변경 건수, 파일 상태, 전후 Diff</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>추가·편집·삭제·경고 건수 확인</li><li>영향 파일의 생성·변경·변경 없음 상태 확인</li><li>파일별 접이식 Diff 검토</li><li><strong>적용</strong> 승인</li><li>저장 결과와 재로드 상태 확인</li></ol>
+              <div class="support-line">저장 전 전체 파일 생성 가능 여부 확인. 구조·경로 충돌 시 저장 중단.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature" id="feature-detail-hidpi">
+          <div class="feature-head"><h3>3.13 상세 값 편집·표시 열·확대 화면 대응</h3><span class="tag ok">가독성 유지</span></div>
+          <p class="feature-summary"><strong>상세 편집:</strong> 단일 행 기준 locale별 문자열 입력. <strong>확대 화면:</strong> 버튼 라벨을 보존하고 표시 열 수에 맞춰 표 폭 조정.</p>
+          <div class="feature-layout">
+            <figure class="shot">
+              <div class="shot-title"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 화면 예시 · 상세 편집과 표시 열</div>
+              <div class="shot-body">
+                <div class="shot-toolbar"><span class="shot-btn">☑ ko</span><span class="shot-btn">☑ en</span><span class="shot-btn">☑ ja</span><span class="shot-btn">☐ vi</span><span class="shot-btn">☐ 일괄보기</span></div>
+                <table class="shot-grid"><thead><tr><th>상태</th><th>key</th><th>ko</th><th>en</th><th>ja</th></tr></thead><tbody><tr><td><span class="shot-chip blue">편집</span></td><td>login.title</td><td>로그인</td><td>Sign in</td><td>ログイン</td></tr></tbody></table>
+                <div class="shot-dialog"><h5>login.title 상세 편집</h5><label class="small">ko</label><div class="shot-input">로그인하기</div><label class="small">en</label><div class="shot-input">Sign in</div><label class="small">ja · readonly 예</label><div class="shot-input" style="color:#8f98a4">number/boolean/array는 편집할 수 없습니다.</div></div>
+              </div>
+              <figcaption class="shot-caption">화면 3-13. 표시 locale 열과 단일 행 상세 편집</figcaption>
+            </figure>
+            <div class="scenario">
+              <h4>동작 흐름</h4>
+              <ol><li>표시할 locale 열 선택</li><li>행 하나 선택</li><li>하단의 locale별 문자열 수정</li><li>300ms 후 검증과 표 갱신 확인</li><li>여러 행 선택 시 삭제·삭제 취소만 사용</li></ol>
+              <div class="support-line">string과 missing 값만 편집 가능. number, boolean, array는 readonly. 다수 열은 가로 스크롤 유지.</div>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="card risk"><h4>확대 환경의 기존 화면</h4><img class="historical-shot" src="./report-assets/localegrid_hidpi_before.jpg" alt="확대 환경에서 추가 편집 삭제 버튼 라벨이 잘린 화면"><p class="small">버튼 라벨 잘림과 표 우측 공백 발생.</p></div>
+            <div class="card outcome"><h4>개선된 화면 동작</h4><ul><li>확대된 글꼴에서도 버튼 라벨 전체 표시</li><li>아이콘과 텍스트 크기에 맞춘 버튼 폭</li><li>표시 열이 적으면 화면 너비에 맞춰 표 확장</li><li>표시 열이 많으면 가로 스크롤 유지</li></ul></div>
+          </div>
+        </article>
+      </section>
+
+      <section id="chapter4">
+        <span class="section-no">04 · 사용자 문서</span>
+        <h2>설치부터 첫 Diff 확인까지</h2>
+        <p class="section-lead">기본 구조에서는 별도 설정 불필요. 다른 구조는 프로젝트 설정에서 locale 루트 지정.</p>
+
+        <h3 id="install">4.1 설치 방법</h3>
+        <p><strong>설치 방식.</strong> 압축을 풀지 않은 LocaleGrid ZIP을 PyCharm의 <strong>Install Plugin from Disk</strong>에서 선택.</p>
+        <div class="two-col">
+          <div class="card info">
+            <h4>수동 설치 절차</h4>
+            <ol>
+              <li>설치용 LocaleGrid 플러그인 ZIP 준비</li>
+              <li>PyCharm에서 <strong>Settings</strong>를 연다.</li>
+              <li><strong>Plugins</strong> 선택</li>
+              <li>톱니바퀴 메뉴에서 <strong>Install Plugin from Disk</strong>를 누른다.</li>
+              <li>ZIP 선택 후 확인</li>
+              <li>IDE 안내에 따라 재시작</li>
+            </ol>
+          </div>
+          <div class="card outcome">
+            <h4>설치 확인</h4>
+            <ol>
+              <li><code>locales/ko/login.json</code>을 연다.</li>
+              <li>상단의 <strong>JSON</strong> 탭 확인</li>
+              <li><strong>다국어 에디터</strong> 탭 선택</li>
+              <li>같은 category의 locale 열 확인</li>
+            </ol>
+          </div>
+        </div>
+        <p>공식 절차: <a href="https://www.jetbrains.com/help/pycharm/managing-plugins.html">JetBrains · Install and manage plugins</a></p>
+
+        <h3 id="first-settings">4.2 설정 방법</h3>
+        <p><strong>권장 기본값.</strong> locale 자동 감지와 경고 수준의 문자 체계 검사.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>설정</th><th>기본값</th><th>권장 최초 설정</th><th>변경 효과</th></tr></thead>
+            <tbody>
+              <tr><td>locale 루트 경로</td><td><code>locales</code></td><td>프로젝트 상대 경로</td><td>대상 파일 판정과 sibling 탐지를 바꾼다.</td></tr>
+              <tr><td>locale 표시 순서</td><td>공란</td><td>자동 또는 <code>ko,en,ja,vi</code></td><td>표시 locale과 열 순서를 바꾼다.</td></tr>
+              <tr><td>예외키</td><td><code>__section__</code></td><td>root 설명 key만 등록</td><td>hidden marker와 저장 anchor를 바꾼다.</td></tr>
+              <tr><td>JSON 들여쓰기</td><td>2</td><td>팀 규칙에 따라 2 또는 4</td><td>저장 포맷을 바꾼다.</td></tr>
+              <tr><td>문자 체계 검사</td><td>켬</td><td>켬</td><td>locale별 예상 Script 진단</td></tr>
+              <tr><td>문자 위반 처리</td><td>경고</td><td>초기에는 경고, 안정화 후 ERROR 검토</td><td>ERROR 설정 시 적용 차단</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note warning"><strong>설정 영향.</strong> locale 루트·locale 순서·예외키 변경 시 표 재구성. 미적용 변경이 있는 열린 에디터에서는 구조 설정 적용 차단. 들여쓰기·문자 정책 변경 시 현재 표 재검증.</div>
+
+        <h4>최초 실행 절차</h4>
+        <ol>
+          <li><code>locales/ko/login.json</code>, <code>en/login.json</code>, <code>ja/login.json</code>, <code>vi/login.json</code> 준비</li>
+          <li>ko 파일 열기 후 <strong>다국어 에디터</strong> 선택</li>
+          <li>locale 열과 key 합집합 확인</li>
+          <li>문자열 행 하나 선택</li>
+          <li>하단 상세 패널에서 값 수정</li>
+          <li><strong>적용</strong> 선택 후 파일별 Diff 확인</li>
+          <li>저장 후 JSON 원본의 변경 내용 확인</li>
+        </ol>
+
+        <h3 id="faq">4.3 자주 묻는 질문</h3>
+        <details><summary>모든 JSON 파일에 다국어 에디터 탭이 표시되는가?</summary><div>아니다. 설정된 locale 루트 바로 아래의 <code>{locale}/{category}.json</code> 또는 suffix가 일치하는 <code>{category}_{locale}.json</code>만 대상이다.</div></details>
+        <details><summary>기존 메시지 파일과 충돌하면 어떻게 되는가?</summary><div>중복 key, 잘못된 dot path, leaf/object 충돌은 ERROR이며 적용 불가. 원본 JSON의 중복 구조는 JSON 탭에서 선행 정리 필요.</div></details>
+        <details><summary>새 언어를 추가하려면 어떻게 하는가?</summary><div><code>locales/{새 locale}/</code> 디렉터리 추가. 수동 순서를 사용하는 프로젝트는 설정의 locale 목록에도 추가. 없는 category 파일은 값 입력과 생성 동의 후 생성 가능.</div></details>
+        <details><summary>그리드 셀을 직접 편집할 수 있는가?</summary><div>표는 비교 전용. 단일 행 선택 후 하단 상세 패널에서 locale별 문자열 편집.</div></details>
+        <details><summary>number, boolean, array를 수정할 수 있는가?</summary><div>문자열과 missing 값만 편집 가능. 나머지 leaf는 readonly.</div></details>
+        <details><summary>숨긴 locale 값이 검색되는 이유는 무엇인가?</summary><div>검색 범위는 표시 여부와 무관한 전체 locale 값. 표시 열과 검색 범위는 별개.</div></details>
+        <details><summary>상태 필터를 여러 개 선택하면 어떻게 동작하는가?</summary><div>선택 상태 중 하나라도 일치하면 표시되는 OR 조건. 검색어는 해당 결과를 다시 제한.</div></details>
+        <details><summary>행 이동 버튼이 비활성화되는 이유는 무엇인가?</summary><div>상태 필터 또는 <strong>검색 결과만 보기</strong>가 켜져 있으면 순서 변경을 막는다. 전체 순서가 보이는 상태에서만 이동할 수 있다.</div></details>
+        <details><summary>CLDR가 실제 언어를 판별하는가?</summary><div>CLDR의 역할은 locale과 예상 Unicode Script 연결. 같은 Script 언어와 Latin 기반 언어의 의미 구분은 불가.</div></details>
+        <details><summary>한국어·영어·일본어·베트남어 외 locale도 지원하는가?</summary><div>올바른 BCP 47 태그는 명시 Script 또는 CLDR likely-subtags로 예상 Script 결정. Script 결정 불가 locale은 문자 체계 검사 제외. JSON 비교·편집과 문자 검사 지원 범위는 별개.</div></details>
+        <details><summary>누락 locale 파일은 자동으로 생성되는가?</summary><div>해당 locale 값 입력과 적용 시 생성 동의가 모두 있는 경우에만 생성.</div></details>
+        <details><summary>Excel 파일이 일부 행과 열만 포함하는 이유는 무엇인가?</summary><div>내보내기 범위는 현재 필터 결과와 표시 열. 전체 원본 Export는 미지원.</div></details>
+        <details><summary>CSV 또는 Excel Import를 지원하는가?</summary><div>XLSX Export만 지원. 예외키 설정의 CSV는 쉼표 구분 문자열이며 CSV 파일 기능과 무관.</div></details>
+        <details><summary>벌크 추가, 행 복제, 자동 번역을 지원하는가?</summary><div>미지원. 단일 key 추가와 수동 값 편집만 제공.</div></details>
+        <details><summary>취소한 변경을 플러그인에서 복구할 수 있는가?</summary><div>플러그인 자체 backup·rollback 미지원. 프로젝트 변경 이력 또는 PyCharm Local History 이용.</div></details>
+
+        <h3 id="troubleshooting">4.4 문제 해결 가이드</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>증상</th><th>우선 확인</th><th>조치</th></tr></thead>
+            <tbody>
+              <tr><td>다국어 탭이 없음</td><td>플러그인 활성화, 재시작, 경로·확장자</td><td>locale 루트와 파일명 패턴을 확인하고 JSON을 다시 연다.</td></tr>
+              <tr><td>다른 locale이 보이지 않음</td><td>형제 디렉터리, 수동 순서, suffix</td><td>설정과 실제 폴더명을 일치시킨다.</td></tr>
+              <tr><td>로드 실패</td><td>JSON 문법, root object, 파일 인코딩</td><td>JSON 탭에서 원본 오류를 수정하고 다시 연다.</td></tr>
+              <tr><td>설정 적용 차단</td><td><strong>(편집중)</strong> 탭</td><td>열린 LocaleGrid 에디터에서 먼저 적용 또는 취소</td></tr>
+              <tr><td>적용 차단</td><td>에러 필터, 셀 툴팁</td><td>중복 key, dot path 충돌, ERROR 등급 문자 위반 제거</td></tr>
+              <tr><td>문자 경고가 예상과 다름</td><td>locale 태그, 허용 Script, 정책</td><td>검사 범위 확인 후 경고 수준 또는 검사 조정</td></tr>
+              <tr><td>행 이동 불가</td><td>상태 필터, 검색 결과만 보기</td><td>두 필터 해제</td></tr>
+              <tr><td>누락 파일 미생성</td><td>값 입력, 생성 동의, 쓰기 권한</td><td>값 입력 후 적용 시 생성 동의</td></tr>
+              <tr><td>Excel 파일을 찾지 못함</td><td>Downloads와 사용자 홈</td><td>완료 경로와 OS 쓰기 권한 확인</td></tr>
+              <tr><td>버튼 라벨 잘림</td><td>PyCharm 재시작, OS 배율, 글꼴 크기</td><td>배율과 글꼴 크기를 확인하고 화면 상태 기록</td></tr>
+              <tr><td>저장 후 되돌리기</td><td>프로젝트 변경 이력, Local History</td><td>팀의 변경 이력 기능 또는 PyCharm Local History 이용</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>로그 수집</h4>
+        <ul>
+          <li>메뉴: <strong>Help &gt; Show Log in Explorer</strong>(Windows) 또는 <strong>Show Log in Finder</strong>(macOS)</li>
+          <li>주요 파일: <code>idea.log</code></li>
+          <li>정확한 현재 경로: <strong>Help &gt; Diagnostic Tools &gt; Special Files and Folders</strong></li>
+        </ul>
+        <p>공식 문서: <a href="https://www.jetbrains.com/help/pycharm/directories-used-by-the-ide-to-store-settings-caches-plugins-and-logs.html">JetBrains · Directories used by the IDE</a> · <a href="https://www.jetbrains.com/help/pycharm/troubleshooting-materials.html">JetBrains · Troubleshooting materials</a></p>
+        <div class="note"><strong>로그 수집 항목.</strong> 재현 순서, OS, 화면 배율, 글꼴 크기, 민감정보를 제거한 sample JSON, 화면 캡처, <code>idea.log</code>.</div>
+      </section>
+
+      <section id="chapter5">
+        <span class="section-no">05 · 기대효과</span>
+        <h2>40~60% 시간 단축과 사후 오류 70% 감소는 파일럿 전 목표치</h2>
+        <p class="section-lead">현재 생산성 실측 자료 없음. 아래 수치는 가정 기반 산정.</p>
+
+        <h3>5.1 기대효과 산정 전제</h3>
+        <div class="two-col">
+          <div class="card outcome"><h4>목표 범위</h4><ul><li>전체 검토 시간 40~60% 단축</li><li>사후 오류 70% 감소</li><li>파일·탭 전환 횟수 감소</li><li>1차 적용 성공률 95% 이상</li><li>저장 무결성 오류 0건</li></ul></div>
+          <div class="card attention"><h4>실측 필요 항목</h4><ul><li>사용자 작업 완료 시간</li><li>파일·탭 전환 횟수</li><li>실제 누락·오역 사전 발견률</li><li>문자 진단 오진율</li><li>저장 후 재작업률</li><li>사용률과 사용자 만족도</li></ul></div>
+        </div>
+        <div class="note danger"><strong>산정 상태.</strong> 사용자 생산성 실측 전 가정. 5.2~5.4의 계산식과 파일럿으로 검증 필요.</div>
+
+        <h3>5.2 업무 효율성 산정</h3>
+        <div class="formula">K = 전체 key 수
+L = locale 수
+p = 한 주기에서 검토하는 key 비율
+t_manual = 수동 방식의 value 1개 처리 시간
+t_grid = LocaleGrid 방식의 value 1개 처리 시간
+
+검토 value 수 = K × L × p
+수동 시간(분) = K × L × p × t_manual ÷ 60
+Grid 시간(분) = K × L × p × t_grid ÷ 60
+예상 절감률 = (t_manual - t_grid) ÷ t_manual × 100</div>
+        <div class="table-wrap kpi">
+          <table>
+            <thead><tr><th>500 key × 4 locale 전체 검토</th><th>수동 초/value</th><th>Grid 초/value</th><th>수동 시간</th><th>Grid 시간</th><th>가정상 절감</th></tr></thead>
+            <tbody>
+              <tr><td>보수적</td><td>3초</td><td>2초</td><td>100.0분</td><td>66.7분</td><td>33.3분 · 33.3%</td></tr>
+              <tr><td>기준</td><td>5초</td><td>2.5초</td><td>166.7분</td><td>83.3분</td><td>83.3분 · 50.0%</td></tr>
+              <tr><td>낙관적</td><td>8초</td><td>3초</td><td>266.7분</td><td>100.0분</td><td>166.7분 · 62.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>기준 시나리오는 사용자가 제시한 40~60% 기대 범위 안에 있다. 범위는 비교 방식, 검색 난이도, 수정 비율에 따라 달라진다.</p>
+        <div class="formula">주간 20% 검토의 기준 예
+500 × 4 × 0.2 × (5 - 2.5) ÷ 60 = 주기당 16.7분 절감
+연 48회 수행 가정 = 약 800분 = 13.3시간 / 사용자 / 년</div>
+        <p class="small">금액 환산에는 실제 인건비, 팀 인원, 사용 빈도 필요.</p>
+
+        <h3>5.3 품질 향상 산정</h3>
+        <p>누락·구조·문자 체계 진단은 사후 수정 전 결함 발견을 지원. 효과 측정은 seeded defect 파일럿 기준.</p>
+        <div class="formula">D = 작업 주기당 실제 결함 수
+r_manual = 수동 사전 발견률
+r_grid = LocaleGrid 사전 발견률
+t_rework = 미발견 결함 1건의 사후 수정 시간
+
+예상 재작업 절감 = D × (r_grid - r_manual) × t_rework</div>
+        <div class="two-col">
+          <div class="card info"><h4>70% 감소 목표 예</h4><p>검토 대상 결함 20건, 사전 발견 14건, 사후 잔여 6건 가정.</p><p><strong>(20 - 6) ÷ 20 = 70%</strong></p><p class="small">실측 전 가정.</p></div>
+          <div class="card purple"><h4>재작업 시간 예</h4><p>D=10, 수동 발견률 60%, Grid 발견률 90%, 건당 8분 가정.</p><p><strong>10 × (0.9 - 0.6) × 8 = 24분/주기</strong></p><p class="small">업무 시간 절감과 중복 계산 제외.</p></div>
+        </div>
+
+        <h3>5.4 KPI 파일럿 측정 계획</h3>
+        <div class="table-wrap kpi">
+          <table>
+            <thead><tr><th>구분</th><th>KPI</th><th>계산</th><th>파일럿 목표</th></tr></thead>
+            <tbody>
+              <tr><td>결과</td><td>작업 완료 시간</td><td>종료시각 − 시작시각</td><td>수동 대비 중앙값 25% 이상 감소</td></tr>
+              <tr><td>결과</td><td>결함 사전 발견률</td><td>발견한 사전 삽입 결함 ÷ 전체 결함</td><td>전체 90%, 구조 차단 결함 100%</td></tr>
+              <tr><td>결과</td><td>1차 적용 성공률</td><td>재수정·되돌림 없는 작업 ÷ 전체 작업</td><td>95% 이상</td></tr>
+              <tr><td>선행</td><td>파일·탭 전환 횟수</td><td>작업 중 전환 이벤트 수</td><td>수동 대비 감소</td></tr>
+              <tr><td>선행</td><td>목적 행 탐색 성공률</td><td>검색·필터 성공 작업 ÷ 시도</td><td>95% 이상</td></tr>
+              <tr><td>가드레일</td><td>진단 오진율</td><td>잘못된 경고 ÷ 정상 항목</td><td>5% 이하</td></tr>
+              <tr><td>가드레일</td><td>저장 무결성</td><td>예상 밖 JSON 차이·손실</td><td>0건</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>권장 실험 설계</h4>
+        <ol>
+          <li>참여자 8명 이상</li>
+          <li>500 key × 4 locale 합성 JSON</li>
+          <li>누락 5, 빈 값 5, Script 위반 5, 구조 오류 5 삽입</li>
+          <li>동일 참여자의 수동 방식·LocaleGrid 방식 교차 수행</li>
+          <li>수행 순서를 절반씩 교차 배정</li>
+          <li>타임스탬프, 전환 횟수, 적용 전후 파일 변경 내역, 오진·누락 기록</li>
+          <li>중앙값과 사분위 범위 우선</li>
+        </ol>
+        <div class="note warning"><strong>목표치.</strong> 시간 40~60% 단축, 사전 오류 70% 감소. 파일럿 전 가정이며 현재 성과가 아님.</div>
+      </section>
+
+      <section id="appendix">
+        <span class="section-no">APPENDIX · 지원 범위</span>
+        <h2>현재 지원 범위</h2>
+        <p class="section-lead">사용 가능한 파일 형식과 편집 범위를 기능 기준으로 정리.</p>
+        <div class="two-col">
+          <div class="card outcome"><h4>지원 범위</h4><ul><li>locale별 JSON 비교·편집</li><li>문자열과 누락 값 편집</li><li>key 추가·수정·삭제·순서 이동</li><li>검색·필터·상태 표시</li><li>누락·구조·문자 체계 진단</li><li>변경 미리보기와 JSON 저장</li><li>XLSX 내보내기</li></ul></div>
+          <div class="card risk"><h4>미지원 범위</h4><ul><li>YAML, properties, ARB</li><li>number, boolean, array, object leaf 편집</li><li>CSV·Excel Import</li><li>벌크 추가·복제·자동 번역</li><li>복잡한 merge와 자체 backup</li><li>자연어 의미 판별</li></ul></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>LocaleGrid 개발 산출 보고서 · 2026-08-22</p>
+      <p><a href="#top">문서 상단으로 이동</a></p>
+    </footer>
+  </article>
+</body>
+</html>

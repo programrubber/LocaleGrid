@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>LocaleGrid 기능 분석 보고서</title>
+  <style>
+    :root {
+      --navy: #233447;
+      --navy-2: #34495e;
+      --ink: #202a35;
+      --muted: #5f6974;
+      --line: #cbd2d9;
+      --line-dark: #9ca7b2;
+      --fill: #f1f3f5;
+      --fill-2: #fafbfc;
+      --paper: #ffffff;
+      --canvas: #e8ebee;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.58;
+      word-break: keep-all;
+    }
+    .report {
+      width: min(210mm, calc(100% - 24px));
+      margin: 20px auto;
+      padding: 18mm 16mm;
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+    .front-matter { padding-top: 13mm; border-top: 7px solid var(--navy); }
+    .doc-type {
+      margin: 0 0 5mm;
+      color: var(--navy-2);
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 25pt;
+      line-height: 1.25;
+      letter-spacing: -.035em;
+    }
+    .subtitle {
+      margin: 4mm 0 10mm;
+      max-width: 150mm;
+      color: var(--muted);
+      font-size: 11pt;
+    }
+    h2 {
+      margin: 14mm 0 5mm;
+      padding-bottom: 2.5mm;
+      border-bottom: 2px solid var(--navy);
+      color: var(--navy);
+      font-size: 15pt;
+      line-height: 1.35;
+      letter-spacing: -.02em;
+    }
+    h3 {
+      margin: 8mm 0 3mm;
+      color: var(--navy);
+      font-size: 11.5pt;
+      line-height: 1.4;
+    }
+    h4 { margin: 5mm 0 2mm; color: var(--navy-2); font-size: 10pt; }
+    p { margin: 0 0 3.5mm; }
+    a { color: var(--navy); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+    code, .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code {
+      padding: .05em .28em;
+      border: 1px solid var(--line);
+      background: var(--fill);
+      color: var(--ink);
+      font-size: .92em;
+      overflow-wrap: anywhere;
+    }
+    .summary {
+      margin: 7mm 0 8mm;
+      padding: 5mm 6mm;
+      border-left: 4px solid var(--navy);
+      background: var(--fill);
+    }
+    .summary-title {
+      margin: 0 0 3mm;
+      padding: 0;
+      border: 0;
+      color: var(--navy);
+      font-size: 12pt;
+    }
+    .summary strong { color: var(--navy); }
+    .summary ul, .compact-list, .toc ol { margin: 0; padding-left: 5.5mm; }
+    .summary li, .compact-list li { margin: 1.3mm 0; }
+    .toc { margin-top: 8mm; padding-top: 6mm; border-top: 1px solid var(--line-dark); }
+    .toc h2 {
+      margin: 0 0 3mm;
+      padding: 0;
+      border: 0;
+      color: var(--ink);
+      font-size: 12pt;
+    }
+    .toc ol { columns: 2; column-gap: 12mm; }
+    .toc li { margin: 1.7mm 0; break-inside: avoid; }
+    .section-intro { margin: -1.5mm 0 5mm; color: var(--muted); }
+    .table-wrap { width: 100%; margin: 4mm 0 7mm; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 9.3pt;
+      line-height: 1.48;
+    }
+    caption {
+      padding-bottom: 2mm;
+      color: var(--navy);
+      font-weight: 700;
+      text-align: left;
+      caption-side: top;
+    }
+    th, td {
+      padding: 2.4mm 2.7mm;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    thead th { color: #ffffff; background: var(--navy); font-weight: 700; }
+    tbody th { color: var(--ink); background: var(--fill); font-weight: 700; }
+    tbody tr:nth-child(even) td { background: var(--fill-2); }
+    .meta-table { font-size: 9.5pt; }
+    .status-table { border-left: 4px solid var(--navy); }
+    .status-table thead th { background: var(--navy-2); }
+    .note {
+      margin: 4mm 0 6mm;
+      padding: 3.5mm 4mm;
+      border: 1px solid var(--line);
+      background: var(--fill-2);
+      color: var(--ink);
+      font-size: 9.3pt;
+    }
+    .note strong { color: var(--navy); }
+    .flow {
+      margin: 4mm 0 7mm;
+      padding: 0;
+      list-style: none;
+      counter-reset: flow-step;
+      border-top: 1px solid var(--line);
+    }
+    .flow li {
+      display: grid;
+      grid-template-columns: 12mm 34mm 1fr;
+      gap: 3mm;
+      align-items: start;
+      padding: 3mm 0;
+      border-bottom: 1px solid var(--line);
+      counter-increment: flow-step;
+    }
+    .flow li::before {
+      content: counter(flow-step, decimal-leading-zero);
+      color: var(--navy);
+      font-weight: 800;
+    }
+    .flow-title { color: var(--navy); font-weight: 700; }
+    .path-example {
+      margin: 4mm 0 7mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--line);
+    }
+    .path-example > div { padding: 4mm; }
+    .path-example > div + div { border-left: 1px solid var(--line); }
+    .path-example pre {
+      margin: 2mm 0 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 8.8pt;
+      line-height: 1.45;
+    }
+    .path-example .label { color: var(--navy); font-size: 9pt; font-weight: 700; }
+    .section-number {
+      display: inline-block;
+      min-width: 8mm;
+      color: var(--navy-2);
+      font-size: .78em;
+      letter-spacing: .04em;
+      vertical-align: .08em;
+    }
+    .appendix { margin-top: 16mm; padding-top: 2mm; border-top: 5px solid var(--navy); }
+    .back-to-top { margin-top: 9mm; text-align: right; font-size: 9pt; }
+    footer {
+      margin-top: 14mm;
+      padding-top: 4mm;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 8.5pt;
+    }
+    @media (max-width: 760px) {
+      body { font-size: 13px; }
+      .report { width: calc(100% - 12px); margin: 6px auto; padding: 9mm 6mm; }
+      .toc ol { columns: 1; }
+      .path-example { grid-template-columns: 1fr; }
+      .path-example > div + div { border-left: 0; border-top: 1px solid var(--line); }
+      .flow li { grid-template-columns: 10mm 26mm 1fr; }
+    }
+    @media print {
+      @page { size: A4 portrait; margin: 14mm 13mm 15mm; }
+      html, body { background: #ffffff; }
+      body {
+        font-size: 9.5pt;
+        line-height: 1.45;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .report { width: auto; margin: 0; padding: 0; border: 0; }
+      .front-matter { break-after: page; }
+      .appendix { break-before: page; }
+      h2, h3, h4, caption { break-after: avoid-page; }
+      p, li { orphans: 3; widows: 3; }
+      table { break-inside: auto; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      tr { break-inside: avoid-page; page-break-inside: avoid; }
+      .table-wrap { overflow: visible; border: 0; }
+      .summary, .note, .path-example, .flow li { break-inside: avoid-page; }
+      .back-to-top { display: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+<article class="report" id="top">
+  <header class="front-matter">
+    <p class="doc-type">Technical Capability Analysis Report</p>
+    <h1>LocaleGrid 기능 분석 보고서</h1>
+    <p class="subtitle">IntelliJ Platform 기반 다국어 JSON 관리 플러그인의 로드·편집·검증·저장 기능 및 구현 현황</p>
+
+    <div class="table-wrap">
+      <table class="meta-table">
+        <caption>문서 통제 정보</caption>
+        <tbody>
+          <tr>
+            <th scope="row">대상 제품</th>
+            <td>LocaleGrid 0.13.0</td>
+            <th scope="row">작성 기준일</th>
+            <td>2026-08-31</td>
+          </tr>
+          <tr>
+            <th scope="row">기반 플랫폼</th>
+            <td>IntelliJ Platform SDK / PyCharm Community 2023.3.5</td>
+            <th scope="row">분석 기준</th>
+            <td>현재 소스·프로젝트 문서·자동 테스트 결과</td>
+          </tr>
+          <tr>
+            <th scope="row">문서 목적</th>
+            <td colspan="3">UI 디자인을 제외한 기능 범위, 처리 규칙, 검증 정책 및 저장 동작의 통합 명세</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="summary" aria-labelledby="technical-summary-title">
+      <h2 id="technical-summary-title" class="summary-title">기술 요약</h2>
+      <ul>
+        <li><strong>입력 방식 변화:</strong> 기존에는 locale별 JSON을 개별 파일에서 직접 수정하고 같은 key를 파일마다 대조했다. LocaleGrid에서는 하나의 행을 기준으로 locale별 문자열을 연속 입력한다.</li>
+        <li><strong>통합 로드:</strong> 동일 category의 locale JSON을 key 합집합으로 구성하고 중첩 구조를 dot path로 평탄화한다.</li>
+        <li><strong>편집:</strong> 문자열 value, key 추가·이름 변경·삭제, 행 순서 변경을 하나의 편집 모델에서 관리한다.</li>
+        <li><strong>검증:</strong> 저장 차단 Error와 저장 가능한 Warning을 분리하고, BCP 47·Unicode Script 기반 문자 체계 검사를 적용한다.</li>
+        <li><strong>저장:</strong> 대기 입력 반영, 재검증, 메모리 JSON 생성, 대상 파일별 Diff 확인 후 실제 파일을 기록한다.</li>
+        <li><strong>검증 상태:</strong> 프로덕션 Java 33개 파일과 테스트 16개 클래스를 확인했으며 자동 테스트 79건이 통과했다. IDE 수동 실행 검증은 본 보고서 범위에서 제외한다.</li>
+      </ul>
+    </section>
+
+    <nav class="toc" aria-label="문서 목차">
+      <h2>목차</h2>
+      <ol>
+        <li><a href="#overview">문서 개요 및 현황</a></li>
+        <li><a href="#loading">다국어 에디터 및 파일 로드</a></li>
+        <li><a href="#editing">핵심 편집 기능과 검색·필터</a></li>
+        <li><a href="#validation">검증 체계</a></li>
+        <li><a href="#saving">저장 프로세스</a></li>
+        <li><a href="#settings-architecture">설정 및 아키텍처</a></li>
+        <li><a href="#appendix">부록: 구현 현황</a></li>
+      </ol>
+    </nav>
+  </header>
+  <main>
+    <section id="overview" class="page-start">
+      <h2><span class="section-number">01</span>문서 개요 및 현황</h2>
+      <p class="section-intro">LocaleGrid의 현재 버전, 실행 기반, 소스 규모와 기능 범위 요약</p>
+
+      <h3>1.1 프로젝트 현황</h3>
+
+      <div class="table-wrap">
+        <table>
+          <caption>프로젝트 현황</caption>
+          <colgroup><col style="width:24%"><col style="width:30%"><col style="width:46%"></colgroup>
+          <thead><tr><th scope="col">항목</th><th scope="col">현재 값</th><th scope="col">판정 기준</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">플러그인 버전</th><td>0.13.0</td><td>빌드 설정과 플러그인 메타데이터의 버전 일치</td></tr>
+            <tr><th scope="row">기반 IDE</th><td>PyCharm Community 2023.3.5</td><td>IntelliJ Platform의 PyCharm Community 타입을 개발 대상으로 지정</td></tr>
+            <tr><th scope="row">호환 빌드 선언</th><td><code>sinceBuild 233</code> ~ <code>untilBuild 999.*</code></td><td>메타데이터 선언 범위. 전체 JetBrains IDE 실동작은 별도 검증</td></tr>
+            <tr><th scope="row">구현 언어·런타임</th><td>Java 17</td><td>Kotlin 빌드 플러그인은 포함되어 있으나 현재 프로덕션 구현은 Java 기준</td></tr>
+            <tr><th scope="row">프로덕션 소스</th><td>33개 Java 파일 / 7,764행</td><td><code>src/main/java/com/localegrid</code>의 물리적 행 수 기준</td></tr>
+            <tr><th scope="row">자동 테스트</th><td>16개 클래스 / 79개 테스트</td><td>2026-08-30 Gradle <code>test</code> 실행 결과: 실패·오류·건너뜀 0건</td></tr>
+            <tr><th scope="row">지원 데이터 형식</th><td>UTF-8 JSON</td><td>문자열 leaf 편집, 비문자열 leaf 읽기 전용 처리</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>1.2 현재 기능 범위</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>핵심 기능 범위</caption>
+          <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+          <thead><tr><th scope="col">기능 영역</th><th scope="col">입력</th><th scope="col">처리 결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">로드</th><td>locale 디렉터리의 category JSON</td><td>locale별 key 합집합과 원본 순서를 포함한 통합 테이블</td></tr>
+            <tr><th scope="row">편집</th><td>key 조작, 문자열 value, 행 순서</td><td>파일에 반영되지 않은 메모리 변경 상태</td></tr>
+            <tr><th scope="row">검색·필터</th><td>검색어와 상태 조합</td><td>하이라이트, 결과 순환 탐색, 조건에 맞는 행 집합</td></tr>
+            <tr><th scope="row">검증</th><td>구조, 누락, 타입, 문자 체계</td><td>저장 차단 Error 또는 확인 가능한 Warning</td></tr>
+            <tr><th scope="row">저장</th><td>검증된 테이블과 사용자 승인</td><td>locale별 JSON 생성·갱신 및 IDE 가상 파일 시스템 반영</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section id="loading">
+      <h2><span class="section-number">02</span>다국어 에디터 및 파일 로드</h2>
+      <p class="section-intro">대상 경로 판정, locale 탐지, key 병합과 dot path 변환의 통합 로드 파이프라인</p>
+
+      <h3>2.1 대상 파일 판정</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>지원 디렉터리 및 파일명 패턴</caption>
+          <colgroup><col style="width:24%"><col style="width:34%"><col style="width:42%"></colgroup>
+          <thead><tr><th scope="col">구분</th><th scope="col">패턴</th><th scope="col">판정 규칙</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">기본 패턴</th><td><code>locales/{locale}/{category}.json</code></td><td>상위 디렉터리명을 locale, 파일명을 category로 판정</td></tr>
+            <tr><th scope="row">suffix 패턴</th><td><code>locales/{locale}/{category}_{locale}.json</code></td><td>파일 suffix와 상위 locale 디렉터리명이 일치할 때 suffix를 제외한 이름을 category로 판정</td></tr>
+            <tr><th scope="row">비대상</th><td>locale root 직하위가 아닌 JSON, 비JSON 파일</td><td>다국어 에디터 제공 대상에서 제외</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>대상 JSON을 열면 원본 <code>JSON</code> 탭과 <code>다국어 에디터</code> 탭을 함께 제공한다. category는 현재 열린 파일을 기준으로 고정하고, 동일 파일명 패턴의 sibling locale 파일을 연결한다.</p>
+
+      <h3>2.2 Locale 탐지와 key 병합</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>로드 및 병합 규칙</caption>
+          <colgroup><col style="width:23%"><col style="width:48%"><col style="width:29%"></colgroup>
+          <thead><tr><th scope="col">처리 항목</th><th scope="col">규칙</th><th scope="col">결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">자동 locale 탐지</th><td>locale root 바로 아래 디렉터리명을 후보로 사용</td><td><code>ko → en → ja → vi</code> 우선, 그 외 이름순</td></tr>
+            <tr><th scope="row">수동 locale 지정</th><td>프로젝트 설정의 쉼표 구분 목록을 우선 적용. 현재 연 파일의 locale이 없으면 목록 앞에 포함</td><td>표시 locale과 열 순서 고정</td></tr>
+            <tr><th scope="row">기준 파일</th><td>사용자가 현재 연 locale 파일의 key 순서를 우선 사용</td><td>원본 작업 순서 유지</td></tr>
+            <tr><th scope="row">key 합집합</th><td>다른 locale에만 존재하는 key를 발견 순서대로 추가</td><td>누락 key를 포함한 전체 비교 행 구성</td></tr>
+            <tr><th scope="row">누락 파일</th><td>설정된 locale의 category 파일이 없으면 빈 컬럼과 진단을 생성</td><td>편집 후 저장 시 파일 생성 선택 가능</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>2.3 Dot Path 변환</h3>
+      <p>중첩 JSON object를 비교 가능한 dot path 행으로 변환하고, 저장 단계에서 다시 중첩 JSON으로 복원한다. 기준 파일의 root entry와 key 순서를 가능한 범위에서 유지한다.</p>
+      <div class="path-example" role="group" aria-label="JSON과 dot path 변환 예시">
+        <div>
+          <div class="label">입력 JSON</div>
+          <pre class="mono">{
+  "login": {
+    "title": "로그인",
+    "button": "로그인하기"
+  }
+}</pre>
+        </div>
+        <div>
+          <div class="label">통합 테이블 key</div>
+          <pre class="mono">login.title   → 로그인
+login.button  → 로그인하기</pre>
+        </div>
+      </div>
+      <div class="note"><strong>구조 제약:</strong> 빈 key, 선행·후행 점, 연속 점, 공백 segment를 허용하지 않는다. <code>login</code>과 <code>login.title</code>처럼 동일 경로가 문자열 leaf와 object로 동시에 사용되는 경우 Error로 처리한다.</div>
+    </section>
+    <section id="editing">
+      <h2><span class="section-number">03</span>핵심 편집 기능과 검색·필터</h2>
+      <p class="section-intro">locale별 JSON 직접 입력 방식과 통합 편집 방식의 비교, key·value 편집 및 탐색 기능</p>
+
+      <h3>3.1 기능 구현 전후의 다국어 입력 방식</h3>
+      <p>기능 구현 전에는 locale별 JSON을 개별 탭에서 직접 수정하고, 파일을 번갈아 보며 같은 key와 누락 값을 대조해야 했다. LocaleGrid는 동일 category의 파일을 하나의 테이블로 연결하여 입력과 저장 전 검토를 같은 흐름에서 처리한다.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>JSON 직접 입력 방식과 LocaleGrid 입력 방식 비교</caption>
+          <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+          <thead><tr><th scope="col">작업 단계</th><th scope="col">기능 구현 전: JSON 직접 입력</th><th scope="col">LocaleGrid 적용 후</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">파일 준비·열기</th><td><code>ko</code>, <code>en</code>, <code>ja</code> 등 locale별 JSON을 찾아 각각 열고 작업 중 탭을 전환</td><td>대상 JSON 하나를 열면 같은 category의 sibling locale 파일을 자동 탐지·로드</td></tr>
+            <tr><th scope="row">번역값 입력</th><td>각 파일에서 같은 key 위치를 찾아 문자열 value를 locale별로 개별 수정</td><td>통합 행을 선택하고 상세 패널에서 locale별 문자열을 연속 입력</td></tr>
+            <tr><th scope="row">key 대조·변경</th><td>파일별 key 목록을 대조하고 추가·이름 변경·삭제 작업을 각 파일에서 반복</td><td>key 합집합을 한 표에 표시하고 하나의 key 작업을 통합 변경 상태로 관리</td></tr>
+            <tr><th scope="row">누락·구조 확인</th><td>특정 locale의 누락 key, 빈 값과 구조 차이를 파일 간 비교로 확인</td><td>누락·구조·타입·문자 체계 진단을 행과 셀에 연결</td></tr>
+            <tr><th scope="row">저장·변경 검토</th><td>locale JSON을 파일별로 저장한 뒤 변경 파일이나 VCS Diff를 별도로 검토</td><td>전체 재검증 후 대상 파일, 변경 건수와 파일별 Diff를 확인하고 저장 승인</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>비교 기준:</strong> 프로젝트 계획과 사용자 문서에 정의된 직접 JSON 편집 문제를 기준으로 정리했다. 시간 절감률이나 오류 감소율과 같은 실측 성과를 의미하지 않는다.</div>
+
+      <h3>3.2 Key·Value 편집</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>편집 기능별 동작</caption>
+          <colgroup><col style="width:20%"><col style="width:49%"><col style="width:31%"></colgroup>
+          <thead><tr><th scope="col">기능</th><th scope="col">처리 방식</th><th scope="col">제약·결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">행 추가</th><td>새 dot path key 입력. 동일 top-level 그룹이 있으면 해당 그룹 끝에 배치하고, 새 그룹이면 선택 행 아래 또는 전체 끝에 배치</td><td>문법, 중복, leaf/object 충돌을 사전 확인</td></tr>
+            <tr><th scope="row">key 이름 변경</th><td>전용 팝업에서 새 key 입력. 원래 key를 내부적으로 추적</td><td>셀 직접 변경 불가. 저장 요약에서는 ‘편집’에 포함</td></tr>
+            <tr><th scope="row">행 삭제·복원</th><td>기존 행은 삭제 후보로 표시하고 삭제 취소 가능. 저장 전 새로 추가한 행은 삭제 시 모델에서 즉시 제거</td><td>기존 key의 최종 파일 제거는 저장 승인 후 수행</td></tr>
+            <tr><th scope="row">행 순서 변경</th><td>위·아래 이동 또는 드래그 사용. 동일 top-level 내 개별 행, 그룹 경계 통과 시 top-level 그룹 단위 이동</td><td>검색 결과 제한 또는 상태 필터 활성 시 비활성화</td></tr>
+            <tr><th scope="row">Value 편집</th><td>행 선택 후 상세 패널에서 locale별 문자열 입력. 모델에는 즉시 반영하고 전체 검증·표 갱신은 300ms debounce 적용</td><td>string 및 missing 값만 편집 가능</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>Value 타입별 편집 정책</caption>
+          <thead><tr><th scope="col">타입</th><th scope="col">표시</th><th scope="col">편집</th><th scope="col">검증 처리</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">string</th><td>문자열 원문</td><td>가능</td><td>빈 값 및 문자 체계 검사</td></tr>
+            <tr><th scope="row">missing / null</th><td>빈 값</td><td>문자열로 입력 가능</td><td>입력 전 Warning</td></tr>
+            <tr><th scope="row">number·boolean</th><td>원본 값</td><td>읽기 전용</td><td>지원되지 않는 타입 Warning</td></tr>
+            <tr><th scope="row">array·비문자열 leaf</th><td>원본 값</td><td>읽기 전용</td><td>지원되지 않는 타입 Warning</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3.3 텍스트 검색</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>검색 기능 명세</caption>
+          <colgroup><col style="width:24%"><col style="width:47%"><col style="width:29%"></colgroup>
+          <thead><tr><th scope="col">항목</th><th scope="col">동작</th><th scope="col">정책</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">검색 범위</th><td>key와 모든 locale value</td><td>화면에서 숨긴 locale 열도 검색 대상</td></tr>
+            <tr><th scope="row">일치 판정</th><td>대소문자 구분 없는 부분 문자열 검색</td><td>입력 후 500ms debounce</td></tr>
+            <tr><th scope="row">표시</th><td>일치 문자열을 셀 내부와 상세 패널에서 강조</td><td>기본 상태에서는 전체 행 유지</td></tr>
+            <tr><th scope="row">결과 탐색</th><td>현재/전체 건수와 이전·다음 순환 이동</td><td>일치 행 기준 계산</td></tr>
+            <tr><th scope="row">결과 제한</th><td>‘검색 결과만 보기’ 활성 시 비일치 행 제외</td><td>사용자 선택형 필터</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3.4 상태 필터</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>상태 필터 조합 규칙</caption>
+          <colgroup><col style="width:24%"><col style="width:36%"><col style="width:40%"></colgroup>
+          <thead><tr><th scope="col">구분</th><th scope="col">조건</th><th scope="col">결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">상태 종류</th><td>추가, 편집, 삭제, 경고, 에러</td><td>선택한 상태에 해당하는 행 표시</td></tr>
+            <tr><th scope="row">다중 상태</th><td>둘 이상의 상태 선택</td><td>OR 조건 적용. 하나라도 일치하면 포함</td></tr>
+            <tr><th scope="row">검색어 결합</th><td>상태 필터와 검색어 동시 사용</td><td>상태 필터 결과를 검색 조건으로 추가 제한</td></tr>
+            <tr><th scope="row">필터 미선택</th><td>모든 상태 버튼 해제</td><td>상태와 관계없이 전체 행 표시</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>상태 표시:</strong> Error와 추가·편집, Warning은 하나의 행에 함께 표시될 수 있다. 삭제 후보는 다른 상태와 분리하여 표시한다.</div>
+    </section>
+    <section id="validation">
+      <h2><span class="section-number">04</span>검증 체계</h2>
+      <p class="section-intro">저장 가능 여부에 따른 Error·Warning 구분과 구조·누락·타입·문자 체계 진단</p>
+
+      <h3>4.1 Error — 저장 차단</h3>
+      <div class="table-wrap status-table">
+        <table>
+          <caption>Error 진단 목록</caption>
+          <colgroup><col style="width:25%"><col style="width:48%"><col style="width:27%"></colgroup>
+          <thead><tr><th scope="col">진단 조건</th><th scope="col">판정 내용</th><th scope="col">처리 결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">JSON 읽기·파싱 실패</th><td>파일 읽기 오류, 문법 오류, root가 object가 아닌 경우</td><td>테이블 소스 Error 유지, 저장 차단</td></tr>
+            <tr><th scope="row">중복 JSON key·dot path</th><td>소스 JSON의 동일 key 반복 또는 평탄화 결과의 중복 경로</td><td>원본 수정 전 저장 차단</td></tr>
+            <tr><th scope="row">잘못된 key 형식</th><td>빈 key, 선행·후행 점, 연속 점, 공백 segment</td><td>추가·이름 변경 거부 또는 전체 검증 Error</td></tr>
+            <tr><th scope="row">중복 번역 key</th><td>삭제 후보가 아닌 일반 번역 행의 동일 key 반복</td><td>저장 차단</td></tr>
+            <tr><th scope="row">leaf/object 충돌</th><td><code>a</code>와 <code>a.b</code>가 동시에 존재하는 구조 충돌</td><td>자동 형변환 없이 저장 차단</td></tr>
+            <tr><th scope="row">메모리 JSON 생성 실패</th><td>dot path를 중첩 JSON으로 복원하거나 문자열로 생성하지 못한 경우</td><td>미리보기 중단, 파일 쓰기 미실행</td></tr>
+            <tr><th scope="row">문자 체계 위반</th><td>프로젝트 설정의 처리 수준이 <code>ERROR</code>인 상태에서 허용 Script 밖 문자가 존재</td><td>해당 locale 셀 Error, 저장 차단</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>4.2 Warning — 확인 후 저장 가능</h3>
+      <div class="table-wrap status-table">
+        <table>
+          <caption>Warning 진단 목록</caption>
+          <colgroup><col style="width:25%"><col style="width:48%"><col style="width:27%"></colgroup>
+          <thead><tr><th scope="col">진단 조건</th><th scope="col">판정 내용</th><th scope="col">처리 결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">누락 locale 파일</th><td>설정 또는 자동 탐지된 locale의 category 파일 부재</td><td>빈 컬럼 표시, 저장 시 생성 여부 확인</td></tr>
+            <tr><th scope="row">누락 key·빈 value</th><td>특정 locale에 key가 없거나 표시 문자열이 비어 있는 경우</td><td>경고 표시 후 저장 가능</td></tr>
+            <tr><th scope="row">읽기 전용 value</th><td>number, boolean, array 등 문자열이 아닌 leaf</td><td>원본 표시, 편집 제한, 저장 가능</td></tr>
+            <tr><th scope="row">문자 체계 위반</th><td>기본 <code>WARNING</code> 정책에서 허용 Script 밖 문자가 존재</td><td>위반 문자·locale 표시 후 저장 가능</td></tr>
+            <tr><th scope="row">누락 파일 미생성</th><td>값이 있으나 사용자가 새 locale 파일 생성을 승인하지 않은 경우</td><td>해당 파일 제외, 다른 대상 파일 저장 가능</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>진단 단위:</strong> key 부재와 빈 문자열은 현재 하나의 <code>Missing or empty value</code> Warning으로 처리한다. 문자 체계 위반은 key와 locale을 함께 기록하며, 일반 누락·readonly 진단은 행 단위로 기록한다.</div>
+
+      <h3>4.3 문자 체계 검사 — Unicode Script</h3>
+      <p>문자열의 실제 언어를 판정하지 않고, locale에서 예상되는 Unicode Script를 기준으로 허용 범위 밖 코드포인트를 탐지한다. 진단에는 key와 locale을 함께 기록하여 셀 단위 확인을 지원한다.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>고정 내장 Script 규칙</caption>
+          <colgroup><col style="width:18%"><col style="width:52%"><col style="width:30%"></colgroup>
+          <thead><tr><th scope="col">Locale</th><th scope="col">허용 Unicode Script</th><th scope="col">대표 위반</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>ko</code></th><td>Hangul, Latin, Common, Inherited</td><td>Hiragana·Katakana, Cyrillic 등</td></tr>
+            <tr><th scope="row"><code>en</code></th><td>Latin, Common, Inherited</td><td>Hangul, Kana, Cyrillic 등</td></tr>
+            <tr><th scope="row"><code>ja</code></th><td>Hiragana, Katakana, Han, Latin, Common, Inherited</td><td>Hangul, Cyrillic 등</td></tr>
+            <tr><th scope="row"><code>vi</code></th><td>Latin, Common, Inherited</td><td>Hangul, Kana, Cyrillic 등</td></tr>
+            <tr><th scope="row">기타 locale</th><td>명시 Script subtag 또는 CLDR likely-subtags의 예상 Script + Latin/Common/Inherited</td><td>결정된 허용 Script 밖 문자</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ol class="flow" aria-label="문자 체계 검증 처리 순서">
+        <li><span class="flow-title">Locale 정규화</span><span>대소문자와 <code>_</code>/<code>-</code> 구분자를 정규화하고 BCP 47 형식으로 해석한다.</span></li>
+        <li><span class="flow-title">규칙 선택</span><span><code>ko/en/ja/vi</code> 고정 규칙, 명시 Script subtag, CLDR 예상 Script 순으로 허용 집합을 결정한다.</span></li>
+        <li><span class="flow-title">1차 검사</span><span>재사용 가능한 Java 정규표현식으로 잠재 위반 문자를 탐지한다. 모든 Unicode 숫자와 U+1F000–U+1FAFF 이모지 범위를 허용한다.</span></li>
+        <li><span class="flow-title">ICU 보완</span><span>Java 17이 <code>UNKNOWN</code>으로 분류한 코드포인트만 IDE 번들 ICU4J로 교차 확인한다.</span></li>
+        <li><span class="flow-title">Severity 적용</span><span>프로젝트 설정에 따라 Warning 또는 Error 진단으로 기록한다.</span></li>
+      </ol>
+      <div class="note"><strong>검사 한계:</strong> Latin 문자는 제품명·기술 용어 수용을 위해 모든 규칙에서 허용한다. 따라서 영어·프랑스어·베트남어 문장이 <code>ko</code> 또는 <code>ja</code> 값에 들어가도 통과할 수 있다. 일본어와 중국어의 Han 문자도 문자 체계만으로 구분할 수 없다. malformed locale 또는 CLDR에서 Script를 결정하지 못한 locale은 검사하지 않는다.</div>
+
+      <h3>4.4 예외키 보존</h3>
+      <p><code>__section__</code>과 같은 root-level 설명·구분 entry를 일반 번역 key와 분리하여 원본 위치와 값을 보존한다.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>예외키 처리 방식</caption>
+          <colgroup><col style="width:23%"><col style="width:46%"><col style="width:31%"></colgroup>
+          <thead><tr><th scope="col">구분</th><th scope="col">처리</th><th scope="col">저장 결과</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">원본 예외키</th><td>그리드에서 숨기고 key, value, 인접 non-exception root entry를 anchor로 기록</td><td>anchor가 유지되는 범위에서 root 위치 복원</td></tr>
+            <tr><th scope="row">사용자 추가 예외키</th><td>현재 편집 중에는 일반 행처럼 표시하고 value 편집·삭제·이동 허용</td><td>root-level entry로 기록 후 재로드 시 hidden marker로 전환</td></tr>
+            <tr><th scope="row">검증 제외</th><td>빈 값, 일반 번역 key 중복, dot path, 문자 체계 검사 대상에서 제외</td><td>예외키 중복 허용</td></tr>
+            <tr><th scope="row">적용 범위</th><td>설정 목록과 정확히 일치하는 root-level key만 대상</td><td>중첩 경로의 동일 이름은 일반 번역 key로 처리</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>보존 한계:</strong> 비예외 root entry가 전혀 없으면 anchor를 만들 수 없으며, 저장 전에 anchor가 삭제된 hidden marker도 재삽입되지 않을 수 있다. 따라서 예외키 위치 보존은 유효한 anchor가 유지되는 범위에 한정된다.</div>
+    </section>
+    <section id="saving">
+      <h2><span class="section-number">05</span>저장 프로세스</h2>
+      <p class="section-intro">대기 입력 확정부터 검증, 미리보기, 사용자 승인, 파일 기록까지의 저장 단계</p>
+
+      <h3>5.1 저장 흐름</h3>
+      <ol class="flow" aria-label="LocaleGrid 저장 순서">
+        <li><span class="flow-title">Flush</span><span>검색 입력과 상세 value 편집의 debounce 대기 작업을 즉시 반영한다.</span></li>
+        <li><span class="flow-title">Validate</span><span>소스 진단, key 구조, 누락, 타입, 문자 체계를 전체 재검증한다. Error가 존재하면 즉시 중단한다.</span></li>
+        <li><span class="flow-title">파일 생성 결정</span><span>값이 입력된 누락 locale 파일이 있으면 생성 여부를 사용자에게 확인한다.</span></li>
+        <li><span class="flow-title">Preview</span><span>locale별 JSON을 메모리에서 생성하고 대상 파일, 변경 현황, 변경 전·후 Diff를 구성한다.</span></li>
+        <li><span class="flow-title">사용자 승인</span><span>미리보기 확인 후 적용 또는 닫기를 선택한다. 닫을 경우 프로젝트 파일은 변경하지 않는다.</span></li>
+        <li><span class="flow-title">Write</span><span>승인된 파일을 IDE 쓰기 명령으로 기록하고 VFS 갱신 후 테이블을 다시 로드한다.</span></li>
+      </ol>
+
+      <h3>5.2 SavePreview 표시 항목</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>저장 미리보기 정보</caption>
+          <colgroup><col style="width:24%"><col style="width:48%"><col style="width:28%"></colgroup>
+          <thead><tr><th scope="col">표시 영역</th><th scope="col">내용</th><th scope="col">판정 단위</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">대상 파일</th><td>저장 대상 locale JSON 목록과 생성·변경·변경 없음 상태</td><td>파일 단위</td></tr>
+            <tr><th scope="row">변경 현황</th><td>생성, 추가, 편집, 삭제, 경고 건수와 순서 변경 여부</td><td>파일·행·진단 단위</td></tr>
+            <tr><th scope="row">변경 요약</th><td>파일 저장 수, 생성 수, 추가·편집·삭제 key 수</td><td>전체 적용 단위</td></tr>
+            <tr><th scope="row">파일별 Diff</th><td>선택한 파일의 변경 전 JSON과 변경 후 JSON 비교</td><td>파일 단위</td></tr>
+            <tr><th scope="row">rename 처리</th><td>별도 rename 건수 없이 ‘편집’ 건수에 포함</td><td>행 단위</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>5.3 미저장 변경 보호</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>변경 유실 방지 장치</caption>
+          <colgroup><col style="width:28%"><col style="width:44%"><col style="width:28%"></colgroup>
+          <thead><tr><th scope="col">발생 시점</th><th scope="col">보호 동작</th><th scope="col">파일 영향</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">JSON 원본 탭 전환</th><td>미적용 변경 존재 시 이동 여부 확인</td><td>확인 전 파일 미변경</td></tr>
+            <tr><th scope="row">에디터 닫기</th><td>저장되지 않은 변경의 폐기 여부 확인</td><td>사용자 선택 전 닫기 중단 가능</td></tr>
+            <tr><th scope="row">변경 취소</th><td>확인 후 원본 JSON을 다시 로드</td><td>프로젝트 파일 미변경</td></tr>
+            <tr><th scope="row">구조 설정 변경</th><td>열린 에디터에 미저장 변경이 있으면 설정 적용 차단</td><td>기존 편집 상태 유지</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>저장 경계:</strong> 미리보기 단계에서 대상 JSON의 생성 가능 여부를 먼저 확인한 뒤 쓰기를 시작한다. 다만 여러 파일에 대한 파일 시스템 트랜잭션이나 플러그인 전용 rollback·backup은 제공하지 않는다. 쓰기 중 I/O 실패가 발생하면 앞서 기록된 파일까지 자동 복원되지 않을 수 있으므로 프로젝트 VCS 또는 IDE Local History와 같은 외부 변경 이력이 필요하다.</div>
+    </section>
+    <section id="settings-architecture">
+      <h2><span class="section-number">06</span>설정 및 아키텍처</h2>
+      <p class="section-intro">프로젝트 설정 유형과 editor·core·model·settings 패키지별 기능 책임</p>
+
+      <h3>6.1 프로젝트 설정</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>설정 항목 및 영향 범위</caption>
+          <colgroup><col style="width:24%"><col style="width:18%"><col style="width:18%"><col style="width:40%"></colgroup>
+          <thead><tr><th scope="col">설정</th><th scope="col">기본값</th><th scope="col">구분</th><th scope="col">변경 영향</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">locale 루트 경로</th><td><code>locales</code></td><td>구조 설정</td><td>대상 파일 판정과 locale 탐지 범위 변경</td></tr>
+            <tr><th scope="row">locale 표시 순서</th><td>자동 탐지</td><td>구조 설정</td><td>locale 목록과 그리드 열 순서 변경</td></tr>
+            <tr><th scope="row">예외키</th><td><code>__section__</code></td><td>구조 설정</td><td>hidden marker 대상과 root entry 보존 규칙 변경</td></tr>
+            <tr><th scope="row">JSON 들여쓰기</th><td>2칸</td><td>비구조 설정</td><td>저장 JSON 형식만 변경. 2칸 또는 4칸 선택</td></tr>
+            <tr><th scope="row">문자 체계 검사</th><td>사용</td><td>비구조 설정</td><td>현재 테이블을 유지하고 진단 재계산</td></tr>
+            <tr><th scope="row">문자 위반 처리</th><td>Warning</td><td>비구조 설정</td><td>문자 위반의 저장 허용 또는 차단 정책 변경</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>구조 설정과 비구조 설정의 적용 차이</caption>
+          <thead><tr><th scope="col">구분</th><th scope="col">미저장 변경 보호</th><th scope="col">에디터 반영</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">구조 설정</th><td>미저장 LocaleGrid 에디터가 하나라도 있으면 적용 차단</td><td>적용 성공 시 MessageBus로 열린 에디터에 알리고 전체 재로드</td></tr>
+            <tr><th scope="row">비구조 설정</th><td>테이블 구조를 유지하므로 적용 가능</td><td>전체 재로드 없이 현재 테이블 진단과 저장 형식에 즉시 반영</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>6.2 패키지 아키텍처</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>프로덕션 패키지별 규모와 책임</caption>
+          <colgroup><col style="width:20%"><col style="width:15%"><col style="width:17%"><col style="width:48%"></colgroup>
+          <thead><tr><th scope="col">패키지</th><th scope="col">파일 수</th><th scope="col">물리적 행 수</th><th scope="col">주요 책임</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>editor</code></th><td>11</td><td>4,989</td><td>커스텀 에디터, 통합 그리드, 상세 편집, 검색·필터, 행 이동, 적용 미리보기, XLSX 내보내기</td></tr>
+            <tr><th scope="row"><code>core</code></th><td>13</td><td>1,974</td><td>경로 판정, JSON flatten/unflatten, 검증, 문자 정책, 로드, 미리보기, 파일 저장</td></tr>
+            <tr><th scope="row"><code>model</code></th><td>6</td><td>409</td><td>TranslationTable, 행·값 상태, 진단, 예외키 marker, 문자열 변환</td></tr>
+            <tr><th scope="row"><code>settings</code></th><td>3</td><td>392</td><td>프로젝트 설정 저장, 설정 화면, 설정 변경 이벤트</td></tr>
+            <tr><th scope="row">합계</th><td>33</td><td>7,764</td><td>Java 프로덕션 소스 기준</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>기술 구성</caption>
+          <colgroup><col style="width:27%"><col style="width:73%"></colgroup>
+          <thead><tr><th scope="col">항목</th><th scope="col">구성</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">빌드</th><td>Gradle 8.2 wrapper, IntelliJ Platform Plugin 1.15.0</td></tr>
+            <tr><th scope="row">JSON 처리</th><td><code>org.json:json:20210307</code> 및 순서 보존용 자체 flatten/unflatten 처리</td></tr>
+            <tr><th scope="row">Unicode 처리</th><td>Java 17 UnicodeScript 정규표현식, IntelliJ Platform 번들 ICU4J 보완</td></tr>
+            <tr><th scope="row">설정 저장</th><td>IntelliJ PersistentStateComponent, 프로젝트별 <code>localeGrid.xml</code></td></tr>
+            <tr><th scope="row">테스트</th><td>JUnit Jupiter 5.10.2</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section id="appendix" class="appendix">
+      <h2><span class="section-number">A</span>부록 — 구현 현황</h2>
+      <p class="section-intro">테스트 결과, 릴리즈 이력, 구현 완료 범위와 후속 과제</p>
+
+      <h3>A.1 테스트 현황</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>패키지별 자동 테스트 구성</caption>
+          <colgroup><col style="width:20%"><col style="width:18%"><col style="width:18%"><col style="width:44%"></colgroup>
+          <thead><tr><th scope="col">패키지</th><th scope="col">테스트 클래스</th><th scope="col">테스트 수</th><th scope="col">주요 검증 영역</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>core</code></th><td>5</td><td>38</td><td>JSON 평탄화·복원, 경로 판정, 구조 검증, Unicode Script</td></tr>
+            <tr><th scope="row"><code>editor</code></th><td>6</td><td>28</td><td>테이블 모델, 검색 탐색, debounce, pending 상태, UI 크기 계산, XLSX 생성</td></tr>
+            <tr><th scope="row"><code>model</code></th><td>4</td><td>11</td><td>행·값 변경 상태, 문자열 escape, 소스 진단</td></tr>
+            <tr><th scope="row"><code>settings</code></th><td>1</td><td>2</td><td>설정 기본값, CSV 목록 파싱, 상태 저장</td></tr>
+            <tr><th scope="row">합계</th><td>16</td><td>79</td><td>실패 0, 오류 0, 건너뜀 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>검증 일자:</strong> 2026-08-30. Homebrew OpenJDK 17을 지정하여 Gradle <code>test --console=plain</code>을 실행했고 <code>BUILD SUCCESSFUL</code>을 확인했다. 자동 테스트는 통과했으나 샌드박스 IDE의 실제 화면 편집·저장 시나리오와 UI 자동화는 본 실행에 포함하지 않았다.</div>
+
+      <h3>A.2 릴리즈 이력</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>0.6.0~0.13.0 기능 변화 요약</caption>
+          <colgroup><col style="width:16%"><col style="width:22%"><col style="width:62%"></colgroup>
+          <thead><tr><th scope="col">버전</th><th scope="col">일자</th><th scope="col">주요 변경</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">0.6.0</th><td>2026-05-31</td><td>플러그인 설명 인코딩 복구 및 배포 ZIP 메타데이터 확인</td></tr>
+            <tr><th scope="row">0.7.0</th><td>2026-06-01</td><td>플러그인 식별 자산 정리</td></tr>
+            <tr><th scope="row">0.8.0</th><td>2026-06-30</td><td>검색 일치 문자열 하이라이트 개선</td></tr>
+            <tr><th scope="row">0.9.0</th><td>2026-07-24</td><td>locale별 Unicode Script 검사와 Warning/Error 정책 추가</td></tr>
+            <tr><th scope="row">0.10.0</th><td>2026-07-24</td><td>다중 상태 필터 OR 조건 및 검색어 교차 적용</td></tr>
+            <tr><th scope="row">0.11.0</th><td>2026-08-05</td><td>검색 결과 순환 탐색, 결과 제한 필터, 검색·편집 debounce 추가</td></tr>
+            <tr><th scope="row">0.12.0</th><td>2026-08-05</td><td>개발 대상을 PyCharm Community로 전환하고 검색·행 작업 제어 보완</td></tr>
+            <tr><th scope="row">0.13.0</th><td>2026-08-18</td><td>확대 글꼴·HiDPI 환경의 작업 제어 및 테이블 폭 계산 보완</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>A.3 구현 완료 범위</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>현재 구현된 기능</caption>
+          <colgroup><col style="width:27%"><col style="width:19%"><col style="width:54%"></colgroup>
+          <thead><tr><th scope="col">기능</th><th scope="col">상태</th><th scope="col">구현 범위</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">대상 파일 인식</th><td>완료</td><td>두 가지 JSON 경로 패턴, category·locale 판정</td></tr>
+            <tr><th scope="row">통합 에디터</th><td>완료</td><td>JSON 원본 탭과 다국어 에디터 탭, locale key 합집합</td></tr>
+            <tr><th scope="row">Key·Value 편집</th><td>완료</td><td>문자열 value, 추가, rename, 삭제·복원, 그룹 인식 순서 이동</td></tr>
+            <tr><th scope="row">검색·상태 필터</th><td>완료</td><td>하이라이트, 순환 탐색, 결과 제한, OR 상태 필터, debounce</td></tr>
+            <tr><th scope="row">검증</th><td>완료</td><td>누락, 중복, dot path 충돌, readonly, Unicode Script</td></tr>
+            <tr><th scope="row">예외키</th><td>완료</td><td>hidden marker 보존, visible row 편집, root anchor 복원</td></tr>
+            <tr><th scope="row">저장 미리보기</th><td>완료</td><td>대상 파일, 변경 현황, 파일별 변경 전·후 Diff</td></tr>
+            <tr><th scope="row">JSON 저장</th><td>완료</td><td>메모리 JSON 생성, 누락 파일 생성 선택, VFS 갱신·재로드</td></tr>
+            <tr><th scope="row">프로젝트 설정</th><td>완료</td><td>구조·비구조 설정 분리, 미저장 보호, MessageBus 동기화</td></tr>
+            <tr><th scope="row">XLSX 내보내기</th><td>완료</td><td>현재 화면의 표시 행·열 기준 단일 시트 출력</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>A.4 후속 과제 및 제외 범위</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>미완료·비대상 항목</caption>
+          <colgroup><col style="width:29%"><col style="width:20%"><col style="width:51%"></colgroup>
+          <thead><tr><th scope="col">항목</th><th scope="col">분류</th><th scope="col">현재 경계</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">비문자열 value 편집</th><td>후속 과제</td><td>number·boolean·array는 읽기 전용. 표시 방식 개선 여지 존재</td></tr>
+            <tr><th scope="row">샌드박스 수동 검증</th><td>검증 공백</td><td>본 보고서 작성 시 자동 테스트만 실행. 실제 IDE 시나리오 재검증 미수행</td></tr>
+            <tr><th scope="row">UI 자동화 테스트</th><td>MVP 제외</td><td>테이블·대화상자 상호작용의 자동 E2E 미구축</td></tr>
+            <tr><th scope="row">자동 번역·원격 동기화</th><td>MVP 제외</td><td>외부 번역 API, 팀 서버, 실시간 협업 미지원</td></tr>
+            <tr><th scope="row">데이터 가져오기</th><td>MVP 제외</td><td>CSV·XLSX Import 미지원. XLSX Export만 제공</td></tr>
+            <tr><th scope="row">다중 리소스 포맷</th><td>MVP 제외</td><td>YAML, properties, ARB 등 미지원</td></tr>
+            <tr><th scope="row">복잡한 merge·rollback</th><td>MVP 제외</td><td>플러그인 전용 backup, 다중 버전 merge, 트랜잭션 rollback 미지원</td></tr>
+            <tr><th scope="row">전체 JetBrains IDE 보장</th><td>검증 공백</td><td>PyCharm Community가 개발 대상이며 IDE별 호환성 실증은 별도 필요</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <p class="back-to-top"><a href="#top">문서 상단으로 이동</a></p>
+  <footer>
+    LocaleGrid 기능 분석 보고서 · v0.13.0 · 2026-08-31<br>
+    본 문서는 현재 체크아웃의 코드·프로젝트 문서와 2026-08-30 자동 테스트 결과를 기준으로 작성하였다.
+  </footer>
+</article>
+</body>
+</html>

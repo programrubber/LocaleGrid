@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>LocaleGrid 개발 기능 보고서</title>
+  <style>
+    :root {
+      --navy: #1e3a5f;
+      --navy-light: #2c5282;
+      --navy-muted: #3b629b;
+      --ink: #1f2937;
+      --muted: #4b5563;
+      --line: #d1d5db;
+      --line-dark: #9ca3af;
+      --fill: #f3f4f6;
+      --fill-card: #f9fafb;
+      --paper: #ffffff;
+      --canvas: #e5e7eb;
+      --blue: #2563eb;
+      --blue-bg: #eff6ff;
+      --blue-border: #bfdbfe;
+      --green: #15803d;
+      --green-bg: #f0fdf4;
+      --green-border: #bbf7d0;
+      --orange: #c2410c;
+      --orange-bg: #fff7ed;
+      --orange-border: #fed7aa;
+      --red: #b91c1c;
+      --red-bg: #fef2f2;
+      --red-border: #fecaca;
+      --purple: #6b21a8;
+      --purple-bg: #faf5ff;
+      --purple-border: #e9d5ff;
+      --gray: #4b5563;
+      --gray-bg: #f3f4f6;
+      --gray-border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: keep-all;
+    }
+    .report {
+      width: min(214mm, calc(100% - 28px));
+      margin: 24px auto;
+      padding: 18mm 16mm;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+    .front-matter {
+      padding-top: 10mm;
+      border-top: 7px solid var(--navy);
+    }
+    .doc-type {
+      margin: 0 0 4mm;
+      color: var(--navy-light);
+      font-size: 9.5pt;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 26pt;
+      line-height: 1.25;
+      letter-spacing: -.035em;
+    }
+    .subtitle {
+      margin: 4mm 0 8mm;
+      max-width: 160mm;
+      color: var(--muted);
+      font-size: 11.5pt;
+      line-height: 1.5;
+    }
+    h2 {
+      margin: 14mm 0 5mm;
+      padding-bottom: 2.5mm;
+      border-bottom: 2px solid var(--navy);
+      color: var(--navy);
+      font-size: 16pt;
+      line-height: 1.35;
+      letter-spacing: -.02em;
+    }
+    h3 {
+      margin: 8mm 0 3mm;
+      color: var(--navy-light);
+      font-size: 12pt;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    h4 {
+      margin: 5mm 0 2mm;
+      color: var(--ink);
+      font-size: 10.5pt;
+      font-weight: 700;
+    }
+    p { margin: 0 0 3.5mm; }
+    ul, ol { margin: 0 0 4mm; padding-left: 5.5mm; }
+    li { margin: 1.5mm 0; }
+    a { color: var(--navy-light); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:hover { color: var(--blue); }
+    code, .mono { font-family: "SFMono-Regular", Consolas, Menlo, monospace; }
+    code {
+      padding: .1em .3em;
+      border: 1px solid var(--line);
+      background: var(--fill);
+      color: #991b1b;
+      font-size: .9em;
+      border-radius: 3px;
+    }
+    .summary {
+      margin: 6mm 0 8mm;
+      padding: 5mm 6mm;
+      border-left: 4px solid var(--navy);
+      background: var(--fill);
+      border-radius: 0 6px 6px 0;
+    }
+    .summary-title {
+      margin: 0 0 3mm;
+      padding: 0;
+      border: 0;
+      color: var(--navy);
+      font-size: 12pt;
+      font-weight: 700;
+    }
+    .toc {
+      margin-top: 8mm;
+      padding-top: 6mm;
+      border-top: 1px solid var(--line);
+    }
+    .toc h2 {
+      margin: 0 0 4mm;
+      padding: 0;
+      border: 0;
+      color: var(--ink);
+      font-size: 12.5pt;
+    }
+    .toc ol {
+      columns: 2;
+      column-gap: 10mm;
+      padding-left: 5.5mm;
+    }
+    .toc li {
+      margin: 2mm 0;
+      break-inside: avoid;
+    }
+    .toc a {
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .toc a:hover {
+      color: var(--navy);
+      text-decoration: underline;
+    }
+    .section-intro {
+      margin: -1.5mm 0 5mm;
+      color: var(--muted);
+      font-size: 10pt;
+    }
+    .section-number {
+      display: inline-block;
+      min-width: 8mm;
+      color: var(--navy-light);
+      font-size: .8em;
+      letter-spacing: .04em;
+    }
+    .table-wrap {
+      width: 100%;
+      margin: 4mm 0 7mm;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 9.3pt;
+      line-height: 1.5;
+    }
+    caption {
+      padding-bottom: 2mm;
+      color: var(--navy);
+      font-weight: 700;
+      text-align: left;
+    }
+    th, td {
+      padding: 2.5mm 3mm;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      overflow-wrap: break-word;
+    }
+    thead th {
+      color: #ffffff;
+      background: var(--navy);
+      font-weight: 700;
+    }
+    tbody th {
+      color: var(--ink);
+      background: var(--fill);
+      font-weight: 700;
+    }
+    tbody tr:nth-child(even) td {
+      background: var(--fill-card);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 8pt;
+      font-weight: 700;
+      line-height: 1.2;
+      border-radius: 4px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .badge-error { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+    .badge-warning { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
+    .badge-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-edit { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }
+    .badge-delete { background: #f3f4f6; color: #4b5563; border: 1px solid #9ca3af; }
+    .badge-info { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+    
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 4mm;
+      margin: 5mm 0 7mm;
+    }
+    .card {
+      padding: 4mm 5mm;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--paper);
+    }
+    .card-title {
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 2mm;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .arch-diagram {
+      margin: 6mm 0 8mm;
+      padding: 5mm;
+      border: 1px solid var(--line);
+      background: var(--fill-card);
+      border-radius: 6px;
+    }
+    .arch-layer {
+      margin-bottom: 3.5mm;
+      padding: 3mm 4mm;
+      border-radius: 4px;
+      border: 1px solid;
+    }
+    .arch-layer:last-child {
+      margin-bottom: 0;
+    }
+    .layer-platform { background: #eff6ff; border-color: #bfdbfe; }
+    .layer-core { background: #f0fdf4; border-color: #bbf7d0; }
+    .layer-model { background: #fefce8; border-color: #fef08a; }
+    .layer-ui { background: #faf5ff; border-color: #e9d5ff; }
+    .layer-title {
+      font-weight: 700;
+      font-size: 9.5pt;
+      margin-bottom: 2mm;
+      display: flex;
+      justify-content: space-between;
+    }
+    .layer-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .layer-tag {
+      background: #ffffff;
+      padding: 2px 8px;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 3px;
+      font-size: 8.5pt;
+      font-family: monospace;
+      color: var(--ink);
+    }
+    .note {
+      margin: 4mm 0 6mm;
+      padding: 3.5mm 4mm;
+      border: 1px solid var(--blue-border);
+      background: var(--blue-bg);
+      border-radius: 4px;
+      font-size: 9.3pt;
+    }
+    .note strong { color: var(--navy); }
+    
+    .screenshot-figure {
+      margin: 5mm 0 7mm;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .screenshot-figure img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-bottom: 1px solid var(--line);
+    }
+    .screenshot-caption {
+      padding: 2.5mm 4mm;
+      background: var(--fill-card);
+      color: var(--muted);
+      font-size: 8.5pt;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .screenshot-caption strong {
+      color: var(--navy);
+    }
+
+    .step-flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3mm;
+      margin: 5mm 0 7mm;
+    }
+    .step-box {
+      padding: 3.5mm;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--fill-card);
+      position: relative;
+    }
+    .step-number {
+      font-size: 14pt;
+      font-weight: 800;
+      color: var(--navy-light);
+      line-height: 1;
+      margin-bottom: 2mm;
+    }
+    .step-title {
+      font-weight: 700;
+      font-size: 9.5pt;
+      color: var(--ink);
+      margin-bottom: 1mm;
+    }
+    .step-desc {
+      font-size: 8.5pt;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .back-to-top {
+      margin-top: 9mm;
+      text-align: right;
+      font-size: 9pt;
+    }
+    footer {
+      margin-top: 14mm;
+      padding-top: 4mm;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 8.5pt;
+      display: flex;
+      justify-content: space-between;
+    }
+    @media (max-width: 768px) {
+      .report { width: calc(100% - 16px); padding: 8mm 6mm; margin: 8px auto; }
+      .toc ol { columns: 1; }
+      .step-flow { grid-template-columns: 1fr; }
+    }
+    @media print {
+      @page { size: A4 portrait; margin: 14mm 12mm 14mm; }
+      html, body { background: #ffffff; }
+      body { font-size: 9pt; line-height: 1.45; }
+      .report { width: auto; margin: 0; padding: 0; border: 0; box-shadow: none; }
+      .front-matter { break-after: page; }
+      h2, h3, h4, caption { break-after: avoid-page; }
+      p, li { orphans: 3; widows: 3; }
+      table, .screenshot-figure, .arch-diagram, .step-flow { break-inside: avoid; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      .back-to-top { display: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+<article class="report" id="top">
+
+  <!-- 표지 및 통제 정보 -->
+  <header class="front-matter">
+    <p class="doc-type">Feature Implementation & System Architecture Report</p>
+    <h1>LocaleGrid 개발 기능 보고서</h1>
+    <p class="subtitle">IntelliJ 및 PyCharm 기반 개발 환경의 다국어 리소스 JSON 파일 관리 플러그인 구현 기능 및 시스템 구조 기술 보고서</p>
+
+    <div class="table-wrap">
+      <table class="meta-table">
+        <caption>문서 통제 정보</caption>
+        <tbody>
+          <tr>
+            <th scope="row" style="width: 18%;">대상 제품</th>
+            <td style="width: 32%;"><strong>LocaleGrid</strong></td>
+            <th scope="row" style="width: 18%;">문서 유형</th>
+            <td style="width: 32%;">개발 기능 보고서 (KPI 제출용)</td>
+          </tr>
+          <tr>
+            <th scope="row">작성 기준일</th>
+            <td>2026-09-03</td>
+            <th scope="row">기반 플랫폼</th>
+            <td>IntelliJ Platform SDK / Java 17</td>
+          </tr>
+          <tr>
+            <th scope="row">구현 범위</th>
+            <td colspan="3">프로덕션 Java 33개 파일 및 자동화 테스트 16개 클래스 전수 구현 및 검증 완료</td>
+          </tr>
+          <tr>
+            <th scope="row">문서 목적</th>
+            <td colspan="3">다국어 데이터 테이블 통합 뷰, 실시간 검증 체계, 듀얼 에디터 탭 동기화, 엑셀 다운로드 및 안전한 저장 기능 명세</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="summary" aria-labelledby="technical-summary-title">
+      <h2 id="technical-summary-title" class="summary-title">핵심 구현 요약</h2>
+      <ul>
+        <li><strong>다국어 데이터 테이블 통합 뷰:</strong> 선택된 다국어 파일을 기준으로 동일 카테고리에 속한 모든 언어 데이터를 단일 데이터 테이블로 구성하여 한눈에 확인하고 비교·편집할 수 있습니다.</li>
+        <li><strong>사전 문제 확인 및 데이터 무결성 지원:</strong> 중복 키, Dot Path 충돌, 유니코드 문자 체계(Script) 위반 등의 문제를 실시간으로 감지하여 저장 전에 사전에 확인할 수 있도록 지원합니다.</li>
+        <li><strong>듀얼 에디터 탭(JSON / 다국어 에디터) 동기화:</strong> 원본 JSON 탭과 다국어 에디터 탭이 함께 제공됩니다. 다국어 데이터를 변경하기 전까지는 JSON 원본 내용이 변경되면 다국어 에디터로 자동 동기화되며, 다국어 에디터에서 편집이 시작되면(<code>다국어 에디터 (편집중)</code>) 동기화가 일시 해제되어 편집 내용이 유지됩니다. 이후 변경 내용을 적용하거나 취소하기 전까지 작업 데이터가 보존됩니다.</li>
+        <li><strong>필터링된 내용 엑셀 다운로드:</strong> 현재 테이블에서 검색 및 상태 필터가 적용된 내용을 엑셀(<code>.xlsx</code>) 파일로 즉시 다운로드할 수 있습니다.</li>
+        <li><strong>IntelliJ 플랫폼 내장 2단계 Diff 저장:</strong> 메모리 사전 검증, 변경 통계 집계, IntelliJ <code>DiffManager</code> 기반 시각적 텍스트 Diff 확인 후 <code>WriteCommandAction</code> 트랜잭션으로 안전하게 저장합니다.</li>
+      </ul>
+    </section>
+
+    <nav class="toc" aria-label="문서 목차">
+      <h2>목차</h2>
+      <ol>
+        <li><a href="#overview">01. 프로젝트 개요 및 개발 배경</a></li>
+        <li><a href="#architecture">02. 시스템 아키텍처 및 도메인 모델</a></li>
+        <li><a href="#core-features">03. 주요 기능 소개</a></li>
+        <li><a href="#performance-kpi">04. 기술적 차별점 및 주요 성과</a></li>
+        <li><a href="#conclusion">05. 결론 및 향후 확장성</a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <main>
+    <!-- 01. 개요 및 배경 -->
+    <section id="overview">
+      <h2><span class="section-number">01</span>프로젝트 개요 및 개발 배경</h2>
+      <p class="section-intro">프로젝트 개발 환경에서의 다국어 리소스 관리 문제점과 LocaleGrid 개발 목적</p>
+
+      <h3>1.1 개발 배경 및 문제 정의</h3>
+      <p>프로젝트 개발에서 다국어 지원(i18n/l10n)은 필수적이나, 기존 개발 환경에서는 다음과 같은 문제점과 비효율이 존재했습니다:</p>
+      
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">
+            <span class="badge badge-error">분산 관리</span> 다중 파일 분산 관리의 비효율
+          </div>
+          <p style="font-size: 9pt; margin:0; color: var(--muted);">
+            언어별 다국어 파일(<code>locales/ko/category.json</code>, <code>locales/en/category.json</code> 등)이 물리적으로 분리되어 있어, 특정 키의 번역 누락이나 번역값 간의 불일치를 확인하기 위해 여러 탭을 오가며 수작업으로 비교해야 했습니다.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span class="badge badge-error">구문 오류</span> JSON 계층 구조 훼손 및 구문 오류
+          </div>
+          <p style="font-size: 9pt; margin:0; color: var(--muted);">
+            JSON의 계층형 트리 구조(Nested Object)를 텍스트 에디터로 직접 편집할 때 문법 오류(Syntax Error), 콤마 누락, 괄호 불일치, 그리고 중첩 키와 리프 키 간의 경로 충돌(Dot-path conflict)이 발생하기 쉬웠습니다.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span class="badge badge-error">문자 불일치</span> 타 언어 문자 혼입 및 문자 체계 불일치
+          </div>
+          <p style="font-size: 9pt; margin:0; color: var(--muted);">
+            번역 작업 중 한국어 리소스에 라틴 문자나 키릴 문자가 섞이거나, 일본어 리소스에 한글이 잘못 입력되는 등의 문자 체계 불일치를 개발 또는 빌드 시점에 인지하지 못해 배포 후 런타임 오류나 UI 깨짐 현상으로 이어졌습니다.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span class="badge badge-error">휴먼 에러</span> 수작업 다국어 검수 과정의 휴먼 에러
+          </div>
+          <p style="font-size: 9pt; margin:0; color: var(--muted);">
+            개발자가 수많은 다국어 키와 번역문을 일일이 확인하고 검수하는 과정에서 누락, 오기입, 불일치 등의 인적 오류(Human Error)가 빈번하게 발생하며, 이를 사전에 체계적으로 감지하기 어려웠습니다.
+          </p>
+        </div>
+      </div>
+
+      <h3>1.2 LocaleGrid의 해결 과제 및 목적</h3>
+      <p><strong>LocaleGrid</strong>는 이러한 문제를 해결하기 위해 IntelliJ Platform SDK를 기반으로 개발된 전용 다국어 그리드 에디터 플러그인입니다:</p>
+      <ul>
+        <li><strong>다국어 데이터 테이블 통합 뷰:</strong> 선택된 다국어 파일을 기준으로 동일 카테고리에 속한 모든 언어 데이터를 단일 데이터 테이블로 구성하여 한눈에 확인하고 비교·편집할 수 있습니다.</li>
+        <li><strong>사전 문제 확인 및 데이터 무결성 지원:</strong> 중복 키, Dot Path 충돌, 유니코드 문자 체계(Script) 위반 등의 문제를 실시간으로 감지하여 저장 전에 사전에 확인할 수 있도록 지원합니다.</li>
+        <li><strong>듀얼 에디터 탭(JSON / 다국어 에디터) 동기화:</strong> 원본 JSON 탭과 다국어 에디터 탭이 함께 제공됩니다. 다국어 데이터를 변경하기 전까지는 JSON 원본 내용이 변경되면 다국어 에디터로 자동 동기화되며, 다국어 에디터에서 편집이 시작되면(<code>다국어 에디터 (편집중)</code>) 동기화가 일시 해제되어 편집 내용이 유지됩니다. 이후 변경 내용을 적용하거나 취소하기 전까지 작업 데이터가 보존됩니다.</li>
+        <li><strong>필터링된 내용 엑셀 다운로드:</strong> 현재 테이블에서 검색 및 상태 필터가 적용된 내용을 엑셀(<code>.xlsx</code>) 파일로 다운로드할 수 있습니다.</li>
+      </ul>
+      <p class="back-to-top"><a href="#top">▲ 목차로 이동</a></p>
+    </section>
+
+    <!-- 02. 시스템 아키텍처 및 도메인 모델 -->
+    <section id="architecture">
+      <h2><span class="section-number">02</span>시스템 아키텍처 및 도메인 모델</h2>
+      <p class="section-intro">계층화된 모듈 구조와 불변 도메인 모델 설계</p>
+
+      <h3>2.1 계층형 시스템 아키텍처</h3>
+      <p>LocaleGrid는 각 계층이 명확한 책임을 가지며 선 겹침 없이 연동되도록 수직 계층형 아키텍처로 구현되었습니다.</p>
+
+      <div class="arch-diagram">
+        <div class="arch-layer layer-platform">
+          <div class="layer-title">
+            <span>1. IntelliJ Platform Integration Layer (플랫폼 통합 계층)</span>
+            <span class="badge badge-info">VFS & Document API</span>
+          </div>
+          <div class="layer-items">
+            <span class="layer-tag">LocaleGridJsonFileEditorProvider</span>
+            <span class="layer-tag">LocaleGridFileEditorProvider</span>
+            <span class="layer-tag">LocaleGridJsonSourceEditor</span>
+            <span class="layer-tag">FileDocumentManager</span>
+            <span class="layer-tag">WriteCommandAction</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-core">
+          <div class="layer-title">
+            <span>2. Core Processing Engine (코어 처리 엔진)</span>
+            <span class="badge badge-success">I/O & Validation Engine</span>
+          </div>
+          <div class="layer-items">
+            <span class="layer-tag">LocaleGridPath</span>
+            <span class="layer-tag">TranslationTableLoader / Saver</span>
+            <span class="layer-tag">FlattenedJson (OrderedParser)</span>
+            <span class="layer-tag">JsonTreeWriter</span>
+            <span class="layer-tag">TableValidator</span>
+            <span class="layer-tag">LocaleScriptValidator</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-model">
+          <div class="layer-title">
+            <span>3. In-Memory Domain Model (도메인 모델 계층)</span>
+            <span class="badge badge-warning">State & Diagnostics</span>
+          </div>
+          <div class="layer-items">
+            <span class="layer-tag">TranslationTable</span>
+            <span class="layer-tag">LocaleGridRow</span>
+            <span class="layer-tag">LocaleValue</span>
+            <span class="layer-tag">Diagnostic (Severity)</span>
+            <span class="layer-tag">ExceptionKeyMarker</span>
+            <span class="layer-tag">LocaleTextEscaper</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-ui">
+          <div class="layer-title">
+            <span>4. Presentation & Custom UI Layer (커스텀 에디터 UI 계층)</span>
+            <span class="badge badge-edit">2-Tier Swing GUI</span>
+          </div>
+          <div class="layer-items">
+            <span class="layer-tag">LocaleGridFileEditor</span>
+            <span class="layer-tag">LocaleGridTableModel</span>
+            <span class="layer-tag">LocaleGridCellRenderer</span>
+            <span class="layer-tag">LocaleGridStatusRenderer</span>
+            <span class="layer-tag">StatusScrollMap</span>
+            <span class="layer-tag">ApplyPreviewDialog</span>
+            <span class="layer-tag">ExcelExportWriter</span>
+          </div>
+        </div>
+      </div>
+
+      <h3>2.2 핵심 도메인 모델 세부 명세</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>도메인 모델 역할 및 속성 명세</caption>
+          <thead>
+            <tr>
+              <th style="width: 22%;">모델 클래스</th>
+              <th style="width: 38%;">주요 역할 및 상태 캡슐화</th>
+              <th style="width: 40%;">기술적 차별성 및 무결성 보장 방식</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>TranslationTable</code></td>
+              <td>동일 카테고리의 모든 다국어 데이터를 담는 최상위 컨테이너. 로케일 목록, 행 목록, 파일 매핑, 진단 목록, 순서 변경 플래그를 관리.</td>
+              <td>카테고리 단위의 단일 인메모리 트랜잭션 모델로 동작하여 원자적 저장 및 일괄 검증의 기반을 제공.</td>
+            </tr>
+            <tr>
+              <td><code>LocaleGridRow</code></td>
+              <td>하나의 번역 키에 대응하는 행 단위 모델. <code>originalKey</code>, <code>key</code>, 행 타입(번역행 vs 예외키행), 추가/삭제 플래그를 보관.</td>
+              <td><code>isModified()</code> 메서드를 통해 키 이름 변경, 행 타입 전환, 삭제 상태, 개별 셀 값의 변경 여부를 즉시 계산하여 상태를 반환.</td>
+            </tr>
+            <tr>
+              <td><code>LocaleValue</code></td>
+              <td>특정 로케일의 번역 값 단위. <code>value</code>, 원본 존재 여부(<code>present</code>), 편집 가능 여부(<code>editable</code>), 수정 플래그(<code>modified</code>)를 관리.</td>
+              <td>문자열 및 null만 <code>editable=true</code>로 설정하고, JSON 객체/배열/숫자 등은 읽기 전용으로 보호하여 원본 구조 왜곡 방지.</td>
+            </tr>
+            <tr>
+              <td><code>Diagnostic</code></td>
+              <td>검증 및 파싱 중 발생한 진단 메시지. 심각도(<code>ERROR</code>, <code>WARNING</code>), 대상 키, 대상 로케일 정보를 포함.</td>
+              <td>오류(저장 차단)와 경고(저장 허용)를 엄격히 분리하고, 셀·행·로케일 단위로 툴팁 및 상태 마커와 연동.</td>
+            </tr>
+            <tr>
+              <td><code>ExceptionKeyMarker</code></td>
+              <td>번역 대상에서 제외할 최상위 특수 메타데이터(예: <code>__section__</code>)의 위치를 기억하는 앵커 객체.</td>
+              <td>일반 번역 키와의 상대적 위치(<code>BEFORE</code> 또는 <code>AFTER</code>)를 기억해 두었다가 저장 시 원래 위치에 정확히 재삽입.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="back-to-top"><a href="#top">▲ 목차로 이동</a></p>
+    </section>
+
+    <!-- 03. 주요 기능 소개 -->
+    <section id="core-features">
+      <h2><span class="section-number">03</span>주요 기능 소개</h2>
+      <p class="section-intro">실제 구현된 듀얼 에디터 탭, 무결성 검증 엔진, UI/UX 인터랙션 및 저장 메커니즘 소개</p>
+
+      <h3>3.1 파일 탐색 및 듀얼 에디터 탭 제공</h3>
+      <p>
+        <strong>1) 이중 파일 패턴 지원:</strong><br>
+        <code>locales/{locale}/{category}.json</code> 패턴과 <code>locales/{locale}/{category}_{locale}.json</code> 접미사 패턴을 모두 자동으로 인식하며, 프로젝트 설정의 <code>localesRoot</code>를 기준으로 파일을 그룹화합니다.
+      </p>
+      <p>
+        <strong>2) 듀얼 에디터 탭 구성:</strong><br>
+        로케일 JSON 파일을 열면 기본 텍스트 에디터 대신 <code>JSON</code> 원본 탭과 <code>다국어 에디터</code> 탭이 나란히 제공됩니다.
+      </p>
+
+      <figure class="screenshot-figure">
+        <img src="report-assets/01_json_source_tab.png" alt="JSON 원본 탭 화면">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 1] JSON 원본 탭 열람 화면:</strong> 기존 코드 에디터의 신택스 하이라이팅 및 라인 넘버 표시 기능을 100% 보존</span>
+          <span class="badge badge-info">JSON Source Editor</span>
+        </figcaption>
+      </figure>
+
+      <p>
+        <strong>3) 동기화 및 편집 상태 보존 정책:</strong><br>
+        다국어 에디터에서 데이터를 변경하기 전까지는 <code>JSON</code> 원본 탭의 소스 코드가 수정되면 다국어 에디터로 자동 동기화됩니다. 다국어 에디터에서 데이터 수정이 시작되면 아래와 같이 탭 이름이 <code>다국어 에디터 (편집중)</code>으로 변경되며 외부 동기화가 일시 해제됩니다. 작업 중인 내용은 [적용]하거나 [취소]하기 전까지 안전하게 유지됩니다.
+      </p>
+
+      <figure class="screenshot-figure" style="max-width: 420px;">
+        <img src="report-assets/02_editing_tab_indicator.png" alt="다국어 에디터 (편집중) 상태 표시">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 2] 편집 중 상태 표시:</strong> 데이터 수정 시 동기화가 일시 해제되며 탭 이름 변경</span>
+          <span class="badge badge-edit">Editing State</span>
+        </figcaption>
+      </figure>
+
+      <p>
+        <strong>4) 편집 중 탭 전환 보호 알림:</strong><br>
+        다국어 에디터에서 값을 수정한 상태(<code>편집중</code>)에서 원본 <code>JSON</code> 탭으로 전환을 시도할 경우, 저장되지 않은 변경 사항이 있음을 알리고 사용자의 확인을 거치도록 다이얼로그를 표시합니다.
+      </p>
+
+      <figure class="screenshot-figure" style="max-width: 520px;">
+        <img src="report-assets/08_tab_switch_warning_dialog.png" alt="JSON 탭 전환 시 미저장 안내 다이얼로그">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 3] 탭 전환 확인 다이얼로그:</strong> 다국어 에디터 편집 중 JSON 탭으로 이동 시 미저장 내용 안내 및 확인</span>
+          <span class="badge badge-warning">Tab Switch Guard</span>
+        </figcaption>
+      </figure>
+
+      <h3>3.2 순서 보존 JSON 평탄화 및 역직렬화</h3>
+      <ul>
+        <li><strong>순서 보존 커스텀 파서 (<code>FlattenedJson.OrderedParser</code>):</strong> <code>LinkedHashMap</code>을 사용하여 원본 파일의 키 선언 순서를 100% 보존하며, 동일 레벨의 중복 키(Duplicated JSON key) 발견 시 덮어쓰지 않고 즉시 <code>Severity.ERROR</code> 진단으로 등록합니다.</li>
+        <li><strong>Dot Path 계층 트리 재구성기 (<code>JsonTreeWriter</code>):</strong> 점 표기법(예: <code>login.password</code>)으로 관리되는 데이터를 원래의 중첩 JSON 객체 트리로 역변환합니다. 리프 노드와 하위 객체 간 충돌을 사전 차단하고 2-space 들여쓰기를 표준 적용합니다.</li>
+      </ul>
+
+      <h3>3.3 유니코드 스크립트 기반 다국어 문자 체계 검증</h3>
+      <p>ICU4J 및 Java <code>Character.UnicodeScript</code>를 결합하여 다국어 파일 내에 부적합한 타 언어 문자가 혼입되는 것을 실시간 감지합니다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>로케일별 문자 체계 검증 정책 (LocaleScriptPolicy)</caption>
+          <thead>
+            <tr>
+              <th style="width: 15%;">로케일</th>
+              <th style="width: 35%;">허용 Unicode Script</th>
+              <th style="width: 50%;">동작 규칙 및 예외 처리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ko</code> (한국어)</td>
+              <td><code>HANGUL</code>, <code>LATIN</code></td>
+              <td>한글과 기본 라틴 문자 허용. 키릴, 아랍, 히라가나 등 타 언어 문자 유입 검출.</td>
+            </tr>
+            <tr>
+              <td><code>en</code> (영어)</td>
+              <td><code>LATIN</code></td>
+              <td>순수 라틴 문자 체계만 허용. 동아시아 문자 및 타 언어 문자 유입 검출.</td>
+            </tr>
+            <tr>
+              <td><code>ja</code> (일본어)</td>
+              <td><code>HIRAGANA</code>, <code>KATAKANA</code>, <code>HAN</code>, <code>LATIN</code></td>
+              <td>히라가나, 가타카나, 한자(한문) 및 라틴 문자 허용. 한글 혼입 즉시 검출.</td>
+            </tr>
+            <tr>
+              <td><code>vi</code> (베트남어)</td>
+              <td><code>LATIN</code></td>
+              <td>성조 결합 라틴 문자 허용.</td>
+            </tr>
+            <tr>
+              <td>기타 표준 언어</td>
+              <td><strong>CLDR likely-subtags</strong> 기반 자동 추론</td>
+              <td><code>ru</code>(키릴), <code>th</code>(타이), <code>ar</code>(아랍) 등 표준 로케일의 예상 문자 체계를 자동 추론.</td>
+            </tr>
+            <tr>
+              <td><strong>공통 허용</strong></td>
+              <td><code>COMMON</code>, <code>INHERITED</code>, 숫자, 이모지</td>
+              <td>모든 언어에서 문장부호, 결합 문자, 숫자(<code>\p{N}</code>), 유니코드 이모지(<code>U+1F000~U+1FAFF</code>)는 범용 허용.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3.4 2-Tier 에디터 UI 및 편의 기능</h3>
+      <p>다국어 에디터는 상단의 2차원 매트릭스 테이블과 하단의 로케일별 상세 편집 패널로 분할되어 있습니다.</p>
+
+      <figure class="screenshot-figure">
+        <img src="report-assets/03_locale_grid_main_editor.png" alt="다국어 에디터 메인 그리드 및 상세 편집 패널">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 4] 다국어 에디터 메인 화면:</strong> 상단 상태 필터/검색/테이블과 하단 상세 편집 패널이 결합된 2-Tier 인터페이스</span>
+          <span class="badge badge-success">Main Grid Editor</span>
+        </figcaption>
+      </figure>
+
+      <h4>UI 주요 기능 요소</h4>
+      <ul>
+        <li><strong>상태 배지 시스템:</strong> <code>추가</code>(초록), <code>편집</code>(파랑), <code>경고</code>(주황), <code>삭제</code>(회색), <code>에러</code>(빨강)의 시각적 배지를 제공하며 복수 상태 발생 시 다중 배지를 렌더링합니다.</li>
+        <li><strong>원클릭 다중 상태 필터:</strong> 상단 필터 버튼을 클릭하여 추가, 경고, 편집, 삭제, 에러 행만 즉시 필터링하여 조회할 수 있습니다.</li>
+        <li><strong>디바운스 실시간 검색 및 하이라이팅:</strong> 500ms 디바운스를 적용하여 검색창 입력 시 일치 항목을 파란색 배경과 볼드 텍스트로 실시간 하이라이트하며, 이전/다음 내비게이션 및 결과 필터링을 지원합니다.</li>
+        <li><strong>드래그 앤 드롭 행 순서 재정렬:</strong> 좌측 핸들 열(0번 컬럼)을 마우스로 드래그하거나 툴바의 이동 버튼(<code>▲</code>, <code>▼</code>)을 사용하여 키 순서를 재배치할 수 있습니다.</li>
+        <li><strong>스크롤 미니맵 바 (<code>StatusScrollMap</code>):</strong> 수직 스크롤바 트랙 위에 에러(빨강), 경고(주황), 수정(파랑), 추가(초록) 위치를 도트 마커로 표시하여 문제가 있는 행으로 즉시 이동할 수 있습니다.</li>
+        <li><strong>하단 상세 편집 패널 (Detail Panel):</strong> 선택된 키의 언어별 번역값을 개별 입력 필드에서 편리하게 편집할 수 있으며, 인라인 진단 메시지를 실시간으로 제공합니다.</li>
+        <li><strong>특수문자 및 개행 보존 (<code>LocaleTextEscaper</code>):</strong> <code>\n</code>, <code>\r</code>, <code>\t</code> 문자를 셀 내에서 시각적인 이스케이프 문자열로 안전하게 변환하여 테이블 레이아웃을 유지합니다.</li>
+      </ul>
+
+      <p>
+        <strong>변경 취소 안전 다이얼로그:</strong><br>
+        에디터 하단의 <code>[취소]</code> 버튼을 클릭할 때 저장되지 않은 변경 사항이 존재하면, 원본 상태로 복구하기 전 사용자 확인을 요청하여 작업 데이터의 우발적 유실을 방지합니다.
+      </p>
+
+      <figure class="screenshot-figure" style="max-width: 580px;">
+        <img src="report-assets/07_cancel_confirm_dialog.png" alt="변경 취소 확인 다이얼로그">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 5] 변경 취소 확인 다이얼로그:</strong> 미저장 작업 데이터가 있는 상태에서 취소 시 재확인 팝업</span>
+          <span class="badge badge-error">Cancel Confirmation</span>
+        </figcaption>
+      </figure>
+
+      <h3>3.5 안전한 2단계 적용 및 Diff 프리뷰</h3>
+      <p>단 한 번의 잘못된 클릭으로 원본 JSON 리소스가 손상되는 것을 방지하기 위해 2단계 검증 및 프리뷰 프로세스를 거칩니다.</p>
+
+      <figure class="screenshot-figure">
+        <img src="report-assets/04_apply_preview_dialog.png" alt="적용 전 Diff 프리뷰 및 변경 현황 다이얼로그">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 6] 적용 전 Diff 프리뷰 다이얼로그:</strong> 대상 파일 목록, 변경 통계 타일(생성/추가/편집/삭제/경고) 및 Side-by-side Diff 뷰어 제공</span>
+          <span class="badge badge-warning">Apply Preview Dialog</span>
+        </figcaption>
+      </figure>
+
+      <div class="step-flow">
+        <div class="step-box">
+          <div class="step-number">01</div>
+          <div class="step-title">인메모리 검증</div>
+          <div class="step-desc">키 중복, Dot Path 충돌 등 차단 에러가 남아 있는 경우 저장을 즉시 차단하고 안내 메시지를 표시합니다.</div>
+        </div>
+        <div class="step-box">
+          <div class="step-number">02</div>
+          <div class="step-title">변경 통계 집계</div>
+          <div class="step-desc">디스크에 쓰기 전 메모리에서 최종 JSON 트리를 빌드하고 생성·추가·편집·삭제·경고 건수를 정확히 집계합니다.</div>
+        </div>
+        <div class="step-box">
+          <div class="step-number">03</div>
+          <div class="step-title">Diff 프리뷰</div>
+          <div class="step-desc">IntelliJ 플랫폼 내장 DiffManager를 통해 언어별 변경 전/후 텍스트의 라인 단위 차이를 대조 확인합니다.</div>
+        </div>
+        <div class="step-box">
+          <div class="step-number">04</div>
+          <div class="step-title">원자적 파일 쓰기</div>
+          <div class="step-desc">WriteCommandAction 트랜잭션 내에서 VFS Document를 갱신하여 Undo 히스토리를 보존하고 디스크와 동기화합니다.</div>
+        </div>
+      </div>
+
+      <h3>3.6 필터링된 내용 엑셀 다운로드 (ExcelExportWriter)</h3>
+      <p>
+        현재 테이블에서 검색 및 상태 필터가 적용된 내용을 엑셀(<code>.xlsx</code>) 파일로 다운로드할 수 있습니다. 
+        외부 무거운 라이브러리(Apache POI 등) 없이 <strong>순수 Java의 <code>ZipOutputStream</code>과 OpenXML 표준 규격을 직접 구현</strong>하여 가볍고 빠르게 동작합니다.
+      </p>
+      <ul>
+        <li><strong>전문 서식 자동 적용:</strong> 첫 행 헤더 틀 고정(<code>frozen pane</code>), 전 컬럼 자동 필터(<code>autoFilter</code>), 줄바꿈 서식(<code>wrapText</code>), 컬럼 너비 자동 계산 적용.</li>
+        <li><strong>원클릭 완료 액션:</strong> 다운로드 완료 시 '파일 열기', '폴더 열기', '닫기' 다이얼로그를 제공하여 즉각적인 확인을 지원.</li>
+      </ul>
+
+      <h3>3.7 비파괴적 메타데이터 보존 및 프로젝트 설정</h3>
+      <p>
+        <strong>1) 예외키 설정 다이얼로그:</strong><br>
+        에디터 상단의 <code>예외키</code> 버튼을 통해 번역 항목에서 제외할 최상위 키(예: <code>__section__</code>, <code>__comment__</code>)를 설정할 수 있습니다. 예외키는 다국어 에디터의 일반 번역 목록에서 숨겨지며, 저장 시 각 언어별 파일에서의 원래 위치가 그대로 유지됩니다.
+      </p>
+
+      <figure class="screenshot-figure" style="max-width: 600px;">
+        <img src="report-assets/05_exception_key_dialog.png" alt="예외키 설정 다이얼로그">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 7] 예외키 설정 다이얼로그:</strong> 번역에서 제외할 최상위 키를 지정하고 저장 시 원본 위치 유지</span>
+          <span class="badge badge-info">Exception Keys</span>
+        </figcaption>
+      </figure>
+
+      <p>
+        <strong>2) IDE 프로젝트 환경 설정:</strong><br>
+        <code>Settings > Tools > LocaleGrid</code> 메뉴에서 프로젝트 전역 옵션을 설정할 수 있습니다.
+      </p>
+      <ul>
+        <li><strong>기본 설정:</strong> <code>locale 루트 경로</code>(기본 <code>locales</code>), <code>locale 표시 순서</code>(예: <code>ko,en,ja,vi</code>).</li>
+        <li><strong>고급 설정:</strong> <code>예외 키</code>, <code>JSON 들여쓰기</code>(2/4칸), <code>문자 체계 검사</code> 사용 여부 및 <code>문자 위반 처리</code>(경고 vs 에러) 정책을 유연하게 조정할 수 있습니다.</li>
+        <li>에디터에 미저장 변경 사항이 남아 있을 경우 구조적 설정 변경을 사전에 제한하여 데이터 무결성을 보호합니다.</li>
+      </ul>
+
+      <figure class="screenshot-figure">
+        <img src="report-assets/06_ide_settings_screen.png" alt="IntelliJ Settings 환경 설정 화면">
+        <figcaption class="screenshot-caption">
+          <span><strong>[그림 8] IntelliJ Settings 환경 설정 화면:</strong> 기본 설정(루트 경로, 표시 순서) 및 고급 설정(들여쓰기, 문자 체계 검사 및 처리 정책)</span>
+          <span class="badge badge-success">Settings Configurable</span>
+        </figcaption>
+      </figure>
+      <p class="back-to-top"><a href="#top">▲ 목차로 이동</a></p>
+    </section>
+
+    <!-- 04. 성과 및 비교 -->
+    <section id="performance-kpi">
+      <h2><span class="section-number">04</span>기술적 차별점 및 주요 성과</h2>
+      <p class="section-intro">기존 수작업 관리 방식 대비 개선 성과 비교</p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>기존 방식 대비 주요 개선 성과 비교표</caption>
+          <thead>
+            <tr>
+              <th style="width: 18%;">비교 항목</th>
+              <th style="width: 32%;">기존 수작업 / 텍스트 편집</th>
+              <th style="width: 32%;">LocaleGrid 도입 후</th>
+              <th style="width: 18%;">주요 개선 성과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>다국어 파일 관리</strong></td>
+              <td>언어별 파일 탭을 각각 열고 키를 수동 검색하여 비교</td>
+              <td>선택된 파일 기준 단일 데이터 테이블로 통합 비교·편집</td>
+              <td><span class="badge badge-success">작업 시간 단축</span></td>
+            </tr>
+            <tr>
+              <td><strong>JSON 구문 무결성</strong></td>
+              <td>콤마, 따옴표 오탈자, 중괄호 불일치 발생 위험</td>
+              <td>트리 생성기를 통한 자동 인덴테이션 및 구문 오류 사전 차단</td>
+              <td><span class="badge badge-success">구문 오류 사전 방지</span></td>
+            </tr>
+            <tr>
+              <td><strong>문자 체계 적합성</strong></td>
+              <td>타 언어 문자 혼입을 개발 시점에 인지하기 어려움</td>
+              <td>ICU4J/CLDR 기반 유니코드 스크립트 실시간 감지 및 안내</td>
+              <td><span class="badge badge-success">오기입 사전 확인 100%</span></td>
+            </tr>
+            <tr>
+              <td><strong>저장 안정성</strong></td>
+              <td>저장 시 즉시 덮어쓰기되어 실수 복구 어려움</td>
+              <td>변경 통계 집계 + IntelliJ 내장 Diff 프리뷰 확인 후 저장</td>
+              <td><span class="badge badge-success">실수로 인한 손상 방지</span></td>
+            </tr>
+            <tr>
+              <td><strong>엑셀 내보내기</strong></td>
+              <td>수작업 복사 또는 별도 변환 툴 필요</td>
+              <td>현재 필터링된 내용 기반 원클릭 .xlsx 다운로드</td>
+              <td><span class="badge badge-success">데이터 추출 간소화</span></td>
+            </tr>
+            <tr>
+              <td><strong>UI 반응성</strong></td>
+              <td>수천 줄 편집 시 에디터 렌더링 지연 발생 가능</td>
+              <td>SwingDebouncer(검색 500ms, 편집 300ms) 적용</td>
+              <td><span class="badge badge-success">부드러운 반응성 유지</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <strong>품질 검증 상태:</strong> 
+        본 프로젝트는 프로덕션 코드 33개 파일과 16개 테스트 클래스(총 79개 자동화 테스트 케이스)를 구축하여 검증을 완료했습니다. JSON 평탄화, 역직렬화 트리 빌드, ICU 스크립트 검증, 엑셀 생성 포맷 검증이 단위 테스트로 자동 검증됩니다.
+      </div>
+      <p class="back-to-top"><a href="#top">▲ 목차로 이동</a></p>
+    </section>
+
+    <!-- 05. 결론 -->
+    <section id="conclusion">
+      <h2><span class="section-number">05</span>결론 및 향후 확장성</h2>
+      <p class="section-intro">프로젝트 개발의 기술적 의의 및 미래 발전 방향</p>
+
+      <p>
+        <strong>LocaleGrid</strong>는 다국어 리소스 관리 과정에서 반복적으로 발생하던 다중 파일 대조의 번거로움, 계층 구조 훼손 위험, 타 언어 문자 혼입 문제를 해결하기 위해 구현된 개발 도구입니다.
+      </p>
+      <ul>
+        <li>선택된 다국어 파일을 기준으로 모든 언어를 하나의 테이블에서 한눈에 조망할 수 있는 직관적인 작업 환경을 제공합니다.</li>
+        <li>유니코드 스크립트 검증과 계층형 트리 재구성기를 통해 데이터의 정확성과 구조적 안정성을 보장합니다.</li>
+        <li>시각적 상태 배지, 실시간 검색 하이라이팅, 스크롤 미니맵, 저장 전 Diff 프리뷰를 통해 개발자의 인적 오류(Human Error)를 효과적으로 방지합니다.</li>
+      </ul>
+      <p>
+        본 플러그인을 통해 다국어 리소스 관리 작업의 편의성과 품질을 한층 높일 수 있으며, 향후 다양한 리소스 형식이나 맞춤형 검증 규칙으로의 확장도 유연하게 지원할 수 있습니다.
+      </p>
+      <p class="back-to-top"><a href="#top">▲ 목차로 이동</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <div>LocaleGrid Feature Report &copy; 2026. All rights reserved.</div>
+    <div>Document Generated: 2026-09-03 | Format: HTML5 / CSS3 Responsive Print-Ready</div>
+  </footer>
+
+</article>
+</body>
+</html>
