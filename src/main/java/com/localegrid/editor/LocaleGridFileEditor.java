@@ -80,6 +80,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private static final String EDITING_EDITOR_NAME = "다국어 에디터 (편집중)";
     private static final int SEARCH_DEBOUNCE_MILLIS = 500;
     private static final int DETAIL_EDIT_DEBOUNCE_MILLIS = 300;
+    static final int ROW_ACTION_BUTTON_WIDTH = 96;
 
     private final Project project;
     private final VirtualFile file;
@@ -162,8 +163,16 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private final StatusFilterButton deletedOnly = new StatusFilterButton("삭제");
     private final StatusFilterButton errorOnly = new StatusFilterButton("에러");
     private final JCheckBox bundleColumnCheck = new JCheckBox(LocaleGridTableModel.BUNDLE_COLUMN_NAME);
-    private final JButton renameButton = new ToolbarTextButton("편집", AllIcons.Actions.Edit, 66);
-    private final JButton deleteButton = new ToolbarTextButton("삭제", AllIcons.General.Remove, 66);
+    private final JButton renameButton = ToolbarTextButton.fixedWidth(
+        "편집",
+        AllIcons.Actions.Edit,
+        ROW_ACTION_BUTTON_WIDTH
+    );
+    private final JButton deleteButton = ToolbarTextButton.fixedWidth(
+        "삭제",
+        AllIcons.General.Remove,
+        ROW_ACTION_BUTTON_WIDTH
+    );
     private final JButton undoDeleteButton = new ToolbarTextButton("삭제 취소", AllIcons.Actions.Rollback, 104);
     private final JButton moveUpButton = new ToolbarIconButton(new MoveArrowIcon(true), "위로 이동", false);
     private final JButton moveDownButton = new ToolbarIconButton(new MoveArrowIcon(false), "아래로 이동", false);
@@ -234,7 +243,11 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         JPanel searchPanel = new JPanel();
         searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.X_AXIS));
         searchPanel.setBorder(BorderFactory.createEmptyBorder(4, 24, 4, 24));
-        JButton addButton = new ToolbarTextButton("추가", AllIcons.General.Add, 66);
+        JButton addButton = ToolbarTextButton.fixedWidth(
+            "추가",
+            AllIcons.General.Add,
+            ROW_ACTION_BUTTON_WIDTH
+        );
         JButton settingsButton = new ToolbarTextButton("설정", AllIcons.General.Gear, 64, 4);
         JButton exceptionKeySettingsButton = new ToolbarTextButton("예외키", new KeyIcon(), 84, 4);
         JButton excelExportButton = new ToolbarIconButton(new ExcelIcon(), "현재 테이블 Excel 다운로드");
@@ -2784,6 +2797,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         private static final Color DISABLED_TEXT = new Color(133, 140, 145);
         private static final int MINIMUM_HEIGHT = 28;
         private final int minimumWidth;
+        private final boolean fixedWidth;
 
         ToolbarTextButton(String text, int minimumWidth) {
             this(text, null, minimumWidth);
@@ -2794,8 +2808,19 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
 
         ToolbarTextButton(String text, Icon icon, int minimumWidth, int horizontalMargin) {
+            this(text, icon, minimumWidth, horizontalMargin, false);
+        }
+
+        private ToolbarTextButton(
+            String text,
+            Icon icon,
+            int minimumWidth,
+            int horizontalMargin,
+            boolean fixedWidth
+        ) {
             super(text, icon);
             this.minimumWidth = minimumWidth;
+            this.fixedWidth = fixedWidth;
             setFont(getFont().deriveFont(Font.PLAIN));
             setForeground(NORMAL_TEXT);
             setHorizontalTextPosition(SwingConstants.RIGHT);
@@ -2809,11 +2834,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             setMargin(JBUI.insets(0, horizontalMargin));
         }
 
+        static ToolbarTextButton fixedWidth(String text, Icon icon, int width) {
+            return new ToolbarTextButton(text, icon, width, 8, true);
+        }
+
         @Override
         public Dimension getPreferredSize() {
             Dimension contentSize = super.getPreferredSize();
             return new Dimension(
-                Math.max(contentSize.width, JBUI.scale(minimumWidth)),
+                fixedWidth ? JBUI.scale(minimumWidth) : Math.max(contentSize.width, JBUI.scale(minimumWidth)),
                 Math.max(contentSize.height, JBUI.scale(MINIMUM_HEIGHT))
             );
         }
@@ -2821,6 +2850,11 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         @Override
         public Dimension getMinimumSize() {
             return getPreferredSize();
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return fixedWidth ? getPreferredSize() : super.getMaximumSize();
         }
 
         @Override

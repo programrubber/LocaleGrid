@@ -1,0 +1,138 @@
+<svg viewBox="0 0 920 540" width="100%" height="100%" role="img" aria-labelledby="seq-title seq-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="seq-title">변경 내용 미리보기 및 저장 흐름 다이어그램</title>
+  <desc id="seq-desc">사용자가 저장을 요청하면 오류를 자동 검사하고, 변경 내역을 눈으로 직접 확인한 뒤 실제 파일에 안전하게 반영하는 전체 과정</desc>
+  <defs>
+    <marker id="arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0f172a" />
+    </marker>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
+    </marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#16a34a" />
+    </marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#dc2626" />
+    </marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#7c3aed" />
+    </marker>
+    <marker id="arr-soft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="920" height="540" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2" />
+
+  <!-- Lifelines -->
+  <line x1="90" y1="72" x2="90" y2="520" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="280" y1="72" x2="280" y2="520" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="480" y1="72" x2="480" y2="520" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="690" y1="72" x2="690" y2="520" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="840" y1="72" x2="840" y2="520" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4" />
+
+  <!-- Activation bars -->
+  <rect x="86" y="98" width="8" height="20" rx="2" fill="rgba(15,23,42,0.08)" stroke="#64748b" stroke-width="0.8" />
+  <rect x="86" y="385" width="8" height="20" rx="2" fill="rgba(15,23,42,0.08)" stroke="#64748b" stroke-width="0.8" />
+  <rect x="276" y="98" width="8" height="420" rx="2" fill="rgba(37,99,235,0.08)" stroke="#2563eb" stroke-width="0.8" />
+  <rect x="476" y="132" width="8" height="175" rx="2" fill="rgba(217,119,6,0.08)" stroke="#d97706" stroke-width="0.8" />
+  <rect x="686" y="315" width="8" height="120" rx="2" fill="rgba(124,58,237,0.08)" stroke="#7c3aed" stroke-width="0.8" />
+  <rect x="836" y="420" width="8" height="50" rx="2" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="0.8" />
+
+  <!-- Participant Boxes -->
+  <!-- 1. 사용자 -->
+  <rect x="22" y="18" width="136" height="50" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.2" />
+  <text x="90" y="38" fill="#0f172a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle">사용자</text>
+  <text x="90" y="55" fill="#64748b" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle">(작업자)</text>
+
+  <!-- 2. 다국어 에디터 -->
+  <rect x="202" y="18" width="156" height="50" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.2" />
+  <text x="280" y="38" fill="#2563eb" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle">다국어 에디터</text>
+  <text x="280" y="55" fill="#64748b" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle">(작업 화면)</text>
+
+  <!-- 3. 오류 자동 점검 -->
+  <rect x="402" y="18" width="156" height="50" rx="6" fill="#fefce8" stroke="#fef08a" stroke-width="1.2" />
+  <text x="480" y="38" fill="#d97706" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle">오류 자동 점검</text>
+  <text x="480" y="55" fill="#64748b" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle">(중복·문법 사전검사)</text>
+
+  <!-- 4. 변경 비교 창 -->
+  <rect x="612" y="18" width="156" height="50" rx="6" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.2" />
+  <text x="690" y="38" fill="#7c3aed" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle">변경 비교 창</text>
+  <text x="690" y="55" fill="#64748b" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle">(미리보기 화면)</text>
+
+  <!-- 5. 실제 번역 파일 -->
+  <rect x="780" y="18" width="120" height="50" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.2" />
+  <text x="840" y="38" fill="#0f172a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle">실제 번역 파일</text>
+  <text x="840" y="55" fill="#64748b" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle">(JSON 디스크 저장)</text>
+
+  <!-- Message 1: 사용자 -> 다국어 에디터 -->
+  <path d="M 94 105 H 270" fill="none" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-ink)" />
+  <rect x="115" y="93" width="138" height="22" rx="4" fill="#ffffff" stroke="#e2e8f0" />
+  <text x="184" y="109" fill="#0f172a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">1. [적용] 클릭 (저장 요청)</text>
+
+  <!-- Message 2: 다국어 에디터 -> 오류 자동 점검 -->
+  <path d="M 284 140 H 470" fill="none" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-ink)" />
+  <rect x="306" y="128" width="144" height="22" rx="4" fill="#ffffff" stroke="#e2e8f0" />
+  <text x="378" y="144" fill="#0f172a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">2. 키 중복 및 입력 오류 점검</text>
+
+  <!-- ALT Combined Fragment Frame -->
+  <rect x="32" y="165" width="856" height="308" rx="6" fill="rgba(15,23,42,0.015)" stroke="#e2e8f0" stroke-width="1.2" />
+  <!-- ALT Tab -->
+  <rect x="32" y="165" width="46" height="18" rx="2" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+  <text x="55" y="178" fill="#64748b" font-family="'Geist Mono', 'SFMono-Regular', Consolas, Menlo, monospace" font-size="8.5" font-weight="700" letter-spacing="0.1em" text-anchor="middle">ALT</text>
+
+  <!-- Region 1: 오류 감지 시 -->
+  <text x="88" y="179" fill="#be123c" font-family="'Geist Mono', 'SFMono-Regular', Consolas, Menlo, monospace" font-size="9" font-weight="700">[오류 감지 시: 중복 키 / 형식 에러 등]</text>
+
+  <!-- Message 3a (Return): 오류 자동 점검 -> 다국어 에디터 -->
+  <path d="M 476 200 H 290" fill="none" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#arr-red)" />
+  <rect x="312" y="188" width="142" height="22" rx="4" fill="#fff1f2" stroke="#fecdd3" />
+  <text x="383" y="204" fill="#dc2626" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">3a. 문제 항목 발견 알림</text>
+
+  <!-- Message 4a (Return): 다국어 에디터 -> 사용자 -->
+  <path d="M 276 228 H 98" fill="none" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#arr-red)" />
+  <rect x="108" y="216" width="160" height="22" rx="4" fill="#fff1f2" stroke="#fecdd3" />
+  <text x="188" y="232" fill="#dc2626" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">4a. 저장 중단 및 오류 위치 안내</text>
+
+  <!-- Region Divider -->
+  <line x1="36" y1="248" x2="884" y2="248" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="5,4" />
+
+  <!-- Region 2: 검증 통과 시 -->
+  <text x="44" y="264" fill="#15803d" font-family="'Geist Mono', 'SFMono-Regular', Consolas, Menlo, monospace" font-size="9" font-weight="700">[검증 통과 시: 이상 없음 (정상)]</text>
+
+  <!-- Message 3b (Return): 오류 자동 점검 -> 다국어 에디터 -->
+  <path d="M 476 282 H 290" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#arr-green)" />
+  <rect x="300" y="270" width="168" height="22" rx="4" fill="#f0fdf4" stroke="#bbf7d0" />
+  <text x="384" y="286" fill="#16a34a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">3b. 통과 및 추가·수정 수량 집계</text>
+
+  <!-- Message 4b: 다국어 에디터 -> 변경 비교 창 -->
+  <path d="M 284 318 H 680" fill="none" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arr-blue)" />
+  <rect x="408" y="306" width="176" height="22" rx="4" fill="#eff6ff" stroke="#bfdbfe" />
+  <text x="496" y="322" fill="#2563eb" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">4b. 변경 내역 미리보기 화면 열기</text>
+
+  <!-- Message 5b (Return): 변경 비교 창 -> 사용자 -->
+  <path d="M 686 354 H 100" fill="none" stroke="#7c3aed" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#arr-purple)" />
+  <rect x="272" y="342" width="248" height="22" rx="4" fill="#f5f3ff" stroke="#ddd6fe" />
+  <text x="396" y="358" fill="#7c3aed" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">5b. 기존 내용과 바뀐 내용을 나란히 비교 표시</text>
+
+  <!-- Message 6b: 사용자 -> 변경 비교 창 -->
+  <path d="M 94 394 H 680" fill="none" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-ink)" />
+  <rect x="290" y="382" width="216" height="22" rx="4" fill="#ffffff" stroke="#e2e8f0" />
+  <text x="398" y="398" fill="#0f172a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">6b. 변경 내역 눈으로 직접 확인 후 최종 승인</text>
+
+  <!-- Message 7b: 변경 비교 창 -> 실제 번역 파일 -->
+  <path d="M 694 430 H 830" fill="none" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arr-blue)" />
+  <rect x="704" y="418" width="116" height="22" rx="4" fill="#eff6ff" stroke="#bfdbfe" />
+  <text x="762" y="434" fill="#2563eb" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="600" text-anchor="middle">7b. 실제 파일에 저장</text>
+
+  <!-- Message 8b (Return): 실제 번역 파일 -> 다국어 에디터 -->
+  <path d="M 836 458 H 290" fill="none" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#arr-green)" />
+  <rect x="466" y="446" width="196" height="22" rx="4" fill="#f0fdf4" stroke="#bbf7d0" />
+  <text x="564" y="462" fill="#16a34a" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="middle">8b. 저장 완료 및 파일 상태 동기화</text>
+
+  <!-- Message 9 (Headline Success): 다국어 에디터 -> 사용자 -->
+  <path d="M 276 498 H 98" fill="none" stroke="#16a34a" stroke-width="2.2" marker-end="url(#arr-green)" />
+  <rect x="110" y="486" width="156" height="24" rx="4" fill="#dcfce7" stroke="#86efac" stroke-width="1.2" />
+  <text x="188" y="503" fill="#15803d" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" text-anchor="middle">9. 저장 완료 안내 표출</text>
+</svg>
