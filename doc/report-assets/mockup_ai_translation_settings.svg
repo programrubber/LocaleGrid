@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" width="100%" height="100%" style="background:#2b2d30; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <filter id="shadowDialog" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Modal Window Outer Border -->
+  <rect x="10" y="10" width="960" height="600" rx="10" fill="#2b2d30" stroke="#43454a" stroke-width="1" filter="url(#shadowDialog)" />
+
+  <!-- Window Header / Titlebar -->
+  <path d="M 10 10 L 970 10 L 970 46 L 10 46 Z" fill="#393b40" />
+  <circle cx="30" cy="28" r="6" fill="#ed6a5f" />
+  <circle cx="50" cy="28" r="6" fill="#f5bf4f" />
+  <circle cx="70" cy="28" r="6" fill="#62c554" />
+  <text x="450" y="32" fill="#dfe1e5" font-size="13" font-weight="600">Settings</text>
+
+  <!-- Left Sidebar (Settings Navigation Tree) -->
+  <rect x="10" y="46" width="240" height="510" fill="#26282c" />
+  <path d="M 250 46 L 250 556" stroke="#393b40" stroke-width="1" />
+
+  <!-- Search Settings -->
+  <rect x="22" y="58" width="216" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="32" y="75" fill="#6f737a" font-size="11">🔍 Search</text>
+
+  <!-- Tree Items -->
+  <text x="32" y="110" fill="#bcbec4" font-size="12">› Build, Execution, Deployment</text>
+  <text x="32" y="136" fill="#bcbec4" font-size="12">› Languages &amp; Frameworks</text>
+  <text x="32" y="162" fill="#dfe1e5" font-size="12" font-weight="600">˅ Tools</text>
+
+  <text x="52" y="188" fill="#bcbec4" font-size="12">Actions on Save</text>
+  <text x="52" y="214" fill="#bcbec4" font-size="12">Terminal</text>
+  <text x="52" y="240" fill="#bcbec4" font-size="12">Diff &amp; Merge</text>
+
+  <!-- Active Selection: LocaleGrid -->
+  <rect x="10" y="254" width="240" height="30" fill="#3574f0" />
+  <text x="52" y="274" fill="#ffffff" font-size="12" font-weight="bold">LocaleGrid</text>
+  <text x="220" y="274" fill="#ffffff" font-size="10">⚙</text>
+
+  <!-- Right Content Area -->
+  <rect x="251" y="46" width="719" height="570" fill="#2b2d30" />
+
+  <!-- Breadcrumbs -->
+  <text x="276" y="74" fill="#9da0a8" font-size="13"><tspan fill="#bcbec4" font-weight="bold">Tools</tspan> › <tspan fill="#dfe1e5" font-weight="bold">LocaleGrid</tspan></text>
+
+  <!-- Section 1: Basic Settings Summary (Brief) -->
+  <text x="276" y="104" fill="#dfe1e5" font-size="13" font-weight="bold">기본 설정</text>
+  <text x="276" y="126" fill="#bcbec4" font-size="12">locale 루트 경로</text>
+  <rect x="420" y="110" width="480" height="24" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="430" y="127" fill="#dfe1e5" font-size="12">locales</text>
+
+  <!-- Section 2: MULTI-MODEL EXTENSIBLE AI TRANSLATION SECTION -->
+  <rect x="268" y="150" width="672" height="440" rx="8" fill="#212226" stroke="#6366f1" stroke-width="1.5" />
+
+  <!-- Section Title with Multi-Model Badge -->
+  <text x="290" y="180" fill="#e0e7ff" font-size="14" font-weight="bold">˅ AI 다국어 번역 제안 (Multi-Model LLM 연동)</text>
+  <rect x="650" y="166" width="160" height="20" rx="10" fill="#4338ca" />
+  <text x="662" y="180" fill="#c7d2fe" font-size="11" font-weight="bold">✨ 범용 LLM 호환 규격</text>
+
+  <text x="290" y="202" fill="#868a91" font-size="11">사내 서빙 인스턴스(Qwen, Llama, DeepSeek) 및 상용 API(OpenAI, Claude 등)를 자유롭게 연동합니다.</text>
+
+  <!-- Checkbox: Enable LLM -->
+  <text x="290" y="230" fill="#3574f0" font-size="14">☑</text>
+  <text x="310" y="230" fill="#dfe1e5" font-size="12" font-weight="500">AI 다국어 제안 기능 사용</text>
+
+  <!-- Setting 1: Provider Preset Selection (Dropdown) -->
+  <text x="290" y="262" fill="#bcbec4" font-size="12">제공자 / 프리셋</text>
+  <rect x="420" y="246" width="260" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="430" y="263" fill="#dfe1e5" font-size="12">사내 서버 (vLLM / Ollama / OpenAI 규격)</text>
+  <text x="660" y="263" fill="#868a91" font-size="11">▾</text>
+
+  <!-- Setting 2: Endpoint URL -->
+  <text x="290" y="302" fill="#bcbec4" font-size="12">API 엔드포인트</text>
+  <rect x="420" y="286" width="490" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="430" y="303" fill="#38bdf8" font-size="11" font-family="'JetBrains Mono', monospace">http://llm.internal.company.com:8000/v1/chat/completions</text>
+  <text x="420" y="324" fill="#6f737a" font-size="10">* OpenAI 호환 /v1/chat/completions 규격을 지원하는 모든 사내외 서버 지원</text>
+
+  <!-- Setting 3: Model Identifier (Free Input & Preset Guide) -->
+  <text x="290" y="356" fill="#bcbec4" font-size="12">모델 식별자</text>
+  <rect x="420" y="340" width="260" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="430" y="357" fill="#a78bfa" font-size="12" font-weight="bold" font-family="'JetBrains Mono', monospace">qwen3.6-27b</text>
+  <text x="420" y="378" fill="#6f737a" font-size="10">예시: qwen3.6-27b, gpt-4o-mini, llama-3.3-70b, deepseek-v3, mistral 등 자유 입력</text>
+
+  <!-- Setting 4: API Key / Token -->
+  <text x="290" y="410" fill="#bcbec4" font-size="12">API 인증 키</text>
+  <rect x="420" y="394" width="490" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="430" y="413" fill="#6f737a" font-size="14">••••••••••••••••••••••••••••••••</text>
+  <text x="420" y="432" fill="#6f737a" font-size="10">* 사내망 인증이 필요 없는 로컬/사내 인스턴스인 경우 비워둘 수 있습니다.</text>
+
+  <!-- Setting 5: Timeout & Temperature -->
+  <text x="290" y="462" fill="#bcbec4" font-size="12">타임아웃 / 온도</text>
+  <rect x="420" y="446" width="90" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="430" y="463" fill="#dfe1e5" font-size="11">30초</text>
+  <text x="530" y="463" fill="#bcbec4" font-size="11">Temperature:</text>
+  <rect x="610" y="446" width="70" height="26" rx="4" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="622" y="463" fill="#dfe1e5" font-size="11">0.2</text>
+
+  <!-- Test Connection Action & Success Badge -->
+  <rect x="420" y="494" width="110" height="28" rx="4" fill="#393b40" stroke="#6366f1" stroke-width="1" />
+  <text x="435" y="512" fill="#e0e7ff" font-size="11" font-weight="bold">연결 테스트</text>
+
+  <!-- Success status pill showing currently connected model -->
+  <rect x="540" y="496" width="370" height="24" rx="12" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="552" y="512" fill="#a7f3d0" font-size="11">✓ 연결 성공: qwen3.6-27b 응답 확인 (지연시간: 135ms)</text>
+
+
+  <!-- Bottom Dialog Actions (Cancel, Apply, OK) -->
+  <rect x="10" y="556" width="960" height="54" rx="0 0 10 10" fill="#26282c" />
+  <path d="M 10 556 L 970 556" stroke="#393b40" stroke-width="1" />
+
+  <circle cx="40" cy="583" r="10" fill="#393b40" />
+  <text x="36" y="587" fill="#bcbec4" font-size="12">?</text>
+
+  <rect x="740" y="570" width="68" height="28" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="754" y="588" fill="#bcbec4" font-size="12">Cancel</text>
+
+  <rect x="818" y="570" width="60" height="28" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="834" y="588" fill="#bcbec4" font-size="12">Apply</text>
+
+  <rect x="888" y="570" width="60" height="28" rx="4" fill="#3574f0" />
+  <text x="906" y="588" fill="#ffffff" font-size="12" font-weight="bold">OK</text>
+</svg>

@@ -21,6 +21,14 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
     public boolean localeScriptValidationEnabled = true;
     public String localeScriptViolationSeverity = "WARNING";
 
+    // LLM 설정
+    public boolean llmEnabled = false;
+    public String llmEndpoint = "http://localhost:8000/v1/chat/completions";
+    public String llmModel = "qwen3.6-27b";
+    public String llmApiKey = "";
+    public int llmTimeoutSeconds = 30;
+    public double llmTemperature = 0.2;
+
     public static LocaleGridSettingsState getInstance(Project project) {
         LocaleGridSettingsState state = project.getService(LocaleGridSettingsState.class);
         return state == null ? new LocaleGridSettingsState() : state;
@@ -56,6 +64,20 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
 
     public boolean isLocaleScriptViolationError() {
         return "ERROR".equalsIgnoreCase(localeScriptViolationSeverity);
+    }
+
+    public String getNormalizedLlmEndpoint() {
+        if (llmEndpoint == null || llmEndpoint.trim().isEmpty()) {
+            return "http://localhost:8000/v1/chat/completions";
+        }
+        return llmEndpoint.trim();
+    }
+
+    public String getNormalizedLlmModel() {
+        if (llmModel == null || llmModel.trim().isEmpty()) {
+            return "qwen3.6-27b";
+        }
+        return llmModel.trim();
     }
 
     private static List<String> splitCsv(String value) {

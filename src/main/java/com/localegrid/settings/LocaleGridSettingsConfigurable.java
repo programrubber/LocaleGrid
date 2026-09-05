@@ -6,7 +6,9 @@ import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.HideableTitledPanel;
+import com.intellij.ui.JBColor;
 import com.localegrid.editor.LocaleGridFileEditor;
+import com.localegrid.llm.LocaleGridLlmClient;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,6 +28,14 @@ public class LocaleGridSettingsConfigurable implements Configurable {
     private JComboBox<Integer> indentComboBox;
     private JCheckBox localeScriptValidationCheckBox;
     private JComboBox<String> localeScriptSeverityComboBox;
+
+    private JCheckBox llmEnabledCheckBox;
+    private JTextField llmEndpointField;
+    private JTextField llmModelField;
+    private JPasswordField llmApiKeyField;
+    private JComboBox<Integer> llmTimeoutComboBox;
+    private JButton testConnectionButton;
+    private JLabel testConnectionResultLabel;
 
     public LocaleGridSettingsConfigurable(Project project) {
         this.project = project;
@@ -171,6 +181,110 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         c.insets = new Insets(0, 0, 8, 0);
         panel.add(advancedPanel, c);
 
+        // 7. 사내 AI 번역 제안 (LLM 연동) 패널 구성
+        JPanel aiContent = new JPanel(new GridBagLayout());
+        aiContent.setOpaque(false);
+        aiContent.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+
+        GridBagConstraints aic = new GridBagConstraints();
+        aic.insets = new Insets(8, 0, 8, 12);
+        aic.anchor = GridBagConstraints.WEST;
+        aic.fill = GridBagConstraints.HORIZONTAL;
+
+        llmEnabledCheckBox = new JCheckBox("AI 번역 제안 활성화", state.llmEnabled);
+        JComponent llmEnabledWrapper = createFieldWithHint(llmEnabledCheckBox,
+            "하단 상세 패널에서 키명 옆의 [✨ AI 번역 제안] 버튼을 통해 번역 문구를 추천받습니다.");
+
+        llmEndpointField = new JTextField(state.llmEndpoint, 32);
+        JComponent llmEndpointWrapper = createFieldWithHint(llmEndpointField,
+            "OpenAI 호환 Chat Completion 엔드포인트 URL (예: http://localhost:8000/v1/chat/completions)");
+
+        llmModelField = new JTextField(state.llmModel, 32);
+        JComponent llmModelWrapper = createFieldWithHint(llmModelField,
+            "호스팅 중인 모델 식별자 (예: qwen3.6-27b, deepseek-v3, llama-3.3, gpt-4o-mini)");
+
+        llmApiKeyField = new JPasswordField(state.llmApiKey, 32);
+        JComponent llmApiKeyWrapper = createFieldWithHint(llmApiKeyField,
+            "사내 인증 토큰 또는 API Key (필요 없는 경우 비워둡니다)");
+
+        llmTimeoutComboBox = new JComboBox<>(new Integer[]{10, 30, 60, 120});
+        llmTimeoutComboBox.setSelectedItem(state.llmTimeoutSeconds);
+        JPanel timeoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        timeoutPanel.setOpaque(false);
+        timeoutPanel.add(llmTimeoutComboBox);
+        JComponent llmTimeoutWrapper = createFieldWithHint(timeoutPanel,
+            "초 단위 응답 대기 시간입니다. 기본값은 30초입니다.");
+
+        testConnectionButton = new JButton("연결 테스트");
+        testConnectionResultLabel = new JLabel("");
+        testConnectionResultLabel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+        JPanel testPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        testPanel.setOpaque(false);
+        testPanel.add(testConnectionButton);
+        testPanel.add(testConnectionResultLabel);
+        testConnectionButton.addActionListener(e -> performTestConnection());
+
+        llmEnabledCheckBox.addActionListener(e -> updateLlmFieldsEnabled());
+
+        aic.gridwidth = 1;
+        aic.gridy = 0;
+        aic.gridx = 0;
+        aic.weightx = 0;
+        aiContent.add(new JLabel("기능 활성화"), aic);
+        aic.gridx = 1;
+        aic.weightx = 1.0;
+        aiContent.add(llmEnabledWrapper, aic);
+
+        aic.gridy = 1;
+        aic.gridx = 0;
+        aic.weightx = 0;
+        aiContent.add(new JLabel("엔드포인트 URL"), aic);
+        aic.gridx = 1;
+        aic.weightx = 1.0;
+        aiContent.add(llmEndpointWrapper, aic);
+
+        aic.gridy = 2;
+        aic.gridx = 0;
+        aic.weightx = 0;
+        aiContent.add(new JLabel("모델 식별자"), aic);
+        aic.gridx = 1;
+        aic.weightx = 1.0;
+        aiContent.add(llmModelWrapper, aic);
+
+        aic.gridy = 3;
+        aic.gridx = 0;
+        aic.weightx = 0;
+        aiContent.add(new JLabel("API Key"), aic);
+        aic.gridx = 1;
+        aic.weightx = 1.0;
+        aiContent.add(llmApiKeyWrapper, aic);
+
+        aic.gridy = 4;
+        aic.gridx = 0;
+        aic.weightx = 0;
+        aiContent.add(new JLabel("타임아웃(초)"), aic);
+        aic.gridx = 1;
+        aic.weightx = 1.0;
+        aiContent.add(llmTimeoutWrapper, aic);
+
+        aic.gridy = 5;
+        aic.gridx = 0;
+        aic.weightx = 0;
+        aiContent.add(new JLabel("연결 확인"), aic);
+        aic.gridx = 1;
+        aic.weightx = 1.0;
+        aiContent.add(testPanel, aic);
+
+        updateLlmFieldsEnabled();
+
+        HideableTitledPanel aiPanel = new HideableTitledPanel("사내 AI 번역 제안 (LLM 연동)", aiContent, true);
+
+        c.gridy = 6;
+        c.gridx = 0;
+        c.gridwidth = 2;
+        c.insets = new Insets(0, 0, 8, 0);
+        panel.add(aiPanel, c);
+
         wrapper.add(panel, BorderLayout.NORTH);
         return wrapper;
     }
@@ -202,12 +316,20 @@ public class LocaleGridSettingsConfigurable implements Configurable {
     @Override
     public boolean isModified() {
         Integer selectedIndent = (Integer) indentComboBox.getSelectedItem();
+        Integer selectedTimeout = (Integer) llmTimeoutComboBox.getSelectedItem();
+        boolean llmModified = llmEnabledCheckBox.isSelected() != state.llmEnabled
+            || !llmEndpointField.getText().trim().equals(state.llmEndpoint)
+            || !llmModelField.getText().trim().equals(state.llmModel)
+            || !new String(llmApiKeyField.getPassword()).equals(state.llmApiKey)
+            || (selectedTimeout != null && selectedTimeout != state.llmTimeoutSeconds);
+
         return !localesRootField.getText().equals(state.localesRoot)
             || !manualLocalesField.getText().equals(state.manualLocales)
             || !normalizeExceptionKeys(exceptionKeysField.getText()).equals(String.join(",", state.getExceptionKeyList()))
             || (selectedIndent != null && selectedIndent != state.jsonIndent)
             || localeScriptValidationCheckBox.isSelected() != state.localeScriptValidationEnabled
-            || !selectedScriptSeverity().equals(normalizeScriptSeverity(state.localeScriptViolationSeverity));
+            || !selectedScriptSeverity().equals(normalizeScriptSeverity(state.localeScriptViolationSeverity))
+            || llmModified;
     }
 
     @Override
@@ -239,6 +361,20 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         }
         state.localeScriptValidationEnabled = localeScriptValidationCheckBox.isSelected();
         state.localeScriptViolationSeverity = selectedScriptSeverity();
+
+        state.llmEnabled = llmEnabledCheckBox.isSelected();
+        state.llmEndpoint = llmEndpointField.getText().trim().isEmpty()
+            ? "http://localhost:8000/v1/chat/completions"
+            : llmEndpointField.getText().trim();
+        state.llmModel = llmModelField.getText().trim().isEmpty()
+            ? "qwen3.6-27b"
+            : llmModelField.getText().trim();
+        state.llmApiKey = new String(llmApiKeyField.getPassword()).trim();
+        Integer selectedTimeout = (Integer) llmTimeoutComboBox.getSelectedItem();
+        if (selectedTimeout != null) {
+            state.llmTimeoutSeconds = selectedTimeout;
+        }
+
         project.getMessageBus()
             .syncPublisher(LocaleGridSettingsListener.TOPIC)
             .settingsChanged(structuralSettingsChanged);
@@ -255,6 +391,52 @@ public class LocaleGridSettingsConfigurable implements Configurable {
             state.isLocaleScriptViolationError() ? SCRIPT_ERROR_LABEL : SCRIPT_WARNING_LABEL
         );
         updateScriptSeverityEnabled();
+
+        llmEnabledCheckBox.setSelected(state.llmEnabled);
+        llmEndpointField.setText(state.llmEndpoint);
+        llmModelField.setText(state.llmModel);
+        llmApiKeyField.setText(state.llmApiKey);
+        llmTimeoutComboBox.setSelectedItem(state.llmTimeoutSeconds);
+        testConnectionResultLabel.setText("");
+        updateLlmFieldsEnabled();
+    }
+
+    private void updateLlmFieldsEnabled() {
+        boolean enabled = llmEnabledCheckBox != null && llmEnabledCheckBox.isSelected();
+        if (llmEndpointField != null) llmEndpointField.setEnabled(enabled);
+        if (llmModelField != null) llmModelField.setEnabled(enabled);
+        if (llmApiKeyField != null) llmApiKeyField.setEnabled(enabled);
+        if (llmTimeoutComboBox != null) llmTimeoutComboBox.setEnabled(enabled);
+        if (testConnectionButton != null) testConnectionButton.setEnabled(enabled);
+    }
+
+    private void performTestConnection() {
+        testConnectionButton.setEnabled(false);
+        testConnectionResultLabel.setForeground(com.intellij.util.ui.UIUtil.getContextHelpForeground());
+        testConnectionResultLabel.setText("연결 테스트 중...");
+
+        String endpoint = llmEndpointField.getText().trim();
+        String model = llmModelField.getText().trim();
+        String apiKey = new String(llmApiKeyField.getPassword()).trim();
+        Integer timeout = (Integer) llmTimeoutComboBox.getSelectedItem();
+        int timeoutSec = timeout != null ? timeout : 10;
+
+        LocaleGridLlmClient.getInstance().testConnection(endpoint, model, apiKey, timeoutSec)
+            .thenAccept(elapsedMs -> SwingUtilities.invokeLater(() -> {
+                testConnectionButton.setEnabled(llmEnabledCheckBox.isSelected());
+                testConnectionResultLabel.setForeground(new JBColor(new Color(0, 140, 50), new Color(80, 200, 100)));
+                testConnectionResultLabel.setText("✓ 연결 성공 (" + elapsedMs + "ms)");
+            }))
+            .exceptionally(ex -> {
+                SwingUtilities.invokeLater(() -> {
+                    testConnectionButton.setEnabled(llmEnabledCheckBox.isSelected());
+                    testConnectionResultLabel.setForeground(new JBColor(new Color(200, 0, 0), new Color(255, 100, 100)));
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    String msg = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
+                    testConnectionResultLabel.setText("✗ 연결 실패: " + msg);
+                });
+                return null;
+            });
     }
 
     private static String normalizeExceptionKeys(String text) {

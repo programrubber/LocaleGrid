@@ -91,7 +91,7 @@ public class TranslationTableSaver {
                 }
                 writeFile(project, file, json, result);
             }
-            LocalFileSystem.getInstance().refreshIoFiles(table.getFilesByLocale().values(), false, false, null);
+            LocalFileSystem.getInstance().refreshIoFiles(table.getFilesByLocale().values(), true, false, null);
         });
 
         if (!result.hasErrors()) {
@@ -277,8 +277,8 @@ public class TranslationTableSaver {
             return "";
         }
         try {
-            VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
-            if (virtualFile != null) {
+            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByIoFile(file);
+            if (virtualFile != null && virtualFile.isValid()) {
                 Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
                 if (document != null) {
                     return document.getText();
@@ -295,13 +295,21 @@ public class TranslationTableSaver {
             File parent = file.getParentFile();
             if (parent != null && !parent.exists()) {
                 Files.createDirectories(parent.toPath());
-            }
-            if (!file.exists()) {
-                Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
+                VirtualFile parentVf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(parent);
+                if (parentVf != null && parentVf.isValid()) {
+                    parentVf.refresh(false, false);
+                }
             }
 
-            VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
-            if (virtualFile != null) {
+            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByIoFile(file);
+            if (virtualFile == null || !virtualFile.isValid()) {
+                if (!file.exists()) {
+                    Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
+                }
+                virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
+            }
+
+            if (virtualFile != null && virtualFile.isValid()) {
                 FileDocumentManager documentManager = FileDocumentManager.getInstance();
                 Document document = documentManager.getDocument(virtualFile);
                 if (document != null) {

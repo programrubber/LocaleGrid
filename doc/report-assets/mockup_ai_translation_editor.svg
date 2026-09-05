@@ -1,0 +1,213 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 760" width="100%" height="100%" style="background:#1e1f22; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Gradients & Filters -->
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="chipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2e1065" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Window Header / Tabs -->
+  <rect x="0" y="0" width="1060" height="38" fill="#2b2d30" />
+  <path d="M 0 38 L 1060 38" stroke="#1e1f22" stroke-width="1" />
+
+  <!-- Active Tab: auth.json -->
+  <path d="M 12 6 L 140 6 L 140 38 L 12 38 Z" fill="#1e1f22" rx="4" />
+  <!-- JSON file icon -->
+  <rect x="22" y="14" width="14" height="14" rx="2" fill="#3574f0" />
+  <text x="26" y="25" fill="#ffffff" font-size="9" font-weight="bold">{}</text>
+  <text x="42" y="24" fill="#dfe1e5" font-size="12" font-weight="500">auth.json</text>
+  <text x="122" y="24" fill="#6f737a" font-size="12">×</text>
+
+  <!-- Window Controls -->
+  <circle cx="1040" cy="20" r="2" fill="#6f737a" />
+  <circle cx="1040" cy="14" r="2" fill="#6f737a" />
+  <circle cx="1040" cy="26" r="2" fill="#6f737a" />
+
+  <!-- Top Toolbar 1 (Filters & Search & Settings) - AI 일괄 번역 버튼 완전 제거 -->
+  <rect x="0" y="38" width="1060" height="42" fill="#2b2d30" />
+  <path d="M 0 80 L 1060 80" stroke="#1e1f22" stroke-width="1" />
+
+  <!-- Filters -->
+  <text x="16" y="63" fill="#9da0a8" font-size="12">필터 :</text>
+  <rect x="54" y="47" width="46" height="24" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="64" y="63" fill="#bcbec4" font-size="11">추가</text>
+  <rect x="106" y="47" width="58" height="24" rx="4" fill="#393b40" stroke="#f59e0b" stroke-width="1.5" />
+  <text x="115" y="63" fill="#f59e0b" font-size="11" font-weight="bold">경고 1</text>
+  <rect x="170" y="47" width="46" height="24" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="180" y="63" fill="#bcbec4" font-size="11">편집</text>
+  <rect x="222" y="47" width="46" height="24" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="232" y="63" fill="#bcbec4" font-size="11">삭제</text>
+  <rect x="274" y="47" width="46" height="24" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="284" y="63" fill="#bcbec4" font-size="11">에러</text>
+
+  <!-- Search Input Center -->
+  <rect x="420" y="46" width="220" height="26" rx="13" fill="#1e1f22" stroke="#4e5157" stroke-width="1" />
+  <text x="432" y="63" fill="#6f737a" font-size="11">🔍 검색</text>
+  <text x="560" y="63" fill="#6f737a" font-size="11">0 / 0</text>
+  <text x="596" y="63" fill="#6f737a" font-size="11">↑</text>
+  <text x="612" y="63" fill="#6f737a" font-size="11">↓</text>
+
+  <!-- Right Actions: Excel, Exception, Settings (기존 깔끔한 3개 버튼 유지) -->
+  <rect x="880" y="47" width="30" height="24" rx="4" fill="#393b40" />
+  <text x="888" y="63" fill="#10b981" font-size="12">📊</text>
+
+  <rect x="918" y="47" width="64" height="24" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="926" y="63" fill="#bcbec4" font-size="11">🔑 예외키</text>
+
+  <rect x="990" y="47" width="58" height="24" rx="4" fill="#393b40" stroke="#4e5157" stroke-width="1" />
+  <text x="998" y="63" fill="#bcbec4" font-size="11">⚙️ 설정</text>
+
+  <!-- Second Row Toolbar (Columns & Row Operations) -->
+  <rect x="0" y="80" width="1060" height="34" fill="#26282c" />
+  <path d="M 0 114 L 1060 114" stroke="#1e1f22" stroke-width="1" />
+  <text x="16" y="102" fill="#9da0a8" font-size="11">Column</text>
+  <!-- Checkboxes -->
+  <text x="64" y="102" fill="#3574f0" font-size="12">☑</text><text x="78" y="102" fill="#dfe1e5" font-size="11">ko</text>
+  <text x="102" y="102" fill="#3574f0" font-size="12">☑</text><text x="116" y="102" fill="#dfe1e5" font-size="11">en</text>
+  <text x="140" y="102" fill="#3574f0" font-size="12">☑</text><text x="154" y="102" fill="#dfe1e5" font-size="11">ja</text>
+  <text x="180" y="102" fill="#6f737a" font-size="12">☐</text><text x="194" y="102" fill="#9da0a8" font-size="11">일괄보기</text>
+
+  <rect x="800" y="84" width="26" height="24" rx="3" fill="#393b40" /><text x="808" y="100" fill="#bcbec4" font-size="11">↑</text>
+  <rect x="832" y="84" width="26" height="24" rx="3" fill="#393b40" /><text x="840" y="100" fill="#bcbec4" font-size="11">↓</text>
+  <rect x="868" y="84" width="54" height="24" rx="4" fill="#393b40" /><text x="876" y="100" fill="#bcbec4" font-size="11">+ 추가</text>
+  <rect x="928" y="84" width="54" height="24" rx="4" fill="#393b40" /><text x="936" y="100" fill="#bcbec4" font-size="11">✏️ 편집</text>
+  <rect x="988" y="84" width="54" height="24" rx="4" fill="#393b40" /><text x="996" y="100" fill="#bcbec4" font-size="11">- 삭제</text>
+
+  <!-- ================= GRID TABLE AREA ================= -->
+  <!-- Table Header -->
+  <rect x="0" y="114" width="1060" height="28" fill="#2b2d30" />
+  <path d="M 0 142 L 1060 142" stroke="#393b40" stroke-width="1" />
+  <text x="32" y="132" fill="#868a91" font-size="11" font-weight="600">상태</text>
+  <text x="90" y="132" fill="#868a91" font-size="11" font-weight="600">key</text>
+  <text x="380" y="132" fill="#868a91" font-size="11" font-weight="600">ko</text>
+  <text x="610" y="132" fill="#868a91" font-size="11" font-weight="600">en</text>
+  <text x="840" y="132" fill="#868a91" font-size="11" font-weight="600">ja</text>
+
+  <!-- Row 1 -->
+  <rect x="0" y="142" width="1060" height="34" fill="#1e1f22" />
+  <text x="14" y="163" fill="#5a5d63" font-size="12">⠿</text>
+  <text x="90" y="163" fill="#bcbec4" font-size="12" font-family="'JetBrains Mono', monospace">login.title</text>
+  <text x="380" y="163" fill="#dfe1e5" font-size="12">로그인</text>
+  <text x="610" y="163" fill="#dfe1e5" font-size="12">Sign in</text>
+  <text x="840" y="163" fill="#dfe1e5" font-size="12">ログイン</text>
+  <path d="M 0 176 L 1060 176" stroke="#26282c" stroke-width="1" />
+
+  <!-- Row 2 -->
+  <rect x="0" y="176" width="1060" height="34" fill="#1e1f22" />
+  <text x="14" y="197" fill="#5a5d63" font-size="12">⠿</text>
+  <text x="90" y="197" fill="#bcbec4" font-size="12" font-family="'JetBrains Mono', monospace">login.email</text>
+  <text x="380" y="197" fill="#dfe1e5" font-size="12">이메일</text>
+  <text x="610" y="197" fill="#dfe1e5" font-size="12">Email</text>
+  <text x="840" y="197" fill="#dfe1e5" font-size="12">メール</text>
+  <path d="M 0 210 L 1060 210" stroke="#26282c" stroke-width="1" />
+
+  <!-- Row 3 (SELECTED ROW: login.forgotPassword) -->
+  <rect x="0" y="210" width="1060" height="36" fill="#264273" />
+  <text x="14" y="233" fill="#6ba2ff" font-size="12">⠿</text>
+  <rect x="26" y="217" width="38" height="20" rx="3" fill="#b45309" />
+  <text x="32" y="231" fill="#fef3c7" font-size="10" font-weight="bold">경고</text>
+  <text x="90" y="233" fill="#ffffff" font-weight="bold" font-size="12" font-family="'JetBrains Mono', monospace">login.forgotPassword</text>
+
+  <!-- Empty ko -->
+  <rect x="372" y="214" width="215" height="28" fill="#1e293b" stroke="#f59e0b" stroke-dasharray="3 3" rx="2" />
+  <text x="380" y="232" fill="#f59e0b" font-size="11" font-style="italic">(비어 있음 - 경고)</text>
+
+  <!-- Present en (Context Source) -->
+  <text x="610" y="233" fill="#ffffff" font-size="12" font-weight="500">Forgot password?</text>
+
+  <!-- Empty ja -->
+  <rect x="832" y="214" width="215" height="28" fill="#1e293b" stroke="#f59e0b" stroke-dasharray="3 3" rx="2" />
+  <text x="840" y="232" fill="#f59e0b" font-size="11" font-style="italic">(비어 있음 - 경고)</text>
+  <path d="M 0 246 L 1060 246" stroke="#385898" stroke-width="1" />
+
+  <!-- Row 4 -->
+  <rect x="0" y="246" width="1060" height="34" fill="#1e1f22" />
+  <text x="14" y="267" fill="#5a5d63" font-size="12">⠿</text>
+  <text x="90" y="267" fill="#bcbec4" font-size="12" font-family="'JetBrains Mono', monospace">login.password</text>
+  <text x="380" y="267" fill="#dfe1e5" font-size="12">비밀번호</text>
+  <text x="610" y="267" fill="#dfe1e5" font-size="12">Password</text>
+  <text x="840" y="267" fill="#dfe1e5" font-size="12">パスワード</text>
+  <path d="M 0 280 L 1060 280" stroke="#26282c" stroke-width="1" />
+
+  <!-- Splitter Divider -->
+  <rect x="0" y="310" width="1060" height="6" fill="#2b2d30" />
+  <circle cx="525" cy="313" r="1.5" fill="#6f737a" />
+  <circle cx="530" cy="313" r="1.5" fill="#6f737a" />
+  <circle cx="535" cy="313" r="1.5" fill="#6f737a" />
+
+  <!-- ================= DETAIL PANEL (NEW CHIP-BASED UI) ================= -->
+  <rect x="0" y="316" width="1060" height="364" fill="#1e1f22" />
+
+  <!-- Detail Header: Key Name + ✨ AI Suggestion Button directly next to key -->
+  <text x="24" y="346" fill="#dfe1e5" font-size="14" font-weight="bold">login.forgotPassword</text>
+
+  <!-- ✨ AI Suggestion Button right next to Key name -->
+  <g filter="url(#shadow)">
+    <rect x="190" y="328" width="128" height="26" rx="13" fill="url(#aiGradient)" stroke="#c4b5fd" stroke-width="1" />
+    <text x="202" y="345" fill="#ffffff" font-size="11" font-weight="bold">✨ AI 번역 제안</text>
+  </g>
+
+  <!-- FIELD 1: ko (Korean) -->
+  <text x="24" y="394" fill="#bcbec4" font-size="12" font-weight="bold">ko</text>
+
+  <!-- ✨ SUGGESTION CHIP (CLICKABLE) for ko -->
+  <g filter="url(#shadow)">
+    <rect x="64" y="378" width="280" height="24" rx="12" fill="url(#chipGradient)" stroke="#818cf8" stroke-width="1.5" />
+    <text x="76" y="394" fill="#c7d2fe" font-size="11">✨ <tspan fill="#ffffff" font-weight="bold">비밀번호를 잊으셨나요?</tspan></text>
+    <rect x="238" y="382" width="96" height="16" rx="8" fill="#4338ca" />
+    <text x="246" y="394" fill="#e0e7ff" font-size="10" font-weight="bold">클릭 시 적용 ↵</text>
+  </g>
+
+  <!-- Textarea for ko (Empty, ready to receive chip value) -->
+  <rect x="64" y="408" width="970" height="46" rx="4" fill="#2b2d30" stroke="#4e5157" stroke-width="1" />
+
+  <!-- FIELD 2: en (English - Already Present Source) -->
+  <text x="24" y="488" fill="#bcbec4" font-size="12" font-weight="bold">en</text>
+  <!-- Textarea for en -->
+  <rect x="64" y="470" width="970" height="46" rx="4" fill="#2b2d30" stroke="#4e5157" stroke-width="1" />
+  <text x="76" y="497" fill="#dfe1e5" font-size="13">Forgot password?</text>
+
+  <!-- FIELD 3: ja (Japanese) -->
+  <text x="24" y="552" fill="#bcbec4" font-size="12" font-weight="bold">ja</text>
+
+  <!-- ✨ SUGGESTION CHIP (CLICKABLE) for ja -->
+  <g filter="url(#shadow)">
+    <rect x="64" y="536" width="310" height="24" rx="12" fill="url(#chipGradient)" stroke="#818cf8" stroke-width="1.5" />
+    <text x="76" y="552" fill="#c7d2fe" font-size="11">✨ <tspan fill="#ffffff" font-weight="bold">パスワードをお忘れですか？</tspan></text>
+    <rect x="268" y="540" width="96" height="16" rx="8" fill="#4338ca" />
+    <text x="276" y="552" fill="#e0e7ff" font-size="10" font-weight="bold">클릭 시 적용 ↵</text>
+  </g>
+
+  <!-- Textarea for ja (Empty, ready to receive chip value) -->
+  <rect x="64" y="566" width="970" height="46" rx="4" fill="#2b2d30" stroke="#4e5157" stroke-width="1" />
+
+  <!-- ================= BOTTOM STATUS & ACTIONS ================= -->
+  <rect x="0" y="680" width="1060" height="42" fill="#26282c" />
+  <path d="M 0 680 L 1060 680" stroke="#393b40" stroke-width="1" />
+
+  <!-- Status line: 'AI가 제안했다'는 문구 없이 깨끗하게 기존 표준 상태 표시 -->
+  <text x="16" y="705" fill="#868a91" font-size="11">카테고리: <tspan fill="#bcbec4" font-weight="bold">auth</tspan> | 언어: ko, en, ja | Row: 5 | 추가: 0, 편집: 0, 삭제: 0 | 에러: 0, 경고: 1</text>
+
+  <!-- Bottom Cancel & Apply Buttons -->
+  <rect x="870" y="688" width="76" height="26" rx="4" fill="#843a3e" />
+  <text x="895" y="705" fill="#ffffff" font-size="12" font-weight="500">취소</text>
+
+  <rect x="956" y="688" width="88" height="26" rx="4" fill="#2d6d4b" />
+  <text x="986" y="705" fill="#ffffff" font-size="12" font-weight="bold">적용</text>
+
+  <!-- Bottom Tab Bar (JSON vs LocaleGrid) -->
+  <rect x="0" y="722" width="1060" height="38" fill="#1e1f22" />
+  <path d="M 0 722 L 1060 722" stroke="#2b2d30" stroke-width="1" />
+  <text x="24" y="744" fill="#6f737a" font-size="11">JSON</text>
+  <rect x="70" y="724" width="94" height="34" fill="#26282c" rx="4" />
+  <text x="82" y="744" fill="#3574f0" font-size="11" font-weight="bold">다국어 에디터</text>
+  <path d="M 74 756 L 160 756" stroke="#3574f0" stroke-width="2" />
+</svg>

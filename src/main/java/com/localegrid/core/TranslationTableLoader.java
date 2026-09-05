@@ -86,7 +86,7 @@ public class TranslationTableLoader {
     private static String readFile(File file, List<Diagnostic> diagnostics, String locale) {
         try {
             VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByIoFile(file);
-            if (virtualFile != null) {
+            if (virtualFile != null && virtualFile.isValid()) {
                 Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
                 if (document != null) {
                     return document.getText();
