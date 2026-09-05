@@ -12,6 +12,8 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.intellij.openapi.util.Disposer;
+
 import javax.swing.*;
 import java.beans.PropertyChangeListener;
 import java.util.List;
@@ -23,6 +25,7 @@ class LocaleGridJsonSourceEditor extends UserDataHolderBase implements FileEdito
     LocaleGridJsonSourceEditor(FileEditor delegate, VirtualFile file) {
         this.delegate = delegate;
         this.file = file;
+        Disposer.register(this, delegate);
     }
 
     @Override
@@ -117,6 +120,8 @@ class LocaleGridJsonSourceEditor extends UserDataHolderBase implements FileEdito
 
     @Override
     public void dispose() {
-        delegate.dispose();
+        if (!Disposer.isDisposed(delegate)) {
+            Disposer.dispose(delegate);
+        }
     }
 }
