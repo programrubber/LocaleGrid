@@ -1,0 +1,75 @@
+================================================================================
+  [폐쇄망] Cline + Headroom + Task Observer 오프라인 설치 및 운용 가이드
+================================================================================
+
+본 지침서는 인터넷이 차단된 폐쇄망(사내망)에서 VS Code Cline 확장,
+Headroom(토큰 압축 프록시), Task Observer(에이전트 관찰/학습 스킬)를 설치하고
+사내 사설 LLM과 연동하여 사용하는 절차를 안내합니다.
+
+--------------------------------------------------------------------------------
+1. 외부망(인터넷 가능 PC)에서 준비 작업
+--------------------------------------------------------------------------------
+1) Headroom Python Wheel 다운로드:
+   - Linux/Mac: ./headroom/01_download_wheels_online.sh 실행
+   - Windows:   .\headroom\01_download_wheels_online.bat 실행
+   - 또는 터미널에서 직접 실행:
+     pip download --dest ./headroom/wheels "headroom-ai[all]"
+
+2) VS Code Cline 확장(.vsix) 다운로드:
+   - 웹 브라우저에서 Open VSX 접속: https://open-vsx.org/extension/saoudrizwan/claude-dev
+   - 또는 GitHub Release: https://github.com/cline/cline/releases
+   - 최신 버전 .vsix 파일을 다운로드하여 ./cline_extension/ 폴더에 저장
+
+3) 본 번들 폴더 전체를 ZIP 압축하여 사내 보안 반입 절차(망연계/보안USB)를 통해
+   폐쇄망 PC로 반입합니다.
+
+--------------------------------------------------------------------------------
+2. 폐쇄망 PC에서 설치 작업
+--------------------------------------------------------------------------------
+1) VS Code Cline 확장 설치:
+   - VS Code 실행 -> Extensions(Ctrl+Shift+X) -> 우측 상단 '...' -> 'Install from VSIX...'
+   - 반입한 cline_extension/*.vsix 파일 선택하여 설치 완료.
+
+2) Headroom 오프라인 설치:
+   - Linux/Mac: ./headroom/02_install_airgap.sh 실행
+   - Windows:   .\headroom\02_install_airgap.bat 실행
+   - 또는 터미널에서 직접 실행:
+     python -m venv ~/.venv/headroom
+     source ~/.venv/headroom/bin/activate   (Windows: ~/.venv/headroom/Scripts/activate)
+     pip install --no-index --find-links ./headroom/wheels "headroom-ai[all]"
+
+--------------------------------------------------------------------------------
+3. Headroom 프록시 구동 (사내 LLM 연동)
+--------------------------------------------------------------------------------
+1) 사내 LLM 엔드포인트 확인:
+   - 예: http://internal-llm.company.local:8000/v1 (vLLM, Ollama, TGI 등)
+2) 프록시 스크립트 실행:
+   - Linux/Mac: ./headroom/03_run_proxy_internal_llm.sh
+   - Windows:   .\headroom\03_run_proxy_internal_llm.bat
+   - 프록시가 포트 8787에서 대기하게 됩니다.
+
+--------------------------------------------------------------------------------
+4. Cline 설정 및 프로젝트 규칙 배치
+--------------------------------------------------------------------------------
+1) VS Code Cline 설정:
+   - API Provider: 'OpenAI Compatible' 선택
+   - Base URL: http://localhost:8787/v1
+   - API Key: sk-internal-key (사내 키 또는 임의 문자열)
+   - Model ID: 사내 배포 모델명 (예: Qwen/Qwen2.5-Coder-32B-Instruct)
+
+2) 프로젝트 규칙 파일 배치:
+   - 본 패키지의 `cline_rules/.clinerules` 파일을 작업 중인 프로젝트 루트
+     (예: LocaleGrid 저장소 루트)에 복사합니다.
+   - 본 패키지의 `templates/skill-observations` 폴더를 프로젝트 루트 또는
+     홈 디렉토리(~/.claude/ 또는 프로젝트 루트)에 복사합니다.
+
+--------------------------------------------------------------------------------
+5. 한국어 출력 강제 방안 (중요)
+--------------------------------------------------------------------------------
+- Task Observer 스킬 및 인스트럭션 로직은 AI 추론 정확도를 위해 영문 구조를
+  유지하지만, `CRITICAL SYSTEM DIRECTIVE`에 의해:
+  1) 사용자와의 모든 대화, 안내, 질문, 요약은 100% 한국어로 강제됩니다.
+  2) 에이전트가 기록하는 관찰 로그(Observation Log), 규칙 제안도 한국어로 저장됩니다.
+- 자세한 내용은 `doc/2026-09-07_LocaleGrid_폐쇄망_Cline_Headroom_TaskObserver_설치_및_운용_가이드.md`
+  문서를 참고하시기 바랍니다.
+================================================================================
