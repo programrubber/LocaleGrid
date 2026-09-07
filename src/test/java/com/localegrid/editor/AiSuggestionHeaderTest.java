@@ -7,6 +7,45 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AiSuggestionHeaderTest {
     @Test
+    void temporarySourceSharesControlsAndResetsOnRowChange() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            JButton button = new AiTranslationButton("AI 번역 제안", new AiTranslationButton.SparkleIcon(), true);
+            AiSuggestionHeader header = new AiSuggestionHeader(new JLabel("testValues"), button);
+            Object row = new Object();
+            header.setSourceContext(row);
+            header.setStylesAvailable(true, true);
+            header.setSourceAvailable(true, true);
+            header.sourceInput().setText("  로그인 버튼 활성화 여부  ");
+            header.setSourceContext(row);
+            assertEquals("로그인 버튼 활성화 여부", header.sourceText());
+            java.util.concurrent.atomic.AtomicInteger requests = new java.util.concurrent.atomic.AtomicInteger();
+            button.addActionListener(event -> requests.incrementAndGet());
+            header.sourceInput().postActionEvent();
+            assertEquals(1, requests.get());
+            button.setEnabled(false);
+            header.setSourceAvailable(true, false);
+            header.sourceInput().postActionEvent();
+            assertEquals(1, requests.get());
+            assertFalse(header.sourceInput().isEnabled());
+            JPanel controls = (JPanel) header.getComponent(0);
+            for (int width : new int[]{1100, 800, 600, 480}) {
+                header.setSize(width, 28);
+                header.setSize(width, header.getPreferredSize().height);
+                header.doLayout();
+                Rectangle input = header.sourceInput().getBounds();
+                assertTrue(input.width >= 150, "input width at " + width);
+                assertTrue(input.x >= 0 && input.x + input.width <= width);
+                assertTrue(input.y + input.height <= header.getHeight());
+                for (int i : new int[]{0, 1, 2}) assertFalse(input.intersects(controls.getComponent(i).getBounds()));
+            }
+            header.setSourceAvailable(false, true);
+            assertFalse(header.sourceInput().isVisible());
+            header.setSourceContext(new Object());
+            assertEquals("", header.sourceText());
+        });
+    }
+
+    @Test
     void stylesAreExclusiveTemporaryAndDisabledWhileRequesting() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             AiSuggestionHeader header = new AiSuggestionHeader(new JLabel("login.forgotPassword"), new JButton("AI 번역 제안"));

@@ -21,6 +21,11 @@ public class TranslationSuggestionChip extends JPanel {
 
     public TranslationSuggestionChip(String locale, String suggestedText,
                                      Consumer<String> onApply, Runnable onDismiss) {
+        this(locale, suggestedText, null, onApply, onDismiss);
+    }
+
+    public TranslationSuggestionChip(String locale, String suggestedText, String candidateLabel,
+                                     Consumer<String> onApply, Runnable onDismiss) {
         super(new BorderLayout(JBUI.scale(6), 0));
         this.locale = locale;
         this.suggestedText = suggestedText;
@@ -49,7 +54,7 @@ public class TranslationSuggestionChip extends JPanel {
             @Override public void focusLost(java.awt.event.FocusEvent event) { repaint(); }
         });
 
-        preview = new JLabel(suggestedText.replace('\n', ' ').replace('\r', ' '));
+        preview = new JLabel((candidateLabel == null ? "" : candidateLabel + "  ") + suggestedText.replace('\n', ' ').replace('\r', ' '));
         preview.putClientProperty("html.disable", true);
         preview.setOpaque(false);
         preview.setFont(UIManager.getFont("Label.font").deriveFont(Font.PLAIN, 11f));

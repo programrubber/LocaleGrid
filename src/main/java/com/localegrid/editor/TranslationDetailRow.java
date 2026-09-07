@@ -35,8 +35,12 @@ final class TranslationDetailRow extends JPanel {
         int width = getWidth() > 0 ? getWidth() : JBUI.scale(600);
         int suggestionHeight = 0;
         if (suggestions.isVisible() && suggestions.getComponentCount() > 0) {
+            int fieldWidth = Math.max(1, width - getInsets().left - getInsets().right
+                - label.getPreferredSize().width - JBUI.scale(12));
+            suggestions.setSize(fieldWidth, suggestions.getHeight());
             Component card = suggestions.getComponent(0);
-            suggestionHeight = card.getPreferredSize().height + JBUI.scale(6);
+            card.setSize(fieldWidth, card.getHeight());
+            suggestionHeight = suggestions.getPreferredSize().height + JBUI.scale(6);
         }
         return new Dimension(width, getInsets().top + getInsets().bottom
             + input.getPreferredSize().height + suggestionHeight);

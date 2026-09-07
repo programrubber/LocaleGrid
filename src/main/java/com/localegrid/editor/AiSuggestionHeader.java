@@ -1,6 +1,7 @@
 package com.localegrid.editor;
 
 import com.intellij.ui.JBColor;
+import com.intellij.ui.components.JBTextField;
 import com.localegrid.llm.TranslationStyle;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
@@ -12,6 +13,32 @@ final class AiSuggestionHeader extends JPanel {
     private final JLabel aiStatus = new JLabel();
     private final JPanel styles = AiStyleButton.groupPanel();
     private final ButtonGroup styleGroup = new ButtonGroup();
+
+    private final JBTextField sourceInput = new JBTextField();
+    private Object sourceContext;
+
+    JTextField sourceInput() { return sourceInput; }
+
+    String sourceText() { return sourceInput.getText().strip(); }
+
+    void setSourceContext(Object context) {
+        if (sourceContext != context) {
+            sourceContext = context;
+            sourceInput.setText("");
+        }
+    }
+
+    void setSourceAvailable(boolean visible, boolean enabled) {
+        sourceInput.setVisible(visible);
+        sourceInput.setEnabled(enabled);
+        if (styles.getComponentCount() > 0) {
+            ((JComponent) styles.getComponent(0)).setToolTipText(visible
+                ? "설명한 상황에 맞는 화면 문구를 제안합니다."
+                : TranslationStyle.PRESERVE.description());
+        }
+        revalidate();
+        repaint();
+    }
 
     TranslationStyle selectedStyle() {
         return TranslationStyle.valueOf(styleGroup.getSelection().getActionCommand());
@@ -67,23 +94,51 @@ final class AiSuggestionHeader extends JPanel {
         }
         suggestButton.addPropertyChangeListener("font", event -> {
             aiStatus.setFont(suggestButton.getFont());
+            sourceInput.setFont(suggestButton.getFont());
             for (Component radio : styles.getComponents()) radio.setFont(suggestButton.getFont());
             revalidate();
         });
         styles.setVisible(false);
         controls.add(styles);
         controls.add(suggestButton);
+        sourceInput.getEmptyText().setText("필요한 상황과 원하는 문구를 자유롭게 설명");
+        sourceInput.setToolTipText("필요한 상황과 원하는 문구를 자유롭게 설명하세요. 개수를 지정하지 않으면 명확한 문구 1개를 우선 제안합니다.");
+        sourceInput.getAccessibleContext().setAccessibleName("필요한 문구 설명");
+        sourceInput.setFont(suggestButton.getFont());
+        sourceInput.setBackground(new JBColor(Color.WHITE, new Color(43, 40, 49)));
+        sourceInput.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new JBColor(new Color(213, 196, 234), new Color(89, 72, 111)), 1, true),
+            JBUI.Borders.empty(0, 6)));
+        sourceInput.setPreferredSize(JBUI.size(360, 24));
+        sourceInput.setVisible(false);
+        sourceInput.addActionListener(event -> suggestButton.doClick());
+        controls.add(sourceInput);
         suggestButton.putClientProperty("localegrid.integrated", true);
         add(controls, BorderLayout.WEST);
         add(aiStatus, BorderLayout.CENTER);
     }
 
+    private int controlsWidth() {
+        Container controls = (Container) getComponent(0);
+        int width = controls.getComponent(0).getPreferredSize().width + JBUI.scale(20);
+        Component button = controls.getComponent(2);
+        if (button.isVisible()) width += button.getPreferredSize().width + JBUI.scale(10);
+        if (styles.isVisible()) width += styles.getPreferredSize().width + JBUI.scale(10);
+        return width;
+    }
+
+    private boolean sourceBelow() {
+        return sourceInput.isVisible() && getWidth() > 0
+            && getWidth() < controlsWidth() + JBUI.scale(320);
+    }
+
     @Override
     public Dimension getPreferredSize() {
         Dimension base = super.getPreferredSize();
-        if (getWidth() > 0 && getWidth() < getComponent(0).getPreferredSize().width) {
-            base.height = base.height * 2 + JBUI.scale(4);
-        }
+        int rowHeight = Math.max(base.height, JBUI.scale(28));
+        base.height = rowHeight;
+        if (getWidth() > 0 && getWidth() < controlsWidth()) base.height += rowHeight + JBUI.scale(4);
+        if (sourceBelow()) base.height += JBUI.scale(28);
         return base;
     }
 
@@ -97,20 +152,34 @@ final class AiSuggestionHeader extends JPanel {
         int buttonWidth = button.isVisible() ? button.getPreferredSize().width : 0;
         int rowHeight = Math.max(title.getPreferredSize().height,
             Math.max(styles.isVisible() ? styles.getPreferredSize().height : 0, button.getPreferredSize().height));
-        boolean wrap = getWidth() < controls.getPreferredSize().width;
-        int y = wrap ? rowHeight + JBUI.scale(4) : Math.max(0, (getHeight() - rowHeight) / 2);
+        boolean wrap = getWidth() < controlsWidth();
+        boolean below = sourceBelow();
+        int y = wrap ? rowHeight + JBUI.scale(4) : Math.max(0, (getHeight() - rowHeight - (below ? JBUI.scale(28) : 0)) / 2);
         int titleWidth = wrap ? Math.max(0, getWidth() - 2 * gap) : title.getPreferredSize().width;
         controls.setBounds(0, 0, getWidth(), getHeight());
         title.setBounds(gap, (wrap ? 0 : y) + (rowHeight - title.getPreferredSize().height) / 2,
             titleWidth, title.getPreferredSize().height);
         int x = wrap ? gap : titleWidth + 2 * gap;
-        button.setBounds(x, y + (rowHeight - button.getPreferredSize().height) / 2,
-            buttonWidth, button.getPreferredSize().height);
-        x += buttonWidth + gap;
+        int groupLeft = x;
         styles.setBounds(x, y + (rowHeight - styles.getPreferredSize().height) / 2,
             styleWidth, styles.getPreferredSize().height);
         if (styles.isVisible()) x += styleWidth + gap;
-        aiStatus.setBounds(x, wrap ? y : 0, Math.max(0, getWidth() - x), wrap ? rowHeight : getHeight());
+        if (sourceInput.isVisible() && !below) {
+            int inputWidth = Math.min(sourceInput.getPreferredSize().width, Math.max(0, getWidth() - x - buttonWidth - 2 * gap));
+            sourceInput.setBounds(x, y + (rowHeight - JBUI.scale(24)) / 2, inputWidth, JBUI.scale(24));
+            x += inputWidth + gap;
+        }
+        button.setBounds(x, y + (rowHeight - button.getPreferredSize().height) / 2,
+            buttonWidth, button.getPreferredSize().height);
+        x += buttonWidth + gap;
+        if (below) {
+            int available = Math.max(0, getWidth() - groupLeft - gap - JBUI.scale(3));
+            int inputWidth = Math.min(available, Math.max(sourceInput.getPreferredSize().width,
+                x - gap - groupLeft - JBUI.scale(6)));
+            sourceInput.setBounds(groupLeft + JBUI.scale(3), y + rowHeight, inputWidth, JBUI.scale(24));
+            x = Math.max(x, sourceInput.getX() + inputWidth + gap);
+        }
+        aiStatus.setBounds(x, wrap || below ? y : 0, Math.max(0, getWidth() - x), wrap || below ? rowHeight : getHeight());
         styles.doLayout();
     }
 
@@ -122,10 +191,14 @@ final class AiSuggestionHeader extends JPanel {
         Component button = controls.getComponent(2);
         if (!button.isVisible()) return;
         int inset = JBUI.scale(3);
-        int left = button.getX() - inset;
+        int left = styles.getX() - inset;
         int top = styles.getY();
-        int width = styles.getX() + styles.getWidth() - left + inset;
+        int width = button.getX() + button.getWidth() - left + inset;
         int height = styles.getHeight();
+        if (sourceBelow()) {
+            height = sourceInput.getY() + sourceInput.getHeight() + JBUI.scale(4) - top;
+            width = Math.max(width, sourceInput.getX() + sourceInput.getWidth() - left + inset);
+        }
         Graphics2D g = (Graphics2D) graphics.create();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -133,8 +206,8 @@ final class AiSuggestionHeader extends JPanel {
             g.fillRoundRect(left, top, width, height - 1, JBUI.scale(12), JBUI.scale(12));
             g.setColor(new JBColor(new Color(213, 196, 234), new Color(89, 72, 111)));
             g.drawRoundRect(left, top, width, height - 1, JBUI.scale(12), JBUI.scale(12));
-            int divider = button.getX() + button.getWidth() + JBUI.scale(5);
-            g.drawLine(divider, top + JBUI.scale(8), divider, top + height - JBUI.scale(8));
+            int divider = button.getX() - JBUI.scale(5);
+            g.drawLine(divider, top + JBUI.scale(8), divider, top + styles.getHeight() - JBUI.scale(8));
         } finally { g.dispose(); }
     }
 

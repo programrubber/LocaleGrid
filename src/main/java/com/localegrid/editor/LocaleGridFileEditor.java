@@ -448,6 +448,17 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
         settingsButton.addActionListener(e -> openLocaleGridSettings());
         aiSuggestButton.addActionListener(e -> requestAiTranslationSuggestions());
+        aiSuggestionHeader.sourceInput().getDocument().addDocumentListener(new SimpleDocumentListener(() -> {
+            if (updatingDetail) return;
+            aiSuggestionHeader.clearAiStatus();
+            for (DetailFieldBinding binding : detailFieldBindings) {
+                binding.chipContainer().removeAll();
+                binding.chipContainer().setVisible(false);
+            }
+            detailFields.revalidate();
+            detailFields.repaint();
+            updateAiSuggestButtonState(selectedRowCount() == 1 ? selectedRow() : null);
+        }));
         excelExportButton.addActionListener(e -> exportVisibleRowsToExcel());
         addButton.addActionListener(e -> addRow());
         exceptionKeySettingsButton.addActionListener(e -> openExceptionKeySettingsDialog());
@@ -1977,6 +1988,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private void updateDetailPanel(LocaleGridRow row) {
         updatingDetail = true;
+        aiSuggestionHeader.setSourceContext(row);
         detailFields.removeAll();
         aiSuggestionHeader.clearAiStatus();
         detailFieldBindings.clear();
@@ -2044,18 +2056,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         LocaleGridAiSettingsState settings = LocaleGridAiSettingsState.getInstance(project);
         aiSuggestionHeader.setStylesAvailable(settings.llmEnabled, !isAiSuggesting);
         if (!settings.llmEnabled) {
+            aiSuggestionHeader.setSourceAvailable(false, false);
             aiSuggestButton.setVisible(false);
             aiSuggestButton.setEnabled(false);
             return;
         }
 
         aiSuggestButton.setVisible(true);
-        if (isAiSuggesting) {
-            aiSuggestButton.setEnabled(false);
-            return;
-        }
-
         if (row == null || row.isDeleted() || translationTable == null || selectedRowCount() != 1) {
+            aiSuggestionHeader.setSourceAvailable(false, false);
             aiSuggestButton.setEnabled(false);
             aiSuggestButton.setToolTipText("편집할 Row를 1개 선택하세요.");
             return;
@@ -2074,11 +2083,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             }
         }
 
-        aiSuggestButton.setEnabled(hasReference && hasEmptyTarget);
+        aiSuggestionHeader.setSourceAvailable(!hasReference && hasEmptyTarget, !isAiSuggesting);
+        boolean hasDraft = !aiSuggestionHeader.sourceText().isBlank();
+        aiSuggestButton.setEnabled(!isAiSuggesting && hasEmptyTarget && (hasReference || hasDraft));
         if (!hasEmptyTarget) {
             aiSuggestButton.setToolTipText("번역할 빈 언어 항목이 없습니다.");
         } else if (!hasReference) {
-            aiSuggestButton.setToolTipText("참조할 언어 문장이 최소 1개 이상 입력되어 있어야 합니다.");
+            aiSuggestButton.setToolTipText(hasDraft
+                ? "설명한 상황과 선택한 모드에 맞는 문구를 모든 빈 언어 항목에 추천받습니다."
+                : "옆의 입력창에 어떤 상황에 필요한 문구인지 설명하세요.");
         } else {
             aiSuggestButton.setToolTipText("입력된 언어 문맥을 종합하여 빈 언어 항목의 번역을 추천받습니다.");
         }
@@ -2112,8 +2125,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             }
         }
 
-        if (references.isEmpty()) {
-            aiSuggestionHeader.showAiStatus("참조할 기존 언어 문장이 최소 1개 이상 필요합니다.", true);
+        String sourceText = references.isEmpty() ? aiSuggestionHeader.sourceText() : "";
+        if (references.isEmpty() && sourceText.isBlank()) {
+            aiSuggestionHeader.showAiStatus("어떤 상황에 필요한 문구인지 입력하세요.", true);
             return;
         }
 
@@ -2127,19 +2141,21 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         var translationStyle = aiSuggestionHeader.selectedStyle();
         isAiSuggesting = true;
         aiSuggestionHeader.setStylesAvailable(true, false);
+        aiSuggestionHeader.sourceInput().setEnabled(false);
         aiSuggestButton.setEnabled(false);
         aiSuggestButton.setText("번역 생성 중…");
 
         aiSuggestionHeader.showAiStatus("AI 번역 제안을 생성하고 있습니다...", false);
 
-        suggestionService.requestSuggestions(targetKey, references, targets, settings, translationStyle)
+        suggestionService.requestSuggestionSets(targetKey, references, targets, settings, translationStyle, sourceText)
             .thenAccept(suggestions -> SwingUtilities.invokeLater(() -> {
                 isAiSuggesting = false;
                 aiSuggestButton.setText("AI 번역 제안");
                 LocaleGridRow currentRow = selectedRowCount() == 1 ? selectedRow() : null;
                 updateAiSuggestButtonState(currentRow);
 
-                if (currentRow == null || !targetKey.equals(currentRow.getKey())) {
+                if (currentRow != row || !targetKey.equals(currentRow.getKey())
+                    || (!sourceText.isEmpty() && !sourceText.equals(aiSuggestionHeader.sourceText()))) {
                     aiSuggestionHeader.clearAiStatus();
                     return;
                 }
@@ -2150,31 +2166,26 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
                 }
 
                 int displayedCount = 0;
-                for (Map.Entry<String, String> entry : suggestions.entrySet()) {
-                    String loc = entry.getKey();
-                    String suggestion = entry.getValue();
+                TranslationSuggestionSelection selection = new TranslationSuggestionSelection(suggestions);
+                for (String loc : targets) {
 
                     DetailFieldBinding binding = findDetailBinding(loc);
-                    if (binding != null && binding.value().isEditable() && !row.isDeleted()) {
-                        TranslationSuggestionChip chip = new TranslationSuggestionChip(
+                    if (binding != null && binding.value().isEditable() && !row.isDeleted()
+                        && binding.value().getDisplayText().isBlank()) {
+                        TranslationSuggestionChoices choices = selection.addLocale(
                             loc,
-                            suggestion,
                             appliedText -> {
                                 binding.editor().setText(appliedText);
-                                binding.chipContainer().removeAll();
-                                binding.chipContainer().setVisible(false);
-                                detailFields.revalidate();
-                                detailFields.repaint();
+                                aiSuggestionHeader.showAiStatus("선택한 안만 남겼습니다. 다른 언어의 칩도 클릭하면 적용됩니다.", false);
                             },
-                            () -> {
-                                binding.chipContainer().removeAll();
-                                binding.chipContainer().setVisible(false);
+                            visible -> {
+                                binding.chipContainer().setVisible(visible);
                                 detailFields.revalidate();
                                 detailFields.repaint();
                             }
                         );
                         binding.chipContainer().removeAll();
-                        binding.chipContainer().add(chip, BorderLayout.WEST);
+                        binding.chipContainer().add(choices, BorderLayout.CENTER);
                         binding.chipContainer().setVisible(true);
                         displayedCount++;
                     }
@@ -2182,13 +2193,18 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
                 detailFields.revalidate();
                 detailFields.repaint();
-                aiSuggestionHeader.showAiStatus(displayedCount + "개 언어의 번역 제안이 표시되었습니다. 칩을 클릭하면 적용됩니다.", false);
+                aiSuggestionHeader.showAiStatus(displayedCount + "개 언어 · 후보 " + suggestions.size() + "개 안이 표시되었습니다. 선택하면 다른 언어에도 같은 안만 남습니다.", false);
             }))
             .exceptionally(ex -> {
                 SwingUtilities.invokeLater(() -> {
                     isAiSuggesting = false;
                     aiSuggestButton.setText("AI 번역 제안");
-                    updateAiSuggestButtonState(selectedRowCount() == 1 ? selectedRow() : null);
+                    LocaleGridRow currentRow = selectedRowCount() == 1 ? selectedRow() : null;
+                    updateAiSuggestButtonState(currentRow);
+                    if (currentRow != row || (!sourceText.isEmpty() && !sourceText.equals(aiSuggestionHeader.sourceText()))) {
+                        aiSuggestionHeader.clearAiStatus();
+                        return;
+                    }
 
                     Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
                     String msg = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
