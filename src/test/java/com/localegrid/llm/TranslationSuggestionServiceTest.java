@@ -10,6 +10,35 @@ import static org.junit.jupiter.api.Assertions.*;
 class TranslationSuggestionServiceTest {
 
     @Test
+    void selectedStyleReachesClientAndRetainsTranslationContract() {
+        java.util.concurrent.atomic.AtomicReference<String> sent = new java.util.concurrent.atomic.AtomicReference<>();
+        LocaleGridLlmClient client = new LocaleGridLlmClient() {
+            @Override public java.util.concurrent.CompletableFuture<String> sendChatCompletion(
+                String endpoint, String model, String apiKey, String system, String user, double temperature, int timeout
+            ) {
+                sent.set(system);
+                assertTrue(user.contains("{name}"));
+                return java.util.concurrent.CompletableFuture.completedFuture("{\"ja\":\"保存 {name}\"}");
+            }
+        };
+        TranslationSuggestionService service = new TranslationSuggestionService(client);
+        for (TranslationStyle style : TranslationStyle.values()) {
+            var result = service.requestSuggestions("save", Map.of("ko", "사용자 {name}의 변경 사항 저장"),
+                List.of("ja"), new com.localegrid.settings.LocaleGridAiSettingsState(), style).join();
+            assertEquals("保存 {name}", result.get("ja"));
+            assertTrue(sent.get().contains(style.instruction()));
+            assertTrue(sent.get().contains("Preserve all placeholders"));
+            assertTrue(sent.get().contains("ONLY a valid JSON object"));
+            assertFalse(sent.get().contains("concisely"));
+        }
+        assertEquals(TranslationSuggestionService.buildSystemPrompt(TranslationStyle.PRESERVE),
+            TranslationSuggestionService.buildSystemPrompt());
+        String label = TranslationSuggestionService.buildSystemPrompt(TranslationStyle.LABEL);
+        assertTrue(label.contains("Labels may be as long as needed"));
+        assertTrue(label.contains("do not shorten, abbreviate, omit meaning, or impose a length limit"));
+    }
+
+    @Test
     void buildUserPrompt_includesAllReferencesAndTargets() {
         String key = "common.btn.save";
         Map<String, String> references = Map.of(

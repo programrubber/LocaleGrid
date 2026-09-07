@@ -37,6 +37,10 @@ class AiTranslationButton extends JButton {
         int textWidth = getText().isEmpty() ? 0 : metrics.stringWidth(getText());
         int gap = iconWidth > 0 && textWidth > 0 ? getIconTextGap() : 0;
         Insets padding = getInsets();
+        if (Boolean.TRUE.equals(getClientProperty("localegrid.integrated"))) {
+            return new Dimension(iconWidth + gap + textWidth + padding.left + padding.right,
+                Math.max(JBUI.scale(24), metrics.getHeight() + JBUI.scale(4)));
+        }
         return new Dimension(Math.max(JBUI.scale(28), iconWidth + gap + textWidth + padding.left + padding.right),
             Math.max(JBUI.scale(28), Math.max(metrics.getHeight(), getIcon() == null ? 0 : getIcon().getIconHeight())
                 + padding.top + padding.bottom));
@@ -52,11 +56,12 @@ class AiTranslationButton extends JButton {
             boolean pressed = isEnabled() && state.isPressed() && state.isArmed();
             boolean hover = isEnabled() && state.isRollover();
             int arc = JBUI.scale(8);
-            if (outlined || hover || pressed) {
+            boolean integrated = Boolean.TRUE.equals(getClientProperty("localegrid.integrated"));
+            if ((outlined && !integrated) || hover || pressed) {
                 g.setColor(!isEnabled() ? DISABLED_FILL : pressed ? PRESSED : hover ? HOVER : FILL);
                 g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
             }
-            if (outlined || hasFocus()) {
+            if ((outlined && !integrated) || hasFocus()) {
                 g.setColor(!isEnabled() ? DISABLED_BORDER : hasFocus() ? ACCENT : BORDER);
                 g.setStroke(new BasicStroke(hasFocus() ? JBUI.scale(2f) : JBUI.scale(1f)));
                 g.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);

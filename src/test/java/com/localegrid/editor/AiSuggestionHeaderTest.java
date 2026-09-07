@@ -7,6 +7,42 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AiSuggestionHeaderTest {
     @Test
+    void stylesAreExclusiveTemporaryAndDisabledWhileRequesting() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            AiSuggestionHeader header = new AiSuggestionHeader(new JLabel("login.forgotPassword"), new JButton("AI 번역 제안"));
+            assertEquals(com.localegrid.llm.TranslationStyle.PRESERVE, header.selectedStyle());
+            JPanel controls = (JPanel) header.getComponent(0);
+            JPanel styles = (JPanel) controls.getComponent(1);
+            assertFalse(styles.isVisible());
+            header.setStylesAvailable(true, true);
+            controls.getComponent(2).setFont(new Font(Font.DIALOG, Font.PLAIN, 12));
+            for (Component radio : styles.getComponents()) assertEquals(12, radio.getFont().getSize());
+            JToggleButton label = (JToggleButton) styles.getComponent(1);
+            label.doClick();
+            assertEquals(com.localegrid.llm.TranslationStyle.LABEL, header.selectedStyle());
+            assertFalse(((JToggleButton) styles.getComponent(0)).isSelected());
+            header.setStylesAvailable(true, false);
+            ((JToggleButton) styles.getComponent(2)).doClick();
+            assertEquals(com.localegrid.llm.TranslationStyle.LABEL, header.selectedStyle());
+            for (Component radio : styles.getComponents()) assertFalse(radio.isEnabled());
+            header.setStylesAvailable(false, true);
+            header.setStylesAvailable(true, true);
+            assertEquals(com.localegrid.llm.TranslationStyle.LABEL, header.selectedStyle());
+            for (int width : new int[]{1000, 600, 480}) {
+                header.setSize(width, 70);
+                header.doLayout();
+                Rectangle styleBounds = styles.getBounds();
+                Rectangle buttonBounds = controls.getComponent(2).getBounds();
+                assertFalse(styleBounds.intersects(buttonBounds));
+                assertTrue(buttonBounds.x + buttonBounds.width <= width);
+                assertFalse(controls.getComponent(0).getBounds().intersects(styleBounds));
+            }
+            AiSuggestionHeader reopened = new AiSuggestionHeader(new JLabel("key"), new JButton("AI 번역 제안"));
+            assertEquals(com.localegrid.llm.TranslationStyle.PRESERVE, reopened.selectedStyle());
+        });
+    }
+
+    @Test
     void aiFeedbackNeverReplacesTableStatusOrItsColor() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             JLabel table = new JLabel("카테고리: login | Row: 8 | 편집: 1 | 에러: 0, 경고: 2");

@@ -44,6 +44,16 @@ public class TranslationSuggestionService {
         List<String> targetLocales,
         LocaleGridAiSettingsState settings
     ) {
+        return requestSuggestions(key, referenceTranslations, targetLocales, settings, TranslationStyle.PRESERVE);
+    }
+
+    public CompletableFuture<Map<String, String>> requestSuggestions(
+        String key,
+        Map<String, String> referenceTranslations,
+        List<String> targetLocales,
+        LocaleGridAiSettingsState settings,
+        TranslationStyle style
+    ) {
         if (referenceTranslations == null || referenceTranslations.isEmpty()) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("참조할 기존 언어 문장이 없습니다."));
         }
@@ -51,7 +61,7 @@ public class TranslationSuggestionService {
             return CompletableFuture.completedFuture(Collections.emptyMap());
         }
 
-        String systemPrompt = buildSystemPrompt();
+        String systemPrompt = buildSystemPrompt(style);
         String userPrompt = buildUserPrompt(key, referenceTranslations, targetLocales);
 
         return llmClient.sendChatCompletion(
@@ -66,9 +76,14 @@ public class TranslationSuggestionService {
     }
 
     public static String buildSystemPrompt() {
+        return buildSystemPrompt(TranslationStyle.PRESERVE);
+    }
+
+    public static String buildSystemPrompt(TranslationStyle style) {
+        Objects.requireNonNull(style, "style");
         return """
             You are an expert localization translation assistant for software internationalization (i18n).
-            Translate software UI text accurately, naturally, and concisely into the requested target languages.
+            Translate software UI text accurately and naturally into the requested target languages.
 
             CRITICAL RULES:
             1. Carefully analyze ALL provided reference translations together to resolve ambiguity and understand the exact UI context.
@@ -78,7 +93,9 @@ public class TranslationSuggestionService {
 
             Example output format:
             {"ja": "保存", "vi": "Lưu"}
-            """.stripIndent().trim();
+            """.stripIndent().trim()
+            + "\n\nOUTPUT STYLE:\n" + style.instruction()
+            + "\nUse all references to determine meaning; apply the selected output style to the translations.";
     }
 
     public static String buildUserPrompt(

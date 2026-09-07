@@ -2042,6 +2042,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
 
     private void updateAiSuggestButtonState(@Nullable LocaleGridRow row) {
         LocaleGridAiSettingsState settings = LocaleGridAiSettingsState.getInstance(project);
+        aiSuggestionHeader.setStylesAvailable(settings.llmEnabled, !isAiSuggesting);
         if (!settings.llmEnabled) {
             aiSuggestButton.setVisible(false);
             aiSuggestButton.setEnabled(false);
@@ -2123,13 +2124,15 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
         }
 
         String targetKey = row.getKey();
+        var translationStyle = aiSuggestionHeader.selectedStyle();
         isAiSuggesting = true;
+        aiSuggestionHeader.setStylesAvailable(true, false);
         aiSuggestButton.setEnabled(false);
         aiSuggestButton.setText("번역 생성 중…");
 
         aiSuggestionHeader.showAiStatus("AI 번역 제안을 생성하고 있습니다...", false);
 
-        suggestionService.requestSuggestions(targetKey, references, targets, settings)
+        suggestionService.requestSuggestions(targetKey, references, targets, settings, translationStyle)
             .thenAccept(suggestions -> SwingUtilities.invokeLater(() -> {
                 isAiSuggesting = false;
                 aiSuggestButton.setText("AI 번역 제안");
