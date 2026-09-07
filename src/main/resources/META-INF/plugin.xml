@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>com.localegrid</id>
     <name>LocaleGrid</name>
-    <version>0.14.0</version>
+    <version>0.15.0</version>
     <vendor>LocaleGrid</vendor>
 
     <description><![CDATA[
@@ -28,6 +28,7 @@
                              displayName="LocaleGrid"
                              id="com.localegrid.settings"
                              instance="com.localegrid.settings.LocaleGridSettingsConfigurable"/>
+        <applicationService serviceImplementation="com.localegrid.settings.LocaleGridAiSettingsState"/>
         <projectService serviceImplementation="com.localegrid.settings.LocaleGridSettingsState"/>
     </extensions>
 </idea-plugin>

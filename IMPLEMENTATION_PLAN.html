@@ -445,6 +445,7 @@
         <p><strong>목표:</strong> 사내 호스팅 <code>qwen3.6-27b</code>를 비롯한 OpenAI 규격 호환 REST LLM을 연동하여, 하단 상세 패널에서 원클릭으로 고품질 다국어 번역 추천을 제공한다.</p>
         <p><strong>세부 구현 내용:</strong></p>
         <ul>
+          <li>사내 AI 번역 제안의 활성화 여부, 엔드포인트, 모델, API Key, 타임아웃과 temperature는 IDE 전체에서 공유한다. 기본·고급 설정은 프로젝트별로 유지한다. 글로벌 설정이 없으면 처음 접근한 사용자 지정 AI 프로젝트 설정을 한 번 가져오며, 이후 다른 프로젝트 설정으로 덮어쓰지 않는다. 기본값뿐인 프로젝트는 이관 대상에서 제외한다. 설정 적용 시 모든 열린 프로젝트의 AI 버튼에 반영한다.</li>
           <li><strong>설정 모델 및 UI 확장:</strong> LLM 활성화 여부, 엔드포인트 URL, 모델 식별자, API Key, 타임아웃 설정 및 접이식 패널과 실시간 <code>[연결 테스트]</code> 버튼 제공 (팁 상자 배제).</li>
           <li><strong>LLM 비동기 통신 클라이언트:</strong> Java 17 표준 <code>HttpClient</code>와 <code>org.json</code> 기반 비동기 REST 통신 및 Markdown 코드 블록 자동 추출.</li>
           <li><strong>다중 언어 문맥 기반 추천 서비스:</strong> 하단 패널에 입력된 모든 언어의 텍스트를 문맥(Context)으로 종합하여 LLM에 전달, 다의성 해소 및 플레이스홀더(<code>{0}</code>, <code>%s</code> 등) 보존 검증.</li>

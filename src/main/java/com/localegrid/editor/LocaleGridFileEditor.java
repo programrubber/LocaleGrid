@@ -45,6 +45,8 @@ import com.localegrid.model.LocaleValue;
 import com.localegrid.model.TranslationTable;
 import com.localegrid.settings.LocaleGridSettingsState;
 import com.localegrid.settings.LocaleGridSettingsListener;
+import com.localegrid.settings.LocaleGridAiSettingsState;
+import com.localegrid.settings.LocaleGridAiSettingsListener;
 import com.localegrid.llm.TranslationSuggestionService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -211,6 +213,9 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     private void installClosePrompt() {
         var connection = project.getMessageBus().connect(this);
         connection.subscribe(LocaleGridSettingsListener.TOPIC, this::handleSettingsChanged);
+        com.intellij.openapi.application.ApplicationManager.getApplication().getMessageBus()
+            .connect(this).subscribe(LocaleGridAiSettingsListener.TOPIC,
+                () -> updateAiSuggestButtonState(selectedRowCount() == 1 ? selectedRow() : null));
         connection.subscribe(FileEditorManagerListener.Before.FILE_EDITOR_MANAGER, new FileEditorManagerListener.Before() {
             @Override
             public void beforeFileClosed(@NotNull FileEditorManager source, @NotNull VirtualFile closingFile) {
@@ -2036,7 +2041,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
     }
 
     private void updateAiSuggestButtonState(@Nullable LocaleGridRow row) {
-        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
+        LocaleGridAiSettingsState settings = LocaleGridAiSettingsState.getInstance(project);
         if (!settings.llmEnabled) {
             aiSuggestButton.setVisible(false);
             aiSuggestButton.setEnabled(false);
@@ -2087,7 +2092,7 @@ public class LocaleGridFileEditor extends UserDataHolderBase implements FileEdit
             return;
         }
 
-        LocaleGridSettingsState settings = LocaleGridSettingsState.getInstance(project);
+        LocaleGridAiSettingsState settings = LocaleGridAiSettingsState.getInstance(project);
         if (!settings.llmEnabled) {
             return;
         }

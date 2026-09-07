@@ -21,7 +21,8 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
     public boolean localeScriptValidationEnabled = true;
     public String localeScriptViolationSeverity = "WARNING";
 
-    // LLM 설정
+    // 이전 버전의 프로젝트 설정을 글로벌 설정으로 가져오기 위한 호환 필드.
+    // 신규 AI 설정은 LocaleGridAiSettingsState에만 저장한다.
     public boolean llmEnabled = false;
     public String llmEndpoint = "http://localhost:8000/v1/chat/completions";
     public String llmModel = "qwen3.6-27b";
@@ -64,20 +65,6 @@ public class LocaleGridSettingsState implements PersistentStateComponent<LocaleG
 
     public boolean isLocaleScriptViolationError() {
         return "ERROR".equalsIgnoreCase(localeScriptViolationSeverity);
-    }
-
-    public String getNormalizedLlmEndpoint() {
-        if (llmEndpoint == null || llmEndpoint.trim().isEmpty()) {
-            return "http://localhost:8000/v1/chat/completions";
-        }
-        return llmEndpoint.trim();
-    }
-
-    public String getNormalizedLlmModel() {
-        if (llmModel == null || llmModel.trim().isEmpty()) {
-            return "qwen3.6-27b";
-        }
-        return llmModel.trim();
     }
 
     private static List<String> splitCsv(String value) {

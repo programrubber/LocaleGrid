@@ -421,7 +421,8 @@ warning:
 
 세부 구현 내용:
 
-- **설정 모델 및 UI 확장 (`LocaleGridSettingsState`, `LocaleGridSettingsConfigurable`)**:
+- **설정 모델 및 UI 확장 (`LocaleGridAiSettingsState`, `LocaleGridSettingsConfigurable`)**:
+  - 사내 AI 번역 제안의 활성화 여부, 엔드포인트, 모델, API Key, 타임아웃과 temperature는 IDE 전체에서 공유한다. 기본·고급 설정은 프로젝트별로 유지한다. 글로벌 설정이 없으면 처음 접근한 사용자 지정 AI 프로젝트 설정을 한 번 가져오며, 이후 다른 프로젝트 설정으로 덮어쓰지 않는다. 기본값뿐인 프로젝트는 이관 대상에서 제외한다. 설정 적용 시 모든 열린 프로젝트의 AI 버튼에 반영한다.
   - LLM 활성화 여부(`llmEnabled`), 엔드포인트 URL(`llmEndpoint`), 모델 식별자(`llmModel`), API Key(`llmApiKey`), 타임아웃(`llmTimeoutSeconds`) 설정 추가.
   - 접이식 패널 `사내 AI 번역 제안 (LLM 연동)` 제공 및 실시간 엔드포인트 응답 속도를 측정하는 `[연결 테스트]` 버튼 지원.
   - 사용자 지침에 따라 팁 상자 배제 및 깔끔한 보조 힌트 텍스트 배치.

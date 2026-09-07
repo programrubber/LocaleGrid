@@ -22,6 +22,7 @@ public class LocaleGridSettingsConfigurable implements Configurable {
 
     private final Project project;
     private final LocaleGridSettingsState state;
+    private final LocaleGridAiSettingsState aiState;
     private JTextField localesRootField;
     private com.intellij.ui.components.JBTextField manualLocalesField;
     private JTextField exceptionKeysField;
@@ -40,6 +41,7 @@ public class LocaleGridSettingsConfigurable implements Configurable {
     public LocaleGridSettingsConfigurable(Project project) {
         this.project = project;
         this.state = LocaleGridSettingsState.getInstance(project);
+        this.aiState = LocaleGridAiSettingsState.getInstance(project);
     }
 
     @Override
@@ -181,7 +183,7 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         c.insets = new Insets(0, 0, 8, 0);
         panel.add(advancedPanel, c);
 
-        // 7. 사내 AI 번역 제안 (LLM 연동) 패널 구성
+        // 7. 사내 AI 번역 제안 (모든 프로젝트 공통) 패널 구성
         JPanel aiContent = new JPanel(new GridBagLayout());
         aiContent.setOpaque(false);
         aiContent.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
@@ -191,24 +193,24 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         aic.anchor = GridBagConstraints.WEST;
         aic.fill = GridBagConstraints.HORIZONTAL;
 
-        llmEnabledCheckBox = new JCheckBox("AI 번역 제안 활성화", state.llmEnabled);
+        llmEnabledCheckBox = new JCheckBox("AI 번역 제안 활성화", aiState.llmEnabled);
         JComponent llmEnabledWrapper = createFieldWithHint(llmEnabledCheckBox,
-            "하단 상세 패널에서 키명 옆의 [✨ AI 번역 제안] 버튼을 통해 번역 문구를 추천받습니다.");
+            "<html>이 설정은 IDE의 모든 프로젝트에서 공유합니다.<br>하단 상세 패널의 [AI 번역 제안] 버튼으로 번역 문구를 추천받습니다.</html>");
 
-        llmEndpointField = new JTextField(state.llmEndpoint, 32);
+        llmEndpointField = new JTextField(aiState.llmEndpoint, 32);
         JComponent llmEndpointWrapper = createFieldWithHint(llmEndpointField,
             "OpenAI 호환 Chat Completion 엔드포인트 URL (예: http://localhost:8000/v1/chat/completions)");
 
-        llmModelField = new JTextField(state.llmModel, 32);
+        llmModelField = new JTextField(aiState.llmModel, 32);
         JComponent llmModelWrapper = createFieldWithHint(llmModelField,
             "호스팅 중인 모델 식별자 (예: qwen3.6-27b, deepseek-v3, llama-3.3, gpt-4o-mini)");
 
-        llmApiKeyField = new JPasswordField(state.llmApiKey, 32);
+        llmApiKeyField = new JPasswordField(aiState.llmApiKey, 32);
         JComponent llmApiKeyWrapper = createFieldWithHint(llmApiKeyField,
             "사내 인증 토큰 또는 API Key (필요 없는 경우 비워둡니다)");
 
         llmTimeoutComboBox = new JComboBox<>(new Integer[]{10, 30, 60, 120});
-        llmTimeoutComboBox.setSelectedItem(state.llmTimeoutSeconds);
+        llmTimeoutComboBox.setSelectedItem(aiState.llmTimeoutSeconds);
         JPanel timeoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         timeoutPanel.setOpaque(false);
         timeoutPanel.add(llmTimeoutComboBox);
@@ -277,7 +279,7 @@ public class LocaleGridSettingsConfigurable implements Configurable {
 
         updateLlmFieldsEnabled();
 
-        HideableTitledPanel aiPanel = new HideableTitledPanel("사내 AI 번역 제안 (LLM 연동)", aiContent, true);
+        HideableTitledPanel aiPanel = new HideableTitledPanel("사내 AI 번역 제안 (모든 프로젝트 공통)", aiContent, true);
 
         c.gridy = 6;
         c.gridx = 0;
@@ -317,11 +319,11 @@ public class LocaleGridSettingsConfigurable implements Configurable {
     public boolean isModified() {
         Integer selectedIndent = (Integer) indentComboBox.getSelectedItem();
         Integer selectedTimeout = (Integer) llmTimeoutComboBox.getSelectedItem();
-        boolean llmModified = llmEnabledCheckBox.isSelected() != state.llmEnabled
-            || !llmEndpointField.getText().trim().equals(state.llmEndpoint)
-            || !llmModelField.getText().trim().equals(state.llmModel)
-            || !new String(llmApiKeyField.getPassword()).equals(state.llmApiKey)
-            || (selectedTimeout != null && selectedTimeout != state.llmTimeoutSeconds);
+        boolean llmModified = llmEnabledCheckBox.isSelected() != aiState.llmEnabled
+            || !llmEndpointField.getText().trim().equals(aiState.llmEndpoint)
+            || !llmModelField.getText().trim().equals(aiState.llmModel)
+            || !new String(llmApiKeyField.getPassword()).equals(aiState.llmApiKey)
+            || (selectedTimeout != null && selectedTimeout != aiState.llmTimeoutSeconds);
 
         return !localesRootField.getText().equals(state.localesRoot)
             || !manualLocalesField.getText().equals(state.manualLocales)
@@ -362,18 +364,22 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         state.localeScriptValidationEnabled = localeScriptValidationCheckBox.isSelected();
         state.localeScriptViolationSeverity = selectedScriptSeverity();
 
-        state.llmEnabled = llmEnabledCheckBox.isSelected();
-        state.llmEndpoint = llmEndpointField.getText().trim().isEmpty()
+        aiState.llmEnabled = llmEnabledCheckBox.isSelected();
+        aiState.llmEndpoint = llmEndpointField.getText().trim().isEmpty()
             ? "http://localhost:8000/v1/chat/completions"
             : llmEndpointField.getText().trim();
-        state.llmModel = llmModelField.getText().trim().isEmpty()
+        aiState.llmModel = llmModelField.getText().trim().isEmpty()
             ? "qwen3.6-27b"
             : llmModelField.getText().trim();
-        state.llmApiKey = new String(llmApiKeyField.getPassword()).trim();
+        aiState.llmApiKey = new String(llmApiKeyField.getPassword()).trim();
         Integer selectedTimeout = (Integer) llmTimeoutComboBox.getSelectedItem();
         if (selectedTimeout != null) {
-            state.llmTimeoutSeconds = selectedTimeout;
+            aiState.llmTimeoutSeconds = selectedTimeout;
         }
+
+        aiState.initialized = true;
+        com.intellij.openapi.application.ApplicationManager.getApplication().getMessageBus()
+            .syncPublisher(LocaleGridAiSettingsListener.TOPIC).settingsChanged();
 
         project.getMessageBus()
             .syncPublisher(LocaleGridSettingsListener.TOPIC)
@@ -392,11 +398,11 @@ public class LocaleGridSettingsConfigurable implements Configurable {
         );
         updateScriptSeverityEnabled();
 
-        llmEnabledCheckBox.setSelected(state.llmEnabled);
-        llmEndpointField.setText(state.llmEndpoint);
-        llmModelField.setText(state.llmModel);
-        llmApiKeyField.setText(state.llmApiKey);
-        llmTimeoutComboBox.setSelectedItem(state.llmTimeoutSeconds);
+        llmEnabledCheckBox.setSelected(aiState.llmEnabled);
+        llmEndpointField.setText(aiState.llmEndpoint);
+        llmModelField.setText(aiState.llmModel);
+        llmApiKeyField.setText(aiState.llmApiKey);
+        llmTimeoutComboBox.setSelectedItem(aiState.llmTimeoutSeconds);
         testConnectionResultLabel.setText("");
         updateLlmFieldsEnabled();
     }

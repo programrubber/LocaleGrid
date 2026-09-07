@@ -1,6 +1,6 @@
 package com.localegrid.llm;
 
-import com.localegrid.settings.LocaleGridSettingsState;
+import com.localegrid.settings.LocaleGridAiSettingsState;
 import org.json.JSONObject;
 
 import java.util.*;
@@ -42,7 +42,7 @@ public class TranslationSuggestionService {
         String key,
         Map<String, String> referenceTranslations,
         List<String> targetLocales,
-        LocaleGridSettingsState settings
+        LocaleGridAiSettingsState settings
     ) {
         if (referenceTranslations == null || referenceTranslations.isEmpty()) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("참조할 기존 언어 문장이 없습니다."));
